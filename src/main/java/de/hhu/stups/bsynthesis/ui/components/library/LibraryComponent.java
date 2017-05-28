@@ -14,6 +14,7 @@ import java.util.Objects;
 public class LibraryComponent {
 
   private final StringProperty componentNameProperty;
+  private final StringProperty syntaxProperty;
   private final IntegerProperty amountProperty;
   private final LibraryComponentType libraryComponentType;
 
@@ -26,10 +27,12 @@ public class LibraryComponent {
    * @param libraryComponentType The component's {@link LibraryComponentType}.
    */
   public LibraryComponent(final String componentName,
+                          final String syntax,
                           final int amount,
                           final LibraryComponentType libraryComponentType) {
     this.libraryComponentType = libraryComponentType;
     componentNameProperty = new SimpleStringProperty(componentName);
+    syntaxProperty = new SimpleStringProperty(syntax);
     amountProperty = new SimpleIntegerProperty(amount);
   }
 
@@ -57,8 +60,8 @@ public class LibraryComponent {
     return componentNameProperty;
   }
 
-  public String getComponentName() {
-    return componentNameProperty.get();
+  public StringProperty syntaxProperty() {
+    return syntaxProperty;
   }
 
   public LibraryComponentType getLibraryComponentType() {
