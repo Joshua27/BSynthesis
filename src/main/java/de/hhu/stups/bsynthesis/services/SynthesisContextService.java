@@ -3,10 +3,10 @@ package de.hhu.stups.bsynthesis.services;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.prob.statespace.AnimationSelector;
 import de.prob.statespace.StateSpace;
 
@@ -23,7 +23,7 @@ import javafx.collections.ObservableSet;
 
 /**
  * A service providing several properties describing the current synthesis context, i.e. the
- * currently loaded machine's information, results from model checking or factories.
+ * currently loaded machine's information, results from model checking.
  */
 @Singleton
 public class SynthesisContextService {
@@ -41,6 +41,9 @@ public class SynthesisContextService {
   private final ObjectProperty<AnimationSelector> animationSelectorProperty;
   private final BooleanProperty showSynthesisTabProperty;
 
+  /**
+   * Initialize all properties and set the injected factories.
+   */
   @Inject
   public SynthesisContextService(final NodeContextMenuFactory nodeContextMenuFactory,
                                  final StateNodeFactory stateNodeFactory,

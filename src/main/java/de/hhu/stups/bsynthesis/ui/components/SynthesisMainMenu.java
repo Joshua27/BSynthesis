@@ -4,18 +4,11 @@ import com.google.inject.Inject;
 
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.scripting.Api;
 import de.prob.scripting.ModelTranslationError;
 import de.prob.statespace.StateSpace;
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
@@ -29,6 +22,13 @@ import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SynthesisMainMenu extends MenuBar implements Initializable {
 
@@ -81,6 +81,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   private MenuItem menuItemNodesFromTrace;
 
+  /**
+   * Initialize the variables derived by the injector and load the fxml resource.
+   */
   @Inject
   public SynthesisMainMenu(final FXMLLoader loader,
                            final Api proBApi,
@@ -137,6 +140,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         .or(modelCheckingService.indicatorPresentProperty()));
   }
 
+  /**
+   * Load a machine from a .mch file.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void loadMachine() {
@@ -160,6 +166,10 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     }
   }
 
+  /**
+   * Create a new operation using synthesis. Therefore, clear the {@link ValidationPane} and set
+   * specific context properties.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void newOperation() {
@@ -170,6 +180,11 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     synthesisInfoBox.reset();
   }
 
+  /**
+   * Clear the {@link ValidationPane} and show the nodes from the trace found by the model checker.
+   * Only enabled if the model checker found an error {@link
+   * ModelCheckingService#errorFoundProperty()}.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void showNodesFromTrace() {
@@ -179,6 +194,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     validationPane.initializeNodesFromTrace();
   }
 
+  /**
+   * Visualize an existing operation by collecting several transitions.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void visualizeOperation() {
@@ -188,6 +206,10 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     // TODO
   }
 
+  /**
+   * Run the model checker and display the progress using the {@link
+   * ModelCheckingProgressIndicator}.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void runModelChecking() {
@@ -202,6 +224,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         .set(synthesisContextService.stateSpaceProperty().get());
   }
 
+  /**
+   * Interrupt the model checker.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void stopModelChecking() {
@@ -228,6 +253,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     // TODO
   }
 
+  /**
+   * Clear the {@link ValidationPane}, i.e., delete all available nodes.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void clear() {

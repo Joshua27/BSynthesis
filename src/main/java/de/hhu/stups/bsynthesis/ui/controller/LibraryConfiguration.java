@@ -3,16 +3,9 @@ package de.hhu.stups.bsynthesis.ui.controller;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.hhu.stups.bsynthesis.ui.components.library.LibraryComponent;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
+import de.hhu.stups.bsynthesis.ui.components.library.LibraryComponent;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -32,10 +25,22 @@ import javafx.scene.control.TreeView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+/**
+ * Provides an user interface to configure the used {@link BLibrary} for synthesizing programs or
+ * deciding to use the default library configuration, i.e., starting from a small library and
+ * successively considering new components if necessary.
+ */
 @Singleton
 public class LibraryConfiguration extends GridPane implements Initializable {
 
-  private final BLibrary bLibrary;
+  private final BLibrary staticBLibrary;
   private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
 
   @FXML
@@ -89,10 +94,15 @@ public class LibraryConfiguration extends GridPane implements Initializable {
 
   // TODO: maybe use a TreeTableView for selected library components to display the component amount
 
+  /**
+   * Initialize the {@link #staticBLibrary} to display the available {@link LibraryComponent library
+   * components} to choose from. Also set up an empty {@link BLibrary} to store the library
+   * components selected by the user.
+   */
   @Inject
   public LibraryConfiguration(final FXMLLoader loader) {
-    bLibrary = new BLibrary();
-    bLibrary.initializeLibrary();
+    staticBLibrary = new BLibrary();
+    staticBLibrary.initializeLibrary();
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
 
     loader.setLocation(getClass().getResource("library_configuration.fxml"));
@@ -115,6 +125,10 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     initializeTreeViewSelectedLibrary();
   }
 
+  /**
+   * Increase the amount of the selected library component in {@link #treeViewSelectedLibrary} by
+   * one.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void increaseSelectedComponentAmount() {
@@ -125,6 +139,10 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     }
   }
 
+  /**
+   * Decrease the amount of the selected library component in {@link #treeViewSelectedLibrary} by
+   * one.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void decreaseSelectedComponentAmount() {
@@ -135,6 +153,9 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     }
   }
 
+  /**
+   * Remove the selected library component from {@link #treeViewSelectedLibrary}.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void removeSelectedComponent() {
@@ -177,15 +198,15 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * #treeViewSelectedLibrary} on double click.
    */
   private void initializeTreeViewLibrary() {
-    bLibrary.getPredicates().stream().map(TreeItem::new)
+    staticBLibrary.getPredicates().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemPredicates.getChildren().add(treeItem));
-    bLibrary.getSets().stream().map(TreeItem::new)
+    staticBLibrary.getSets().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemSets.getChildren().add(treeItem));
-    bLibrary.getNumbers().stream().map(TreeItem::new)
+    staticBLibrary.getNumbers().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemNumbers.getChildren().add(treeItem));
-    bLibrary.getRelations().stream().map(TreeItem::new)
+    staticBLibrary.getRelations().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemRelations.getChildren().add(treeItem));
-    bLibrary.getSequences().stream().map(TreeItem::new)
+    staticBLibrary.getSequences().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemSequences.getChildren().add(treeItem));
 
     treeViewLibrary.setOnMouseClicked(mouseEvent -> {

@@ -4,9 +4,9 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.Trace;
 
-import java.util.HashMap;
-
 import javafx.geometry.Point2D;
+
+import java.util.HashMap;
 
 /**
  * Stores a map containing values needed during the initial visualization of nodes from a trace

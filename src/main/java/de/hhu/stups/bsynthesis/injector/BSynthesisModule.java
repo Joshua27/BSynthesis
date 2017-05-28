@@ -7,29 +7,30 @@ import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.util.Providers;
 
 import de.codecentric.centerdevice.MenuToolkit;
-import de.hhu.stups.bsynthesis.ui.controller.CodeView;
-import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
-import de.hhu.stups.bsynthesis.ui.controller.LibraryConfiguration;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
-import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
-import de.hhu.stups.bsynthesis.ui.components.nodes.NodeHeader;
-import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
-import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
-import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
-import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
-import de.hhu.stups.bsynthesis.ui.components.factories.ValidationContextMenuFactory;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
+import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
+import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
+import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
+import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
+import de.hhu.stups.bsynthesis.ui.components.factories.ValidationContextMenuFactory;
+import de.hhu.stups.bsynthesis.ui.components.nodes.NodeHeader;
+import de.hhu.stups.bsynthesis.ui.controller.CodeView;
+import de.hhu.stups.bsynthesis.ui.controller.LibraryConfiguration;
+import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
+import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.MainModule;
+
+import javafx.fxml.FXMLLoader;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-import javafx.fxml.FXMLLoader;
-
 public class BSynthesisModule extends AbstractModule {
 
-  private static final boolean IS_MAC = System.getProperty("os.name", "").toLowerCase().contains("mac");
+  private static final boolean IS_MAC = System.getProperty("os.name", "")
+      .toLowerCase().contains("mac");
 
   private final Locale locale = new Locale("en");
   private final ResourceBundle bundle = ResourceBundle.getBundle("bundles.bsynthesis", locale);
@@ -61,6 +62,9 @@ public class BSynthesisModule extends AbstractModule {
     install(new FactoryModuleBuilder().build(NodeContextMenuFactory.class));
   }
 
+  /**
+   * Provide the {@link FXMLLoader}.
+   */
   @Provides
   public FXMLLoader provideLoader(final Injector injector,
                                   final GuiceBuilderFactory builderFactory,

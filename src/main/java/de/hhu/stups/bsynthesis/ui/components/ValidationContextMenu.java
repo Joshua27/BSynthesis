@@ -3,14 +3,10 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
+import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
-
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
@@ -21,6 +17,13 @@ import javafx.geometry.Point2D;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * A context menu displaying several commands that can be applied on a {@link ValidationPane}.
+ */
 public class ValidationContextMenu extends ContextMenu {
 
   // graphicPositionProperty to place a node on the validation pane according to the mouse position
@@ -39,6 +42,9 @@ public class ValidationContextMenu extends ContextMenu {
   @SuppressWarnings("unused")
   private MenuItem menuItemShrinkAll;
 
+  /**
+   * Initialize properties and layout.
+   */
   @Inject
   public ValidationContextMenu(final FXMLLoader loader,
                                final SynthesisContextService synthesisContextService,
@@ -58,6 +64,9 @@ public class ValidationContextMenu extends ContextMenu {
     }
   }
 
+  /**
+   * Set the {@link ValidationPane} that this component is connected to.
+   */
   public void setValidationPane(final ValidationPane validationPane) {
     menuItemAddNode.textProperty().bind(Bindings.when(synthesisTypeProperty
         .isEqualTo(SynthesisType.ACTION))

@@ -1,33 +1,27 @@
 package de.hhu.stups.bsynthesis.ui.controller;
 
+import static java.beans.Beans.isInstanceOf;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
+import de.hhu.stups.bsynthesis.services.ModelCheckingService;
+import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.NodesFromTracePositionGenerator;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
 import de.hhu.stups.bsynthesis.ui.components.ValidationContextMenu;
+import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
+import de.hhu.stups.bsynthesis.ui.components.factories.ValidationContextMenuFactory;
+import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeLine;
+import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
-import de.hhu.stups.bsynthesis.services.ModelCheckingService;
-import de.hhu.stups.bsynthesis.services.SynthesisContextService;
-import de.prob.statespace.State;
-import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
-import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
-import de.hhu.stups.bsynthesis.ui.components.factories.ValidationContextMenuFactory;
-import de.prob.statespace.Trace;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.List;
-import java.util.Optional;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import de.prob.statespace.State;
+import de.prob.statespace.Trace;
 
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -50,7 +44,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 
-import static java.beans.Beans.isInstanceOf;
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * The validation pane which is graphically split in two areas where the left side contains valid
@@ -96,6 +97,9 @@ public class ValidationPane extends ScrollPane implements Initializable {
   @SuppressWarnings("unused")
   private SynthesisInfoBox synthesisInfoBox;
 
+  /**
+   * Initialize variables from the injector and create the {@link ValidationContextMenu}.
+   */
   @Inject
   public ValidationPane(final FXMLLoader loader,
                         final StateNodeFactory stateNodeFactory,
@@ -400,12 +404,12 @@ public class ValidationPane extends ScrollPane implements Initializable {
         && (scaleFactorProperty.get() < 2.0 || scaleFactor < 1.0);
   }
 
-  public boolean isValidXPosition(final double xPosition, final double nodeWidth) {
-    return xPosition > 5.0 && xPosition + nodeWidth < WIDTH - 5.0;
+  public boolean isValidXPosition(final double positionX, final double nodeWidth) {
+    return positionX > 5.0 && positionX + nodeWidth < WIDTH - 5.0;
   }
 
-  public boolean isValidYPosition(final double yPosition, final double nodeHeight) {
-    return yPosition > 5.0 && yPosition + nodeHeight < HEIGHT - 5.0;
+  public boolean isValidYPosition(final double positionY, final double nodeHeight) {
+    return positionY > 5.0 && positionY + nodeHeight < HEIGHT - 5.0;
   }
 
   private boolean isValidDragObject(final Node node) {
@@ -477,6 +481,9 @@ public class ValidationPane extends ScrollPane implements Initializable {
     }
   }
 
+  /**
+   * Add a {@link NodeLine} to the validation pane.
+   */
   public void addNodeConnection(final NodeLine nodeConnection) {
     if (contentPane.getChildren().contains(nodeConnection)) {
       return;
@@ -492,12 +499,20 @@ public class ValidationPane extends ScrollPane implements Initializable {
     return state.isInvariantOk() ? NodeState.VALID : NodeState.INVARIANT_VIOLATED;
   }
 
+  /**
+   * Reset the validation pane and {@link SynthesisContextService context information} referring to
+   * a specific operation.
+   */
   public void reset() {
     synthesisContextService.currentOperationProperty().set(null);
     synthesisContextService.invariantViolatedProperty().set(false);
     getNodes().clear();
   }
 
+  /**
+   * Check if the validation pane already contains a specific {@link StateNode}. Return the node if
+   * present otherwise return null.
+   */
   public StateNode containsStateNode(final StateNode stateNode) {
     if (SynthesisType.ACTION.equals(synthesisContextService.getSynthesisType())) {
       return null;

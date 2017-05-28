@@ -1,12 +1,13 @@
 package de.hhu.stups.bsynthesis.ui.components.library;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
+
+import java.util.Arrays;
+import java.util.Optional;
+
 
 /**
  * A class representing a B/Event-B library configuration used for the synthesis tool. Using {@link
@@ -23,6 +24,10 @@ public class BLibrary {
   private final SetProperty<LibraryComponent> relationsProperty;
   private final SetProperty<LibraryComponent> sequencesProperty;
 
+  /**
+   * Initialize the set properties to store the {@link LibraryComponent library components} split by
+   * their {@link LibraryComponentType} respectively.
+   */
   public BLibrary() {
     predicatesProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     setsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
@@ -101,7 +106,10 @@ public class BLibrary {
         new LibraryComponent("Front front(s)", 0, LibraryComponentType.SEQUENCES)));
   }
 
-
+  /**
+   * Remove a {@link LibraryComponent} from its corresponding set property of user selectable
+   * library components.
+   */
   public void removeLibraryComponent(final LibraryComponent libraryComponent) {
     switch (libraryComponent.getLibraryComponentType()) {
       case PREDICATES:
@@ -124,6 +132,10 @@ public class BLibrary {
     }
   }
 
+  /**
+   * Add a {@link LibraryComponent} to its corresponding set property of user selectable
+   * library components.
+   */
   public void addLibraryComponent(final LibraryComponent libraryComponent) {
     switch (libraryComponent.getLibraryComponentType()) {
       case PREDICATES:

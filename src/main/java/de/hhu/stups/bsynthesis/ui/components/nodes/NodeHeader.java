@@ -2,15 +2,9 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 
 import com.google.inject.Inject;
 
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -23,6 +17,12 @@ import javafx.fxml.Initializable;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class NodeHeader extends HBox implements Initializable {
 
@@ -42,6 +42,9 @@ public class NodeHeader extends HBox implements Initializable {
   @SuppressWarnings("unused")
   private FontAwesomeIconView iconExpand;
 
+  /**
+   * Initialize properties and load the fxml resource.
+   */
   @Inject
   public NodeHeader(final FXMLLoader loader,
                     final SynthesisContextService synthesisContextService) {

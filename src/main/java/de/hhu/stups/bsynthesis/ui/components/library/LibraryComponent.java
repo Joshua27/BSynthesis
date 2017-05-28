@@ -1,11 +1,11 @@
 package de.hhu.stups.bsynthesis.ui.components.library;
 
-import java.util.Objects;
-
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+
+import java.util.Objects;
 
 /**
  * A container for a library component to configure the used library for the synthesis tool. The
@@ -17,9 +17,17 @@ public class LibraryComponent {
   private final IntegerProperty amountProperty;
   private final LibraryComponentType libraryComponentType;
 
+  /**
+   * Initialize the library component.
+   *
+   * @param componentName        The name of the component as a String.
+   * @param amount               The amount how many times this operator should be used a an int
+   *                             value.
+   * @param libraryComponentType The component's {@link LibraryComponentType}.
+   */
   public LibraryComponent(final String componentName,
-                   final int amount,
-                   final LibraryComponentType libraryComponentType) {
+                          final int amount,
+                          final LibraryComponentType libraryComponentType) {
     this.libraryComponentType = libraryComponentType;
     componentNameProperty = new SimpleStringProperty(componentName);
     amountProperty = new SimpleIntegerProperty(amount);
@@ -29,6 +37,9 @@ public class LibraryComponent {
     amountProperty.set(amountProperty.add(1).get());
   }
 
+  /**
+   * Decrease the amount the library component should be used by one.
+   */
   public void decreaseAmount() {
     final int newValue = amountProperty.subtract(1).get();
     if (newValue < 0) {
@@ -59,16 +70,16 @@ public class LibraryComponent {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    LibraryComponent that = (LibraryComponent) o;
-    return Objects.equals(componentNameProperty, that.componentNameProperty) &&
-        libraryComponentType == that.libraryComponentType;
+    LibraryComponent that = (LibraryComponent) obj;
+    return Objects.equals(componentNameProperty, that.componentNameProperty)
+        && libraryComponentType == that.libraryComponentType;
   }
 
   @Override

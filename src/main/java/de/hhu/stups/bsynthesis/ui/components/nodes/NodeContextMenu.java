@@ -3,18 +3,18 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class NodeContextMenu extends ContextMenu implements Initializable {
 
@@ -27,6 +27,9 @@ public class NodeContextMenu extends ContextMenu implements Initializable {
   @SuppressWarnings("unused")
   private MenuItem menuItemRemoveNode;
 
+  /**
+   * Load the fxml resource.
+   */
   @Inject
   public NodeContextMenu(final FXMLLoader loader,
                          @Assisted BasicNode parent) {

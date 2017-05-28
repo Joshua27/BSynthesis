@@ -4,21 +4,13 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindValidStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 import de.prob.statespace.Trace;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -46,14 +38,22 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.HashSet;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.annotation.Nullable;
 
 public class StateNode extends BasicNode implements Initializable {
 
-  public final static double WIDTH = 100;
-  public final static double HEIGHT = 100;
-  private final static double EXPANDED_WIDTH = 400;
-  private final static double EXPANDED_HEIGHT = 300;
+  public static final double WIDTH = 100;
+  public static final double HEIGHT = 100;
+  private static final double EXPANDED_WIDTH = 400;
+  private static final double EXPANDED_HEIGHT = 300;
 
   private final ObjectProperty<State> stateProperty;
   private final SynthesisContextService synthesisContextService;
@@ -81,6 +81,10 @@ public class StateNode extends BasicNode implements Initializable {
   @SuppressWarnings("unused")
   private TableColumn<StateTableCell, String> tableColumnInputState;
 
+  /**
+   * Initialize the {@link BasicNode} and set the node specific properties as well as the default
+   * position.
+   */
   @Inject
   public StateNode(final FXMLLoader loader,
                    final SynthesisContextService synthesisContextService,
@@ -183,10 +187,11 @@ public class StateNode extends BasicNode implements Initializable {
     // TODO: validate input on commit
     if (NodeState.TENTATIVE.equals(nodeStateProperty().get())) {
       tableColumnInputState.setCellFactory(TextFieldTableCell.forTableColumn());
-      tableColumnInputState.setOnEditCommit((TableColumn.CellEditEvent<StateTableCell, String> t) ->
-          Platform.runLater(() -> t.getTableView().getItems().get(
-              t.getTablePosition().getRow())
-              .setInputState(t.getNewValue())));
+      tableColumnInputState.setOnEditCommit(
+          (TableColumn.CellEditEvent<StateTableCell, String> event) ->
+              Platform.runLater(() -> event.getTableView().getItems().get(
+                  event.getTablePosition().getRow())
+                  .setInputState(event.getNewValue())));
       tableViewState.setEditable(true);
       return;
     }
@@ -199,13 +204,17 @@ public class StateNode extends BasicNode implements Initializable {
     if (machineVarNames != null) {
       machineVarNames.forEach(machineVarName ->
           tableViewState.getItems().add(new StateTableCell(
-              machineVarName, getState() != null && getState().isInitialised() ?
-              getState().eval(machineVarName).toString() : "")));
+              machineVarName, getState() != null && getState().isInitialised()
+              ? getState().eval(machineVarName).toString() : "")));
     }
   }
 
-  // TODO: eval operation instead of just using the trace from model checking
+  /**
+   * Return the {@link StateNode predecessor node} of {@link this} using the {@link #traceProperty()
+   * current trace}.
+   */
   public StateNode getPredecessorFromTrace() {
+    // TODO: eval operation instead of just using the trace from model checking
     final Trace trace = traceProperty().get();
     if (trace == null || !trace.canGoBack()) {
       return null;
@@ -232,6 +241,10 @@ public class StateNode extends BasicNode implements Initializable {
     predecessorProperty().add(predecessorNode);
   }
 
+  /**
+   * Return the {@link StateNode succesor node} of {@link this} using the {@link #traceProperty()
+   * current trace}.
+   */
   public StateNode getSuccessorFromTrace() {
     final Trace trace = traceProperty().get();
     if (trace == null || !trace.canGoForward()) {
@@ -347,8 +360,8 @@ public class StateNode extends BasicNode implements Initializable {
     }
     final State state = stateSpace.getState(findValidStateCommand.getStateId());
     stateProperty.set(state);
-    nodeStateProperty().set(stateProperty.get().isInvariantOk() ?
-        NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+    nodeStateProperty().set(stateProperty.get().isInvariantOk()
+        ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
     checkDuplicatedNode();
   }
 
@@ -360,7 +373,8 @@ public class StateNode extends BasicNode implements Initializable {
     if (synthesisContextService.getSynthesisType().isAction()) {
       return;
     }
-    // TODO: not working if a state violates the invariant since it has no id in the current state space
+    // TODO: not working if a state violates the invariant since it has no id in
+    // the current state space
     final String stateId = getState().getId();
     for (final BasicNode basicNode : getValidationPane().getNodes()) {
       final StateNode stateNode = ((StateNode) basicNode);

@@ -3,15 +3,9 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.State;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -20,6 +14,12 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -32,6 +32,10 @@ public class TransitionNode extends BasicNode implements Initializable {
   private StateNode inputStateNode;
   private StateNode outputStateNode;
 
+  /**
+   * Initialize the {@link BasicNode}, set the {@link #inputStateProperty} and {@link
+   * #outputStateProperty} and load the fxml resource.
+   */
   @Inject
   public TransitionNode(final FXMLLoader loader,
                         final SynthesisContextService synthesisContextService,
@@ -58,11 +62,8 @@ public class TransitionNode extends BasicNode implements Initializable {
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
-    setStyle("-fx-padding: 5px; -fx-border-width: 2; -fx-border-style: dashed; " +
-        "-fx-border-color: #424242;");
-
     inputStateNode = synthesisContextService.getStateNodeFactory()
-        .create(inputStateProperty.get(), traceProperty().get(), new Point2D(0,0),
+        .create(inputStateProperty.get(), traceProperty().get(), new Point2D(0, 0),
             nodeStateProperty().get());
 
     isExpandedProperty().bindBidirectional(inputStateNode.isExpandedProperty());
@@ -82,7 +83,7 @@ public class TransitionNode extends BasicNode implements Initializable {
     outputStateNode.nodeHeightProperty().set(100);
     outputStateNode.moveIsEnabledProperty().set(false);
     outputStateNode.stateProperty().bindBidirectional(outputStateProperty);
-    outputStateNode.xPositionProperty().bind(inputStateNode.widthProperty().add(100.0));
+    outputStateNode.positionXProperty().bind(inputStateNode.widthProperty().add(100.0));
 
     inputStateNode.isExpandedProperty().bindBidirectional(outputStateNode.isExpandedProperty());
 

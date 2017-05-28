@@ -3,17 +3,11 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import de.prob.statespace.Trace;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -35,6 +29,12 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 @Singleton
 public class SynthesisInfoBox extends VBox implements Initializable {
 
@@ -45,8 +45,8 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   private final SynthesisContextService synthesisContextService;
   private final BooleanProperty isMinimizedProperty;
   private final BooleanProperty showInfoProperty;
-  private final DoubleProperty xPositionProperty;
-  private final DoubleProperty yPositionProperty;
+  private final DoubleProperty positionXProperty;
+  private final DoubleProperty positionYProperty;
   private final StringProperty infoTextProperty;
   private final Timeline timeline;
 
@@ -68,6 +68,9 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   @SuppressWarnings("unused")
   private FontAwesomeIconView iconClose;
 
+  /**
+   * Initialize the properties and load the fxml resource.
+   */
   @Inject
   public SynthesisInfoBox(final FXMLLoader loader,
                           final SynthesisContextService synthesisContextService) {
@@ -75,8 +78,8 @@ public class SynthesisInfoBox extends VBox implements Initializable {
 
     isMinimizedProperty = new SimpleBooleanProperty(false);
     showInfoProperty = new SimpleBooleanProperty(false);
-    xPositionProperty = new SimpleDoubleProperty();
-    yPositionProperty = new SimpleDoubleProperty();
+    positionXProperty = new SimpleDoubleProperty();
+    positionYProperty = new SimpleDoubleProperty();
     infoTextProperty = new SimpleStringProperty();
     timeline = new Timeline();
 
@@ -124,9 +127,9 @@ public class SynthesisInfoBox extends VBox implements Initializable {
 
     lbInfo.textProperty().bind(infoTextProperty);
 
-    xPositionProperty.addListener((observable, oldValue, newValue) ->
+    positionXProperty.addListener((observable, oldValue, newValue) ->
         setLayoutX(newValue.doubleValue()));
-    yPositionProperty.addListener((observable, oldValue, newValue) ->
+    positionYProperty.addListener((observable, oldValue, newValue) ->
         setLayoutY(newValue.doubleValue()));
 
     isMinimizedProperty.addListener((observable, oldValue, newValue) -> showOrHide(newValue));
@@ -156,12 +159,12 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   public void updatePosition() {
     final double hmin = validationPane.getHmin();
     final double viewportWidth = validationPane.getViewportBounds().getWidth();
-    xPositionProperty.set(Math.max(0, ValidationPane.WIDTH - viewportWidth)
+    positionXProperty.set(Math.max(0, ValidationPane.WIDTH - viewportWidth)
         * (validationPane.getHvalue() - hmin) / (validationPane.getHmax() - hmin)
         + viewportWidth - getPrefWidth() - 2); // - 2 for a small border to the scroll bar
     final double vmin = validationPane.getVmin();
     final double viewportHeight = validationPane.getViewportBounds().getHeight();
-    yPositionProperty.set(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
+    positionYProperty.set(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
         * (validationPane.getVvalue() - vmin) / (validationPane.getVmax() - vmin)
         + viewportHeight - (isMinimized() ? MINIMIZED_HEIGHT : HEIGHT) - 2);
   }
@@ -173,10 +176,10 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   private void showOrHide(final boolean minimize) {
     timeline.getKeyFrames().clear();
     final double targetHeight = minimize ? MINIMIZED_HEIGHT : HEIGHT;
-    final double targetYPosition = yPositionProperty.get() + (minimize ? DIFFERENCE_HEIGHT
+    final double targetYPosition = positionYProperty.get() + (minimize ? DIFFERENCE_HEIGHT
         : -DIFFERENCE_HEIGHT);
     final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250),
-        new KeyValue(yPositionProperty, targetYPosition),
+        new KeyValue(positionYProperty, targetYPosition),
         new KeyValue(prefHeightProperty(), targetHeight));
     timeline.getKeyFrames().add(expandAnimation);
     Platform.runLater(timeline::play);
@@ -215,6 +218,9 @@ public class SynthesisInfoBox extends VBox implements Initializable {
     return showInfoProperty;
   }
 
+  /**
+   * Set the state from a given {@link Trace} from the model checker.
+   */
   public void setStateFromTrace(final Trace trace) {
     if (trace == null) {
       Platform.runLater(() -> {

@@ -2,9 +2,10 @@ package de.hhu.stups.bsynthesis.ui;
 
 public enum SynthesisType {
   ACTION, GUARD_OR_INVARIANT, DEADLOCK;
+
   @Override
   public String toString() {
-    switch(this) {
+    switch (this) {
       case ACTION:
         return "Action";
       case GUARD_OR_INVARIANT:

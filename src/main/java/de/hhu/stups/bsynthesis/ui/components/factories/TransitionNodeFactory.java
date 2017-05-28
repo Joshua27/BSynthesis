@@ -3,13 +3,13 @@ package de.hhu.stups.bsynthesis.ui.components.factories;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
+import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.prob.statespace.State;
 
-import javax.annotation.Nullable;
-
 import javafx.geometry.Point2D;
+
+import javax.annotation.Nullable;
 
 public interface TransitionNodeFactory {
   @Inject

@@ -7,12 +7,6 @@ import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringExpression;
 import javafx.beans.property.BooleanProperty;
@@ -25,6 +19,12 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.VBox;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Singleton
 public class ModelCheckingProgressIndicator extends VBox implements Initializable {
@@ -48,6 +48,9 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
   @SuppressWarnings("unused")
   private Label lbProcessedNodes;
 
+  /**
+   * Set {@link #modelCheckingService}, initialize the properties and load fxml resource.
+   */
   @Inject
   public ModelCheckingProgressIndicator(final FXMLLoader loader,
                                         final ModelCheckingService modelCheckingService) {

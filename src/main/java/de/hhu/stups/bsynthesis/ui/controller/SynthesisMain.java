@@ -3,16 +3,10 @@ package de.hhu.stups.bsynthesis.ui.controller;
 import com.google.inject.Inject;
 
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
 import de.prob.model.representation.AbstractElement;
 import de.prob.model.representation.Variable;
 import de.prob.statespace.StateSpace;
-import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
@@ -24,6 +18,15 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * The main ui controller presenting a {@link #tabPane} and a {@link #synthesisMainMenu}.
+ */
 public class SynthesisMain extends VBox implements Initializable {
 
   private final SynthesisContextService synthesisContextService;
@@ -50,6 +53,9 @@ public class SynthesisMain extends VBox implements Initializable {
   @SuppressWarnings("unused")
   private SynthesisMainMenu synthesisMainMenu;
 
+  /**
+   * Set the {@link SynthesisContextService} and load the fxml resources.
+   */
   @Inject
   public SynthesisMain(final FXMLLoader loader,
                        final SynthesisContextService synthesisContextService) {

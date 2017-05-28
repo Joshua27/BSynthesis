@@ -41,6 +41,11 @@ public class ModelCheckingService implements IModelCheckListener {
 
   private ModelChecker checker;
 
+  /**
+   * Initialize the properties. Set listeners to {@link #stopModelChecking() stop model checking} as
+   * soon as {@link #runningProperty()} is set to false and to start model checking when {@link
+   * #stateSpaceProperty()} is set to a non-null value.
+   */
   @Inject
   public ModelCheckingService() {
     runningProperty = new SimpleBooleanProperty(false);
@@ -145,6 +150,9 @@ public class ModelCheckingService implements IModelCheckListener {
     return indicatorPresentProperty;
   }
 
+  /**
+   * Reset the service by setting all properties to their default values.
+   */
   public void reset() {
     runningProperty.set(false);
     resultProperty.set(null);

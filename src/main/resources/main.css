@@ -84,3 +84,10 @@
 .paneBackground {
     -fx-background-color: #FEFEFE;
 }
+
+.transitionNode {
+    -fx-padding: 5px;
+    -fx-border-width: 2;
+    -fx-border-style: dashed;
+    -fx-border-color: #424242;
+}

@@ -3,8 +3,8 @@ package de.hhu.stups.bsynthesis;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
-import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
 import de.hhu.stups.bsynthesis.injector.BSynthesisModule;
+import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
 import de.prob.cli.ProBInstanceProvider;
 
 import javafx.application.Application;

@@ -2,5 +2,4 @@
 
 <?import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode?>
 
-<fx:root type="BasicNode" xmlns:fx="http://javafx.com/fxml">
-</fx:root>
+<fx:root type="BasicNode" xmlns:fx="http://javafx.com/fxml" styleClass="transitionNode"/>

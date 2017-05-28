@@ -1,7 +1,7 @@
 package de.hhu.stups.bsynthesis.ui.components.nodes;
 
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
+import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.Trace;
 
 import javafx.beans.property.BooleanProperty;
@@ -23,8 +23,8 @@ import javafx.scene.paint.Color;
 public class BasicNode extends StackPane {
 
   private final ValidationPane parent;
-  private final DoubleProperty xPositionProperty;
-  private final DoubleProperty yPositionProperty;
+  private final DoubleProperty positionXProperty;
+  private final DoubleProperty positionYProperty;
   private final BooleanProperty isExpandedProperty;
   private final ObjectProperty<NodeState> nodeStateProperty;
   private final ObjectProperty<Trace> traceProperty;
@@ -39,11 +39,11 @@ public class BasicNode extends StackPane {
             final NodeContextMenuFactory nodeContextMenuFactory) {
     this.parent = parent;
 
-    xPositionProperty = new SimpleDoubleProperty(position.getX());
-    xPositionProperty.addListener((observable, oldValue, newValue) ->
+    positionXProperty = new SimpleDoubleProperty(position.getX());
+    positionXProperty.addListener((observable, oldValue, newValue) ->
         setLayoutX(newValue.doubleValue()));
-    yPositionProperty = new SimpleDoubleProperty(position.getY());
-    yPositionProperty.addListener((observable, oldValue, newValue) ->
+    positionYProperty = new SimpleDoubleProperty(position.getY());
+    positionYProperty.addListener((observable, oldValue, newValue) ->
         setLayoutY(newValue.doubleValue()));
 
     nodeWidthProperty = new SimpleDoubleProperty(0);
@@ -95,27 +95,27 @@ public class BasicNode extends StackPane {
   }
 
   Double getXPosition() {
-    return xPositionProperty.get();
+    return positionXProperty.get();
   }
 
   Double getYPosition() {
-    return yPositionProperty.get();
+    return positionYProperty.get();
   }
 
-  DoubleProperty xPositionProperty() {
-    return xPositionProperty;
+  DoubleProperty positionXProperty() {
+    return positionXProperty;
   }
 
-  DoubleProperty yPositionProperty() {
-    return yPositionProperty;
+  DoubleProperty positionYProperty() {
+    return positionYProperty;
   }
 
-  public void setXPosition(final double xPosition) {
-    xPositionProperty.setValue(xPosition);
+  public void setXPosition(final double positionX) {
+    positionXProperty.setValue(positionX);
   }
 
-  public void setYPosition(final double yPosition) {
-    yPositionProperty.setValue(yPosition);
+  public void setYPosition(final double positionY) {
+    positionYProperty.setValue(positionY);
   }
 
   @SuppressWarnings("WeakerAccess")
