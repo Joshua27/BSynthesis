@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import de.hhu.stups.bsynthesis.ui.controller.LibraryConfiguration?>
+<?import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu?>
+<?import de.hhu.stups.bsynthesis.ui.controller.ValidationPane?>
+<?import de.hhu.stups.bsynthesis.ui.controller.CodeView?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="VBox" xmlns:fx="http://javafx.com/fxml">
+    <SynthesisMainMenu fx:id="synthesisMainMenu"/>
+    <TabPane fx:id="tabPane" side="BOTTOM">
+        <Tab fx:id="synthesisTab" text="States" closable="false">
+            <ValidationPane fx:id="validationPane"/>
+        </Tab>
+        <Tab text="View Code" closable="false">
+            <CodeView fx:id="codeView"/>
+        </Tab>
+        <Tab fx:id="libraryConfigurationTab" text="Library Configuration" closable="true">
+            <LibraryConfiguration fx:id="libraryConfiguration"/>
+        </Tab>
+    </TabPane>
+</fx:root>

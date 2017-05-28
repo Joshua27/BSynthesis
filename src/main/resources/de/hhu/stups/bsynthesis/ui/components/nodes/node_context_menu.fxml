@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.MenuItem?>
+
+<fx:root type="ContextMenu" xmlns:fx="http://javafx.com/fxml">
+    <items>
+        <MenuItem fx:id="menuItemResizeNode"/>
+        <MenuItem fx:id="menuItemRemoveNode" text="Remove"/>
+    </items>
+</fx:root>

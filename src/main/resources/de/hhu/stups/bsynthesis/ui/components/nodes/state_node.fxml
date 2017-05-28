@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode?>
+<?import de.hhu.stups.bsynthesis.ui.components.nodes.NodeHeader?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
+
+<fx:root type="BasicNode" xmlns:fx="http://javafx.com/fxml">
+    <children>
+        <GridPane fx:id="contentGridPane" minWidth="0" minHeight="0" maxWidth="Infinity"
+                  maxHeight="Infinity">
+            <padding>
+                <Insets bottom="5.0" top="5.0" left="5.0" right="5.0"/>
+            </padding>
+            <NodeHeader fx:id="nodeHeader" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <Label fx:id="lbTitle" GridPane.columnIndex="0" GridPane.rowIndex="1"
+                   GridPane.columnSpan="2"/>
+            <TableView fx:id="tableViewState" GridPane.columnIndex="0"
+                       GridPane.rowIndex="1" GridPane.columnSpan="2">
+                <columns>
+                    <TableColumn fx:id="tableColumnVarName" prefWidth="100.0" text="Variable"
+                                 editable="false">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="varName"/>
+                        </cellValueFactory>
+                    </TableColumn>
+                    <TableColumn fx:id="tableColumnInputState" prefWidth="140.0" text="State">
+                        <cellValueFactory>
+                            <PropertyValueFactory property="inputState"/>
+                        </cellValueFactory>
+                    </TableColumn>
+                </columns>
+            </TableView>
+            <columnConstraints>
+                <ColumnConstraints percentWidth="100.0"/>
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints percentHeight="10.0"/>
+                <RowConstraints percentHeight="90.0"/>
+            </rowConstraints>
+        </GridPane>
+    </children>
+</fx:root>

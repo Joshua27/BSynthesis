@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.Group?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox?>
+
+<fx:root type="ScrollPane" xmlns:fx="http://javafx.com/fxml">
+    <Group fx:id="contentGroup">
+        <AnchorPane fx:id="contentAnchorPane" styleClass="paneBackground">
+            <Group fx:id="zoomGroup">
+                <Pane fx:id="contentPane"/>
+            </Group>
+            <SynthesisInfoBox fx:id="synthesisInfoBox"/>
+        </AnchorPane>
+    </Group>
+</fx:root>

@@ -1,0 +1,86 @@
+/* ScrollBar */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: #6E6E6E;
+    -fx-background-insets: 2.0, 3.0, 4.0;
+    -fx-background-radius: 0em;
+}
+
+.scroll-bar:hover > .thumb,
+.scroll-bar:pressed > .thumb {
+    -fx-background-color: #4F4F4F;
+}
+
+.scroll-bar:vertical > .increment-button,
+.scroll-bar:vertical > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-color: transparent;
+    -fx-padding: 0.0em 0.08em -0.3em 0.08em;
+}
+
+.scroll-bar:horizontal > .increment-button,
+.scroll-bar:horizontal > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-color: transparent;
+    -fx-padding: 0.08em -0.3em 0.08em 0.0em;
+}
+
+.scroll-bar > .decrement-button > .decrement-arrow,
+.scroll-bar > .increment-button > .increment-arrow {
+    -fx-background-color: transparent;
+    -fx-shape: " ";
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0.0 1.0 1.0 0.0;
+}
+
+/* TabPane Tabs */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-opacity: 0;
+}
+
+.tab-pane {
+    -fx-tab-min-width: 100px;
+    -fx-tab-max-height: 30px;
+}
+
+.tab-pane .tab {
+    -fx-focus-color: transparent;
+    -fx-background-color: #D6D6D6;
+}
+
+.tab-pane .tab:selected, .tab-pane .tab:hover {
+    -fx-background-color: #CACACA;
+}
+
+.tab .tab-label {
+    -fx-alignment: CENTER;
+    -fx-text-fill: #3D3D3D;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.tab:selected .tab-label, .tab:hover .tab-label {
+    -fx-alignment: CENTER;
+    -fx-text-fill: #3D3D3D;
+}
+
+/* Components */
+.windowPadding {
+    -fx-padding: 20px;
+}
+
+.infoBox {
+    -fx-padding: 10px;
+    -fx-background-color: #F6F6F6;
+    -fx-border-color: #5C5C5C;
+}
+
+.paneBackground {
+    -fx-background-color: #FEFEFE;
+}

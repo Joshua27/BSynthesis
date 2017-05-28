@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.CheckMenuItem?>
+
+<fx:root type="MenuBar" useSystemMenuBar="true" xmlns:fx="http://javafx.com/fxml">
+    <Menu text="Machine">
+        <MenuItem text="Open..." onAction="#loadMachine"/>
+        <MenuItem fx:id="menuItemSave" text="Save" onAction="#save"/>
+        <MenuItem fx:id="menuItemSaveAs" text="Save as..." onAction="#saveAs"/>
+        <MenuItem text="Close" onAction="#close"/>
+    </Menu>
+    <Menu text="Verify">
+        <MenuItem fx:id="menuItemCheckModel" text="Start Model Checking"
+                  onAction="#runModelChecking"/>
+        <MenuItem fx:id="menuItemStopCheckModel" text="Stop Model Checking"
+                  onAction="#stopModelChecking"/>
+        <MenuItem fx:id="menuItemNodesFromTrace" text="Show Nodes from Trace"
+                  onAction="#showNodesFromTrace"/>
+    </Menu>
+    <Menu text="Synthesis">
+        <MenuItem fx:id="menuItemRunSynthesis" text="Run Synthesis" onAction="#runSynthesis"/>
+        <MenuItem fx:id="menuItemVisualizeOperation" text="Visualize Operation"
+                  onAction="#visualizeOperation"/>
+        <MenuItem fx:id="menuItemConfigureLibrary" text="Library Configuration"
+                  onAction="#configureLibrary"/>
+        <MenuItem fx:id="menuItemNewOperation" text="New operation" onAction="#newOperation"/>
+    </Menu>
+    <Menu text="View">
+        <Menu text="Nodes">
+            <MenuItem fx:id="menuItemExpandAll" text="Expand all" onAction="#expandAllNodes"/>
+            <MenuItem fx:id="menuItemShrinkAll" text="Shrink all" onAction="#shrinkAllNodes"/>
+        </Menu>
+        <CheckMenuItem fx:id="checkMenuItemInfo" text="Show info"/>
+        <MenuItem fx:id="menuItemClear" text="Clear" onAction="#clear"/>
+    </Menu>
+</fx:root>

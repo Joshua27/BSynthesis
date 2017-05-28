@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.HBox?>
+<?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
+
+<fx:root type="HBox" spacing="5.0" alignment="TOP_RIGHT" xmlns:fx="http://javafx.com/fxml">
+    <FontAwesomeIconView fx:id="iconFindPredecessor" glyphName="ARROW_LEFT"/>
+    <FontAwesomeIconView fx:id="iconFindSuccessor" glyphName="ARROW_RIGHT"/>
+    <FontAwesomeIconView fx:id="iconValidate" glyphName="SIGN_IN"/>
+    <FontAwesomeIconView fx:id="iconExpand" glyphName="EXPAND"/>
+</fx:root>
