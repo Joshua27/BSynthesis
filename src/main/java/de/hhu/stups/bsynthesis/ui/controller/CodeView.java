@@ -66,6 +66,7 @@ public final class CodeView extends VBox {
   }
 
   private void loadMachineCode() {
+    codeArea.clear();
     if (synthesisContextService.getStateSpace() == null) {
       return;
     }
