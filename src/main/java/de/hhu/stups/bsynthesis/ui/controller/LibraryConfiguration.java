@@ -9,21 +9,21 @@ import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SetProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeView;
+import javafx.scene.control.TreeTableColumn;
+import javafx.scene.control.TreeTableView;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 
 import java.io.IOException;
 import java.net.URL;
@@ -42,10 +42,17 @@ public class LibraryConfiguration extends GridPane implements Initializable {
 
   private final BLibrary staticBLibrary;
   private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
+  private BooleanProperty disableComponentsButtonsProperty;
 
   @FXML
   @SuppressWarnings("unused")
-  private TreeView<LibraryComponent> treeViewLibrary;
+  private TreeTableView<LibraryComponent> treeViewLibrary;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeTableColumn<LibraryComponent, String> treeLibraryTableColumnName;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeTableColumn<LibraryComponent, String> treeLibraryTableColumnSyntax;
   @FXML
   @SuppressWarnings("unused")
   private TreeItem<LibraryComponent> treeItemPredicates;
@@ -63,7 +70,13 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   private TreeItem<LibraryComponent> treeItemSequences;
   @FXML
   @SuppressWarnings("unused")
-  private TreeView<LibraryComponent> treeViewSelectedLibrary;
+  private TreeTableView<LibraryComponent> treeViewSelectedLibrary;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeTableColumn<LibraryComponent, String> treeSelectedLibraryTableColumnName;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeTableColumn<LibraryComponent, String> treeSelectedLibraryTableColumnAmount;
   @FXML
   @SuppressWarnings("unused")
   private TreeItem<LibraryComponent> treeItemSelectedPredicates;
@@ -92,8 +105,6 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   @SuppressWarnings("unused")
   private Button btRemoveSelectedComponent;
 
-  // TODO: maybe use a TreeTableView for selected library components to display the component amount
-
   /**
    * Initialize the {@link #staticBLibrary} to display the available {@link LibraryComponent library
    * components} to choose from. Also set up an empty {@link BLibrary} to store the library
@@ -104,6 +115,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     staticBLibrary = new BLibrary();
     staticBLibrary.initializeLibrary();
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
+    disableComponentsButtonsProperty = new SimpleBooleanProperty(true);
 
     loader.setLocation(getClass().getResource("library_configuration.fxml"));
     loader.setRoot(this);
@@ -171,11 +183,12 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * and {@link #treeViewSelectedLibrary} and set selection listeners for section items.
    */
   private void initializeTreeViews() {
-    final LibraryComponent predicates = new LibraryComponent("Predicates", 0, null);
-    final LibraryComponent sets = new LibraryComponent("Sets", 0, null);
-    final LibraryComponent numbers = new LibraryComponent("Numbers", 0, null);
-    final LibraryComponent relations = new LibraryComponent("Relations", 0, null);
-    final LibraryComponent sequences = new LibraryComponent("Sequences", 0, null);
+    final LibraryComponent predicates = new LibraryComponent("Predicates", "", 0, null);
+    final LibraryComponent sets = new LibraryComponent("Sets", "", 0, null);
+    final LibraryComponent numbers = new LibraryComponent("Numbers", "", 0, null);
+    final LibraryComponent relations = new LibraryComponent("Relations", "", 0, null);
+    final LibraryComponent sequences = new LibraryComponent("Sequences", "", 0, null);
+    // set the sectioning tree items that are the same for both tree views
     treeItemPredicates.setValue(predicates);
     treeItemSelectedPredicates.setValue(predicates);
     treeItemSets.setValue(sets);
@@ -209,6 +222,11 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     staticBLibrary.getSequences().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemSequences.getChildren().add(treeItem));
 
+    treeLibraryTableColumnName.setCellValueFactory(
+        param -> param.getValue().getValue().componentNameProperty());
+    treeLibraryTableColumnSyntax.setCellValueFactory(
+        param -> param.getValue().getValue().syntaxProperty());
+
     treeViewLibrary.setOnMouseClicked(mouseEvent -> {
       if (mouseEvent.getClickCount() == 2) {
         final TreeItem<LibraryComponent> treeItem =
@@ -217,7 +235,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
           return;
         }
         final LibraryComponent libraryComponent = treeItem.getValue();
-        if (libraryComponent != null) {
+        if (libraryComponent != null && libraryComponent.getLibraryComponentType() != null) {
           selectedLibraryComponentsProperty.get().addLibraryComponent(libraryComponent);
         }
       }
@@ -241,7 +259,22 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     setUpdateComponentsListener(selectedBLibrary.sequencesProperty(),
         treeItemSelectedSequences);
 
-    treeViewSelectedLibrary.setCellFactory(param -> new SelectedComponentCell());
+    treeSelectedLibraryTableColumnName.setCellValueFactory(
+        param -> param.getValue().getValue().componentNameProperty());
+    treeSelectedLibraryTableColumnAmount.setCellValueFactory(
+        param -> {
+          final LibraryComponent libraryComponent = param.getValue().getValue();
+          if (libraryComponent.getLibraryComponentType() != null) {
+            return libraryComponent.amountProperty().asString();
+          }
+          return new SimpleStringProperty("");
+        });
+    // disable buttons when a root item is clicked which is only used for sectioning the library
+    treeViewSelectedLibrary.getSelectionModel().selectedItemProperty().addListener(
+        (observable, oldValue, newValue) ->
+            disableComponentsButtonsProperty.set(newValue == null
+                || newValue.getValue() == null
+                || newValue.getValue().getLibraryComponentType() == null));
   }
 
   /**
@@ -250,8 +283,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * properties.
    */
   private void initializeButtons() {
-    btIncreaseSelectedComponentAmount.disableProperty().bind(treeViewSelectedLibrary
-        .getSelectionModel().selectedItemProperty().isNull()
+    btIncreaseSelectedComponentAmount.disableProperty().bind(disableComponentsButtonsProperty
         .or(cbDefaultConfiguration.selectedProperty()));
     btIncreaseSelectedComponentAmount.graphicProperty().bind(Bindings.createObjectBinding(() -> {
       final FontAwesomeIconView fontAwesomeIconView = new FontAwesomeIconView();
@@ -259,8 +291,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
       fontAwesomeIconView.setGlyphSize(10);
       return fontAwesomeIconView;
     }));
-    btDecreaseSelectedComponentAmount.disableProperty().bind(treeViewSelectedLibrary
-        .getSelectionModel().selectedItemProperty().isNull()
+    btDecreaseSelectedComponentAmount.disableProperty().bind(disableComponentsButtonsProperty
         .or(cbDefaultConfiguration.selectedProperty()));
     btDecreaseSelectedComponentAmount.graphicProperty().bind(Bindings.createObjectBinding(() -> {
       final FontAwesomeIconView fontAwesomeIconView = new FontAwesomeIconView();
@@ -268,8 +299,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
       fontAwesomeIconView.setGlyphSize(10);
       return fontAwesomeIconView;
     }));
-    btRemoveSelectedComponent.disableProperty().bind(treeViewSelectedLibrary
-        .getSelectionModel().selectedItemProperty().isNull()
+    btRemoveSelectedComponent.disableProperty().bind(disableComponentsButtonsProperty
         .or(cbDefaultConfiguration.selectedProperty()));
     btRemoveSelectedComponent.graphicProperty().bind(Bindings.createObjectBinding(() -> {
       final FontAwesomeIconView fontAwesomeIconView = new FontAwesomeIconView();
@@ -283,7 +313,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * Root items are just for sectioning, they have no library component type set and should not be
    * selectable.
    */
-  private void disableRootTreeViewSelection(final TreeView<LibraryComponent> treeView) {
+  private void disableRootTreeViewSelection(final TreeTableView<LibraryComponent> treeView) {
     treeView.getSelectionModel().selectedItemProperty().addListener(
         (observable, oldValue, newValue) -> {
           if (newValue == null) {
@@ -304,45 +334,12 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     componentsProperty.addListener((observable, oldValue, newValue) -> {
       treeItem.getChildren().clear();
       treeItem.getChildren().addAll(
-          newValue.stream().map(TreeItem::new).collect(Collectors.toSet()));
+          newValue.stream().map(TreeItem::new).collect(Collectors.toList()));
       treeItem.setExpanded(true);
     });
   }
 
   public ObjectProperty<BLibrary> selectedLibraryComponentsProperty() {
     return selectedLibraryComponentsProperty;
-  }
-
-
-  /**
-   * A custom cell that shows the component name and amount of a {@link LibraryComponent}.
-   */
-  private static class SelectedComponentCell extends TreeCell<LibraryComponent> {
-    @Override
-    protected void updateItem(final LibraryComponent item, final boolean empty) {
-      super.updateItem(item, empty);
-      if (isEmpty()) {
-        setGraphic(null);
-        setText(null);
-        return;
-      }
-      if (getTreeItem().getValue().getLibraryComponentType() == null) {
-        // root item for sectioning
-        setGraphic(null);
-        setText(item.componentNameProperty().get());
-        return;
-      }
-      // selectable component item
-      final HBox cellBox = new HBox();
-      final Label lbComponentName = new Label(item.componentNameProperty().get());
-      lbComponentName.prefWidthProperty().bind(treeViewProperty().get().widthProperty()
-          .subtract(100.0));
-      final Label lbAmount = new Label();
-      lbAmount.textProperty().bind(item.amountProperty().asString());
-      lbAmount.setAlignment(Pos.CENTER_RIGHT);
-      cellBox.getChildren().addAll(lbComponentName, lbAmount);
-      setGraphic(cellBox);
-      setText(null);
-    }
   }
 }

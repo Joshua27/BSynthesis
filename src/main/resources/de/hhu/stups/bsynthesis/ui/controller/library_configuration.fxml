@@ -5,16 +5,22 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.TreeView?>
 <?import javafx.scene.control.TreeItem?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.control.TreeTableView?>
+<?import javafx.scene.control.TreeTableColumn?>
 
 <fx:root type="GridPane" xmlns:fx="http://javafx.com/fxml" styleClass="windowPadding" vgap="5.0">
     <CheckBox fx:id="cbDefaultConfiguration" text="Use default configuration" selected="true"
               GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2"/>
-    <TreeView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="1"
-              showRoot="false" focusTraversable="false">
+    <TreeTableView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="1"
+                   showRoot="false">
+        <columns>
+            <TreeTableColumn fx:id="treeLibraryTableColumnName" text="Component Name"
+                             prefWidth="350"/>
+            <TreeTableColumn fx:id="treeLibraryTableColumnSyntax" text="Syntax" prefWidth="100"/>
+        </columns>
         <TreeItem>
             <children>
                 <TreeItem fx:id="treeItemPredicates"/>
@@ -24,9 +30,15 @@
                 <TreeItem fx:id="treeItemSequences"/>
             </children>
         </TreeItem>
-    </TreeView>
-    <TreeView fx:id="treeViewSelectedLibrary" GridPane.columnIndex="1" GridPane.rowIndex="1"
-              showRoot="false" focusTraversable="false">
+    </TreeTableView>
+    <TreeTableView fx:id="treeViewSelectedLibrary" GridPane.columnIndex="1" GridPane.rowIndex="1"
+                   showRoot="false">
+        <columns>
+            <TreeTableColumn fx:id="treeSelectedLibraryTableColumnName" text="Component Name"
+                             prefWidth="350"/>
+            <TreeTableColumn fx:id="treeSelectedLibraryTableColumnAmount" text="Amount"
+                             prefWidth="100"/>
+        </columns>
         <TreeItem>
             <children>
                 <TreeItem fx:id="treeItemSelectedPredicates"/>
@@ -36,7 +48,7 @@
                 <TreeItem fx:id="treeItemSelectedSequences"/>
             </children>
         </TreeItem>
-    </TreeView>
+    </TreeTableView>
     <HBox alignment="TOP_RIGHT" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="2"
           GridPane.columnSpan="2">
         <Button fx:id="btIncreaseSelectedComponentAmount"
