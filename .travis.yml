@@ -14,7 +14,7 @@ addons:
   sonarqube:
     branches:
       - master
-    organization: "sonarsource"
+    organization: "Joshua Schmidt"
     token:
       secure: $SONAR_TOKEN
 before_cache:
