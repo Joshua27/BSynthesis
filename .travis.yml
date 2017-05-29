@@ -11,6 +11,9 @@ addons:
     - lib32z1
     - lib32ncurses5
     - oracle-java8-installer
+  sonarqube:
+    branches:
+      - master
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -23,5 +26,6 @@ before_install:
   - sh -e /etc/init.d/xvfb start
 script:
   - ./gradlew --stacktrace -Pheadless=true check
+  - sonar-scanner -Dsonar.login=$SONAR_TOKEN
 after_success:
   - ./gradlew distZip winZip createApp
