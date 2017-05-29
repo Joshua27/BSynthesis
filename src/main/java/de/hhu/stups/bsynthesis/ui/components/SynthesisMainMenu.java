@@ -2,9 +2,9 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 
-import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.scripting.Api;

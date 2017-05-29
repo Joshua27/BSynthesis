@@ -2,8 +2,8 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 
 import com.google.inject.Inject;
 
-import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
