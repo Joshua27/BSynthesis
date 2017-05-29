@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 
 import javafx.fxml.FXML;
@@ -39,14 +40,7 @@ public final class CodeView extends VBox {
                   final SynthesisContextService synthesisContextService) {
     this.synthesisContextService = synthesisContextService;
 
-    loader.setLocation(getClass().getResource("code_view.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      logger.log(Level.SEVERE, "Loading fxml for the code view failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "code_view.fxml");
   }
 
   /**

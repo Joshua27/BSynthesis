@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
 import de.hhu.stups.bsynthesis.ui.components.library.LibraryComponent;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
@@ -25,11 +26,8 @@ import javafx.scene.control.TreeTableColumn;
 import javafx.scene.control.TreeTableView;
 import javafx.scene.layout.GridPane;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -117,16 +115,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
     disableComponentsButtonsProperty = new SimpleBooleanProperty(true);
 
-    loader.setLocation(getClass().getResource("library_configuration.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis library configuration failed.",
-          exception);
-    }
+    Loader.loadFxml(loader, this, "library_configuration.fxml");
   }
 
   @Override

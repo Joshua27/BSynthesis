@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindValidStateCommand;
@@ -38,13 +39,10 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.ResourceBundle;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -105,16 +103,7 @@ public class StateNode extends BasicNode implements Initializable {
     setLayoutX(position.getX());
     setLayoutY(position.getY());
     adjustPositionIfNecessary();
-
-    loader.setLocation(getClass().getResource("state_node.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis state node failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "state_node.fxml");
   }
 
   @Override

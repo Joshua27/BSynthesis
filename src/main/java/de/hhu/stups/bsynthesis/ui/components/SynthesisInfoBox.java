@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
@@ -29,11 +30,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @Singleton
 public class SynthesisInfoBox extends VBox implements Initializable {
@@ -83,15 +81,7 @@ public class SynthesisInfoBox extends VBox implements Initializable {
     infoTextProperty = new SimpleStringProperty();
     timeline = new Timeline();
 
-    loader.setLocation(getClass().getResource("synthesis_info_box.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis info box failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "synthesis_info_box.fxml");
   }
 
   @Override

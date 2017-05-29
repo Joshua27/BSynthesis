@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.State;
@@ -15,11 +16,8 @@ import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.annotation.Nullable;
 
@@ -49,16 +47,9 @@ public class TransitionNode extends BasicNode implements Initializable {
     inputStateProperty = new SimpleObjectProperty<>(inputState);
     outputStateProperty = new SimpleObjectProperty<>(outputState);
 
-    loader.setLocation(getClass().getResource("transition_node.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis transition node failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "transition_node.fxml");
   }
+
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {

@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
 import de.prob.model.representation.AbstractElement;
@@ -18,11 +19,8 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The main ui controller presenting a {@link #tabPane} and a {@link #synthesisMainMenu}.
@@ -61,15 +59,7 @@ public class SynthesisMain extends VBox implements Initializable {
                        final SynthesisContextService synthesisContextService) {
     this.synthesisContextService = synthesisContextService;
 
-    loader.setLocation(getClass().getResource("synthesis_main.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis main view failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "synthesis_main.fxml");
   }
 
   @Override

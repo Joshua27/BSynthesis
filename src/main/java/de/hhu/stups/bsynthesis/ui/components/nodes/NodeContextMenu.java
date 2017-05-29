@@ -3,6 +3,8 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
+
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -10,11 +12,8 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class NodeContextMenu extends ContextMenu implements Initializable {
 
@@ -35,15 +34,7 @@ public class NodeContextMenu extends ContextMenu implements Initializable {
                          @Assisted BasicNode parent) {
     this.parent = parent;
 
-    loader.setLocation(getClass().getResource("node_context_menu.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis context menu failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "node_context_menu.fxml");
   }
 
   @Override

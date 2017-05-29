@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
@@ -16,10 +17,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * A context menu displaying several commands that can be applied on a {@link ValidationPane}.
@@ -53,15 +50,7 @@ public class ValidationContextMenu extends ContextMenu {
     this.synthesisTypeProperty = new SimpleObjectProperty<>(synthesisType);
     graphicPositionProperty = new SimpleObjectProperty<>(new Point2D(0.0, 0.0));
 
-    loader.setLocation(getClass().getResource("validation_context_menu.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis context menu failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "validation_context_menu.fxml");
   }
 
   /**

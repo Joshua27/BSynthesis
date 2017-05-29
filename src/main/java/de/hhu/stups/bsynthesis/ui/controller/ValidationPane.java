@@ -5,6 +5,7 @@ import static java.beans.Beans.isInstanceOf;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
@@ -44,13 +45,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -116,15 +114,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
     validationContextMenu = validationContextMenuFactory.create(SynthesisType.ACTION);
     nodes = FXCollections.observableArrayList();
 
-    loader.setLocation(getClass().getResource("validation_pane.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis main view failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "validation_pane.fxml");
   }
 
   @Override

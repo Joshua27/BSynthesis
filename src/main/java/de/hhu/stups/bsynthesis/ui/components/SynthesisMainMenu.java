@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
@@ -98,15 +99,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     this.modelCheckingService = modelCheckingService;
     stageProperty = new SimpleObjectProperty<>();
 
-
-    loader.setLocation(getClass().getResource("synthesis_main_menu.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      logger.log(Level.SEVERE, "Loading fxml for the synthesis main menu failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "synthesis_main_menu.fxml");
   }
 
   @Override

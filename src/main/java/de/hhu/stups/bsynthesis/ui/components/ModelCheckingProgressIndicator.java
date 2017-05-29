@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
@@ -20,11 +21,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.VBox;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @Singleton
 public class ModelCheckingProgressIndicator extends VBox implements Initializable {
@@ -58,16 +56,7 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
     modelCheckingIndicatorPresentProperty = new SimpleBooleanProperty(false);
     modelCheckingStatusTextProperty = new SimpleStringProperty("");
 
-    loader.setLocation(getClass().getResource("model_checking_progress_indicator.fxml"));
-    loader.setRoot(this);
-    loader.setController(this);
-    try {
-      loader.load();
-    } catch (final IOException exception) {
-      final Logger logger = Logger.getLogger(getClass().getSimpleName());
-      logger.log(Level.SEVERE,
-          "Loading fxml for the synthesis model checking progress indicator failed.", exception);
-    }
+    Loader.loadFxml(loader, this, "model_checking_progress_indicator.fxml");
   }
 
   @Override
