@@ -33,7 +33,6 @@ import java.util.logging.Logger;
 
 public class SynthesisMainMenu extends MenuBar implements Initializable {
 
-  private final Logger logger = Logger.getLogger(getClass().getSimpleName());
   private final Api proBApi;
 
   private final ObjectProperty<Stage> stageProperty;
@@ -104,7 +103,11 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
-    BooleanBinding disableMenu = synthesisContextService.stateSpaceProperty().isNull();
+    final BooleanBinding disableMenu = synthesisContextService.stateSpaceProperty().isNull();
+    final BooleanBinding extendMachineDisabled = disableMenu
+        .or(modelCheckingService.errorFoundProperty().isNotNull())
+        .or(modelCheckingService.indicatorPresentProperty())
+        .or(modelCheckingService.resultProperty().isNull());
     menuItemClear.disableProperty().bind(disableMenu
         .or(modelCheckingService.indicatorPresentProperty()));
     menuItemSave.disableProperty().bind(disableMenu);
@@ -117,12 +120,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         .or(modelCheckingService.resultProperty().isNotNull()));
     menuItemStopCheckModel.disableProperty().bind(disableMenu
         .or(modelCheckingService.runningProperty().not()));
-    menuItemVisualizeOperation.disableProperty().bind(disableMenu
-        .or(modelCheckingService.errorFoundProperty().isNotNull())
-        .or(modelCheckingService.indicatorPresentProperty()));
-    menuItemNewOperation.disableProperty().bind(disableMenu
-        .or(modelCheckingService.errorFoundProperty().isNotNull())
-        .or(modelCheckingService.indicatorPresentProperty()));
+    menuItemVisualizeOperation.disableProperty().bind(extendMachineDisabled);
+    menuItemNewOperation.disableProperty().bind(extendMachineDisabled);
     menuItemNodesFromTrace.disableProperty().bind(disableMenu
         .or(modelCheckingService.errorFoundProperty().isNull())
         .or(modelCheckingService.indicatorPresentProperty()));
@@ -145,6 +144,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch");
     fileChooser.getExtensionFilters().add(extFilter);
     final File file = fileChooser.showOpenDialog(stageProperty.get());
+    final Logger logger = Logger.getLogger(getClass().getSimpleName());
     try {
       if (file == null) {
         return;
