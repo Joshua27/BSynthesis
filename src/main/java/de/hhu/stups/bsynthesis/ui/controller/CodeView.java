@@ -25,7 +25,6 @@ import java.util.stream.Stream;
  */
 public final class CodeView extends VBox {
 
-  private final Logger logger = Logger.getLogger(getClass().getSimpleName());
   private final SynthesisContextService synthesisContextService;
 
   @FXML
@@ -69,6 +68,7 @@ public final class CodeView extends VBox {
                  .getModelFile().getPath()))) {
       stream.forEach(line -> codeArea.appendText(line + "\n"));
     } catch (final IOException exception) {
+      final Logger logger = Logger.getLogger(getClass().getSimpleName());
       logger.log(Level.SEVERE, "Error loading machine code", exception);
     }
   }
