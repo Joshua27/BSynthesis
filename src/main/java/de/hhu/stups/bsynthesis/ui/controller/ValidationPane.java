@@ -61,9 +61,8 @@ public class ValidationPane extends ScrollPane implements Initializable {
   public static final double WIDTH = 2700.0;
   public static final double HEIGHT = 1600.0;
 
-  private static final double SCALE_FACTOR = 1.1;
   private static final double MAX_ZOOM_IN = 1.0;
-  private static final double MAX_ZOOM_OUT = 0.0;
+  private static final double MAX_ZOOM_OUT = 0.3;
   private static final int MODEL_CHECKING_STATE_AMOUNT = 5;
 
   private final ObservableList<BasicNode> nodes;
@@ -175,12 +174,14 @@ public class ValidationPane extends ScrollPane implements Initializable {
   @SuppressWarnings("unused")
   private void removeNode(final BasicNode nodeToRemove) {
     Platform.runLater(() -> contentPane.getChildren().remove(nodeToRemove));
+    // remove node line connections
     contentPane.getChildren().forEach(node -> {
       if (node instanceof NodeLine && (nodeToRemove.equals(((NodeLine) node).getSource())
           || nodeToRemove.equals(((NodeLine) node).getTarget()))) {
         Platform.runLater(() -> contentPane.getChildren().remove(node));
       }
     });
+    // remove ancestors if necessary
     if (isInstanceOf(nodeToRemove, StateNode.class)) {
       nodes.forEach(node -> {
         final StateNode stateNode = (StateNode) node;
@@ -252,26 +253,13 @@ public class ValidationPane extends ScrollPane implements Initializable {
   }
 
   private void initializeScaleEvents() {
-    scaleFactorProperty.addListener((observable, oldValue, newValue) -> {
-      if (!isValidZoom(newValue.doubleValue())) {
-        return;
-      }
-      if ((newValue.doubleValue() - 0.0001 < 1.00001 && newValue.doubleValue() - 0.0001 > 0.99999)
-          || oldValue.equals(newValue)) {
-        contentPane.setPrefSize(WIDTH, HEIGHT);
-        return;
-      }
-      final double scaleFactor = (oldValue.doubleValue() > newValue.doubleValue())
-          ? 1 / SCALE_FACTOR : SCALE_FACTOR;
-      zoomGroup.setScaleX(zoomGroup.getScaleX() * scaleFactor);
-      zoomGroup.setScaleY(zoomGroup.getScaleY() * scaleFactor);
-    });
-
+    zoomGroup.scaleXProperty().bind(scaleFactorProperty);
+    zoomGroup.scaleYProperty().bind(scaleFactorProperty);
     addEventFilter(ScrollEvent.ANY, event -> {
       if (!event.isControlDown()) {
         return;
       }
-      if (event.getDeltaY() > 0 && (scaleFactorProperty.get() <= MAX_ZOOM_IN)) {
+      if (event.getDeltaY() > 0 && (scaleFactorProperty.get() < MAX_ZOOM_IN)) {
         setScaleFactor(Math.round(scaleFactorProperty.add(0.1).get() * 100.0) / 100.0);
       } else if (event.getDeltaY() < 0 && (scaleFactorProperty.get() > MAX_ZOOM_OUT)) {
         setScaleFactor(Math.round(scaleFactorProperty.subtract(0.1).get() * 100.0) / 100.0);
@@ -366,7 +354,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
               ? nodesFromTraceGenerator.getNextValidNodePosition()
               : nodesFromTraceGenerator.getNextInvalidNodePosition(),
           getNodeState(currentState));
-
+      stateNode.stateFromModelCheckingProperty().set(true);
       final StateNode previousNode = nodesFromTraceGenerator.getPreviousNode();
       final Trace previousTrace = nodesFromTraceGenerator.getPreviousTrace();
       if (previousNode != null) {
@@ -374,8 +362,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
         previousNode.predecessorProperty().add(stateNode);
       }
       // find operation that violates the invariant when following the trace
-      if (!invariantViolatingOpIsSet && previousNode != null
-          && !previousNode.getState().isInvariantOk() && stateNode.getState().isInvariantOk()) {
+      if (!invariantViolatingOpIsSet && isViolatingOperation(previousNode, stateNode)) {
         synthesisContextService.setCurrentOperation(previousTrace.getCurrentTransition().getName());
         invariantViolatingOpIsSet = true;
       }
@@ -387,6 +374,16 @@ public class ValidationPane extends ScrollPane implements Initializable {
       nodesFromTraceGenerator.setPreviousTrace(trace);
       synthesisContextService.getAnimationSelector().changeCurrentAnimation(trace.back());
     }
+  }
+
+  /**
+   * Check if we transitioned from a valid to a violating state.
+   */
+  private boolean isViolatingOperation(final StateNode previousNode,
+                                       final StateNode stateNode) {
+    return previousNode != null
+        && !previousNode.getState().isInvariantOk()
+        && stateNode.getState().isInvariantOk();
   }
 
   private boolean isValidZoom(final double scaleFactor) {
@@ -434,7 +431,9 @@ public class ValidationPane extends ScrollPane implements Initializable {
 
   @SuppressWarnings("unused")
   private void setScaleFactor(final double scaleFactor) {
-    Platform.runLater(() -> scaleFactorProperty.set(scaleFactor));
+    if (isValidZoom(scaleFactor)) {
+      Platform.runLater(() -> scaleFactorProperty.set(scaleFactor));
+    }
   }
 
   /**
