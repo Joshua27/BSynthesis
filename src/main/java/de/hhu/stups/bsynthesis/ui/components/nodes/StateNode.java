@@ -20,10 +20,12 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SetProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleSetProperty;
@@ -34,6 +36,8 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -66,8 +70,10 @@ public class StateNode extends BasicNode implements Initializable {
   private final SynthesisContextService synthesisContextService;
   private final StringProperty titleProperty;
   private final Timeline timeline;
+  private final Timeline auxiliaryTimeline;
   private final SetProperty<BasicNode> successorProperty;
   private final SetProperty<BasicNode> predecessorProperty;
+  private final BooleanProperty stateFromModelCheckingProperty;
 
   @FXML
   @SuppressWarnings("unused")
@@ -103,11 +109,13 @@ public class StateNode extends BasicNode implements Initializable {
     super(position, nodeState, validationPane, synthesisContextService.getNodeContextMenuFactory());
     this.synthesisContextService = synthesisContextService;
     timeline = new Timeline();
+    auxiliaryTimeline = new Timeline();
     stateProperty = new SimpleObjectProperty<>(state);
     titleProperty = new SimpleStringProperty();
     successorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     predecessorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     tableViewStateMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
+    stateFromModelCheckingProperty = new SimpleBooleanProperty(false);
 
     traceProperty().set(trace);
     setLayoutX(position.getX());
@@ -184,20 +192,17 @@ public class StateNode extends BasicNode implements Initializable {
 
   private void initializeTableColumn() {
     // TODO: validate input on commit
-    if (NodeState.TENTATIVE.equals(nodeStateProperty().get())) {
-      tableColumnInputState.setCellFactory(TextFieldTableCell.forTableColumn());
-      tableColumnInputState.setOnEditCommit(
-          (TableColumn.CellEditEvent<StateTableCell, String> event) ->
-              Platform.runLater(() -> {
-                event.getTableView().getItems().get(
-                    event.getTablePosition().getRow())
-                    .setInputState(event.getNewValue());
-                updateTableViewStateMap();
-              }));
-      tableViewState.setEditable(true);
-      return;
-    }
-    tableViewState.setEditable(false);
+    tableColumnInputState.setCellFactory(TextFieldTableCell.forTableColumn());
+    tableColumnInputState.setOnEditCommit(
+        (TableColumn.CellEditEvent<StateTableCell, String> event) ->
+            Platform.runLater(() -> {
+              nodeStateProperty().set(NodeState.TENTATIVE);
+              event.getTableView().getItems().get(
+                  event.getTablePosition().getRow())
+                  .setInputState(event.getNewValue());
+              updateTableViewStateMap();
+            }));
+    tableViewState.editableProperty().bind(stateFromModelCheckingProperty.not());
   }
 
   private void updateTableViewStateMap() {
@@ -223,16 +228,17 @@ public class StateNode extends BasicNode implements Initializable {
    * current trace}.
    */
   public StateNode getPredecessorFromTrace() {
-    // TODO: eval operation instead of just using the trace from model checking
     final Trace trace = traceProperty().get();
     if (trace == null || !trace.canGoBack()) {
       return null;
     }
     final Trace newTrace = trace.back();
     final State state = newTrace.getCurrentState();
-    return synthesisContextService.getStateNodeFactory()
+    final StateNode stateNode = synthesisContextService.getStateNodeFactory()
         .create(state, newTrace, new Point2D(getXPosition() - getWidth() * 2, getYPosition()),
             state.isInvariantOk() ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+    stateNode.stateFromModelCheckingProperty().set(true);
+    return stateNode;
   }
 
   void findPredecessor() {
@@ -261,9 +267,11 @@ public class StateNode extends BasicNode implements Initializable {
     }
     final Trace newTrace = trace.forward();
     final State state = newTrace.getCurrentState();
-    return synthesisContextService.getStateNodeFactory()
+    final StateNode stateNode = synthesisContextService.getStateNodeFactory()
         .create(state, newTrace, new Point2D(getXPosition() + getWidth() * 2, getYPosition()),
             state.isInvariantOk() ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+    stateNode.stateFromModelCheckingProperty.setValue(true);
+    return stateNode;
   }
 
   void findSuccessor() {
@@ -293,13 +301,42 @@ public class StateNode extends BasicNode implements Initializable {
     timeline.getKeyFrames().clear();
     final double targetWidth = expand ? EXPANDED_WIDTH : WIDTH;
     final double targetHeight = expand ? EXPANDED_HEIGHT : HEIGHT;
-    final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250),
+    final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250.0),
         new KeyValue(nodeWidthProperty(), targetWidth),
         new KeyValue(nodeHeightProperty(), targetHeight));
     timeline.getKeyFrames().add(expandAnimation);
     timeline.play();
     adjustPositionIfNecessary();
     toFront();
+  }
+
+  private void highlightNodeEffect() {
+    toFront();
+    if (!isExpanded()) {
+      isExpandedProperty().set(true);
+      return;
+    }
+    timeline.getKeyFrames().clear();
+
+    final KeyFrame shrinkAnimation = new KeyFrame(Duration.millis(250.0),
+        partialHighlightNodeFinished(),
+        new KeyValue(nodeWidthProperty(), EXPANDED_WIDTH - EXPANDED_WIDTH / 4),
+        new KeyValue(nodeHeightProperty(), EXPANDED_HEIGHT - EXPANDED_HEIGHT / 3));
+    timeline.getKeyFrames().add(shrinkAnimation);
+    timeline.play();
+
+  }
+
+  private EventHandler<ActionEvent> partialHighlightNodeFinished() {
+    return event -> {
+      auxiliaryTimeline.getKeyFrames().clear();
+      final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250.0),
+          new KeyValue(nodeWidthProperty(), EXPANDED_WIDTH),
+          new KeyValue(nodeHeightProperty(), EXPANDED_HEIGHT));
+      auxiliaryTimeline.getKeyFrames().clear();
+      auxiliaryTimeline.getKeyFrames().add(expandAnimation);
+      auxiliaryTimeline.play();
+    };
   }
 
   private void adjustPositionIfNecessary() {
@@ -387,7 +424,7 @@ public class StateNode extends BasicNode implements Initializable {
         .filter(stateNode -> stateNode != this && equalStates(stateNode)).findFirst();
     if (optionalStateNode.isPresent()) {
       remove();
-      optionalStateNode.get().isExpandedProperty().set(true);
+      optionalStateNode.get().highlightNodeEffect();
       return true;
     }
     return false;
@@ -422,6 +459,10 @@ public class StateNode extends BasicNode implements Initializable {
       }
     }
     return true;
+  }
+
+  public BooleanProperty stateFromModelCheckingProperty() {
+    return stateFromModelCheckingProperty;
   }
 
   public SetProperty<BasicNode> successorProperty() {

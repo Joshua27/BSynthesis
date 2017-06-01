@@ -75,15 +75,19 @@ public class NodeHeader extends HBox implements Initializable {
       stateNode.isExpandedProperty().set(!stateNode.isExpanded());
     });
 
+    final BooleanBinding traceWalkingEnabledBinding = stateNode.nodeStateProperty()
+        .isNotEqualTo(NodeState.TENTATIVE)
+        .and(synthesisContextService.synthesisTypeProperty()
+            .isEqualTo(SynthesisType.GUARD_OR_INVARIANT))
+        .and(stateNode.stateFromModelCheckingProperty());
+
     final BooleanBinding canGoBackBinding = Bindings.createBooleanBinding(
         stateNode.traceProperty().get() != null
             ? stateNode.traceProperty().get()::canGoBack : () -> false);
     iconFindPredecessor.glyphStyleProperty().bind(
         Bindings.when(stateNode.predecessorProperty().emptyProperty().and(
             canGoBackBinding)).then("-fx-fill: #000000;").otherwise("-fx-fill: #747474;"));
-    iconFindPredecessor.visibleProperty().bind(stateNode.nodeStateProperty()
-        .isNotEqualTo(NodeState.TENTATIVE).and(synthesisContextService.synthesisTypeProperty()
-            .isEqualTo(SynthesisType.GUARD_OR_INVARIANT)));
+    iconFindPredecessor.visibleProperty().bind(traceWalkingEnabledBinding);
     iconFindPredecessor.disableProperty().bind(synthesisContextService.synthesisTypeProperty()
         .isEqualTo(SynthesisType.ACTION).or(canGoBackBinding.not()));
     iconFindPredecessor.glyphSizeProperty().bind(iconBinding);
@@ -101,9 +105,7 @@ public class NodeHeader extends HBox implements Initializable {
     iconFindSuccessor.glyphStyleProperty().bind(
         Bindings.when(stateNode.successorProperty().emptyProperty().and(
             canGoForwardBinding)).then("-fx-fill: #000000;").otherwise("-fx-fill: #747474;"));
-    iconFindSuccessor.visibleProperty().bind(stateNode.nodeStateProperty()
-        .isNotEqualTo(NodeState.TENTATIVE).and(synthesisContextService.synthesisTypeProperty()
-            .isEqualTo(SynthesisType.GUARD_OR_INVARIANT)));
+    iconFindSuccessor.visibleProperty().bind(traceWalkingEnabledBinding);
     iconFindSuccessor.disableProperty().bind(synthesisContextService.synthesisTypeProperty()
         .isEqualTo(SynthesisType.ACTION).or(canGoForwardBinding.not()));
     iconFindSuccessor.glyphSizeProperty().bind(iconBinding);
