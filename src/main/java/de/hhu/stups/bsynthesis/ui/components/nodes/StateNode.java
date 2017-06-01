@@ -8,7 +8,10 @@ import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindValidStateCommand;
+import de.prob.animator.domainobjects.AbstractEvalResult;
 import de.prob.animator.domainobjects.ClassicalB;
+import de.prob.animator.domainobjects.EvalResult;
+import de.prob.animator.domainobjects.IEvalElement;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 import de.prob.statespace.Trace;
@@ -17,15 +20,18 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.MapProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SetProperty;
+import javafx.beans.property.SimpleMapProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.fxml.FXML;
@@ -41,6 +47,8 @@ import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -54,6 +62,7 @@ public class StateNode extends BasicNode implements Initializable {
   private static final double EXPANDED_HEIGHT = 300;
 
   private final ObjectProperty<State> stateProperty;
+  private final MapProperty<String, String> tableViewStateMapProperty;
   private final SynthesisContextService synthesisContextService;
   private final StringProperty titleProperty;
   private final Timeline timeline;
@@ -98,6 +107,7 @@ public class StateNode extends BasicNode implements Initializable {
     titleProperty = new SimpleStringProperty();
     successorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     predecessorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
+    tableViewStateMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
 
     traceProperty().set(trace);
     setLayoutX(position.getX());
@@ -178,23 +188,33 @@ public class StateNode extends BasicNode implements Initializable {
       tableColumnInputState.setCellFactory(TextFieldTableCell.forTableColumn());
       tableColumnInputState.setOnEditCommit(
           (TableColumn.CellEditEvent<StateTableCell, String> event) ->
-              Platform.runLater(() -> event.getTableView().getItems().get(
-                  event.getTablePosition().getRow())
-                  .setInputState(event.getNewValue())));
+              Platform.runLater(() -> {
+                event.getTableView().getItems().get(
+                    event.getTablePosition().getRow())
+                    .setInputState(event.getNewValue());
+                updateTableViewStateMap();
+              }));
       tableViewState.setEditable(true);
       return;
     }
     tableViewState.setEditable(false);
   }
 
+  private void updateTableViewStateMap() {
+    tableViewState.getItems().forEach(stateTableCell ->
+        tableViewStateMapProperty.put(stateTableCell.getVarName(), stateTableCell.getInputState()));
+  }
+
   private void initializeTableView() {
     tableViewState.getItems().clear();
     final ObservableSet<String> machineVarNames = synthesisContextService.getMachineVarNames();
     if (machineVarNames != null) {
-      machineVarNames.forEach(machineVarName ->
-          tableViewState.getItems().add(new StateTableCell(
-              machineVarName, getState() != null && getState().isInitialised()
-              ? getState().eval(machineVarName).toString() : "")));
+      machineVarNames.forEach(machineVarName -> {
+        tableViewStateMapProperty.put(machineVarName, "");
+        tableViewState.getItems().add(new StateTableCell(
+            machineVarName, getState() != null && getState().isInitialised()
+            ? getState().eval(machineVarName).toString() : ""));
+      });
     }
   }
 
@@ -338,41 +358,39 @@ public class StateNode extends BasicNode implements Initializable {
         new FindValidStateCommand(stateSpace, new ClassicalB(predicate));
     stateSpace.execute(findValidStateCommand);
 
-    final FindValidStateCommand.ResultType resultType = findValidStateCommand.getResult();
-    if (resultType.equals(FindValidStateCommand.ResultType.ERROR)) {
-      return;
+    if (!checkDuplicatedNode()) {
+      final FindValidStateCommand.ResultType resultType = findValidStateCommand.getResult();
+      if (resultType.equals(FindValidStateCommand.ResultType.ERROR)) {
+        return;
+      }
+      if (resultType.equals(FindValidStateCommand.ResultType.NO_STATE_FOUND)) {
+        nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
+        return;
+      }
+      // check for duplicated state before setting the state property
+      stateProperty.set(stateSpace.getState(findValidStateCommand.getStateId()));
+      nodeStateProperty().set(stateProperty.get().isInvariantOk()
+          ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
     }
-    if (resultType.equals(FindValidStateCommand.ResultType.NO_STATE_FOUND)) {
-      nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
-      checkDuplicatedNode();
-      return;
-    }
-    final State state = stateSpace.getState(findValidStateCommand.getStateId());
-    stateProperty.set(state);
-    nodeStateProperty().set(stateProperty.get().isInvariantOk()
-        ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
-    checkDuplicatedNode();
   }
 
   /**
    * When a tentative {@link StateNode} is validated we check if the node already exists.
    * In this case we delete the new node and expand the existing equivalent node.
    */
-  private void checkDuplicatedNode() {
+  private boolean checkDuplicatedNode() {
     if (synthesisContextService.getSynthesisType().isAction()) {
-      return;
+      return false;
     }
-    // TODO: not working if a state violates the invariant since it has no id in
-    // the current state space
-    final String stateId = getState().getId();
-    for (final BasicNode basicNode : getValidationPane().getNodes()) {
-      final StateNode stateNode = ((StateNode) basicNode);
-      if (!stateNode.equals(this) && stateNode.getState() != null
-          && stateNode.getState().getId().equals(stateId)) {
-        stateNode.isExpandedProperty().set(true);
-        Platform.runLater(this::remove);
-      }
+    final Optional<StateNode> optionalStateNode = getValidationPane().getNodes().stream()
+        .map(basicNode -> (StateNode) basicNode)
+        .filter(stateNode -> stateNode != this && equalStates(stateNode)).findFirst();
+    if (optionalStateNode.isPresent()) {
+      remove();
+      optionalStateNode.get().isExpandedProperty().set(true);
+      return true;
     }
+    return false;
   }
 
   /**
@@ -382,6 +400,24 @@ public class StateNode extends BasicNode implements Initializable {
     // TODO: validate types and well-definedness
     for (final StateTableCell stateTableCell : stateTableCells) {
       if (stateTableCell.getInputState().replaceAll("\\s+", "").isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Two {@link StateNode}'s are equal if they have exactly the same state values. We can't directly
+   * compare {@link State} objects since we can also have erroneous states that are not added to the
+   * state space and thus missing a corresponding state object.
+   */
+  private boolean equalStates(final StateNode stateNode) {
+    final ObservableMap<String, String> tableViewStateMap = tableViewStateMapProperty.get();
+    for (final Map.Entry<IEvalElement, AbstractEvalResult>
+        entry : stateNode.getState().getValues().entrySet()) {
+      final String keyCode = entry.getKey().getCode();
+      if (!tableViewStateMap.containsKey(keyCode)
+          || !tableViewStateMap.get(keyCode).equals(((EvalResult) entry.getValue()).getValue())) {
         return false;
       }
     }
