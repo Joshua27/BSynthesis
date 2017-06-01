@@ -7,6 +7,8 @@ import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
+import de.prob.model.representation.AbstractElement;
+import de.prob.model.representation.Variable;
 import de.prob.statespace.AnimationSelector;
 import de.prob.statespace.StateSpace;
 
@@ -19,6 +21,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 
 /**
@@ -63,7 +66,21 @@ public class SynthesisContextService {
     stateSpaceProperty.addListener((observable, oldValue, newValue) -> {
       currentOperationProperty.set("none");
       synthesisTypeProperty.set(SynthesisType.ACTION);
+      updateCurrentVarNames();
     });
+  }
+
+
+  private void updateCurrentVarNames() {
+    final StateSpace stateSpace = getStateSpace();
+    if (stateSpace == null) {
+      return;
+    }
+    final ObservableSet<String> variableNames = FXCollections.observableSet();
+    final AbstractElement mainComponent = stateSpace.getMainComponent();
+    mainComponent.getChildrenOfType(Variable.class)
+        .forEach(variable -> variableNames.add(variable.getName()));
+    setMachineVarNames(variableNames);
   }
 
   public NodeContextMenuFactory getNodeContextMenuFactory() {
@@ -86,7 +103,7 @@ public class SynthesisContextService {
     return machineVarNamesProperty;
   }
 
-  public void setMachineVarNames(final ObservableSet<String> machineVarNamesProperty) {
+  private void setMachineVarNames(final ObservableSet<String> machineVarNamesProperty) {
     Platform.runLater(() -> this.machineVarNamesProperty.set(machineVarNamesProperty));
   }
 
@@ -114,28 +131,12 @@ public class SynthesisContextService {
     Platform.runLater(() -> this.currentOperationProperty.set(currentOperationProperty));
   }
 
-  public boolean isInvariantViolated() {
-    return invariantViolatedProperty.get();
-  }
-
   public BooleanProperty invariantViolatedProperty() {
     return invariantViolatedProperty;
   }
 
-  public void setInvariantViolated(final boolean invariantViolatedProperty) {
-    Platform.runLater(() -> this.invariantViolatedProperty.set(invariantViolatedProperty));
-  }
-
   public AnimationSelector getAnimationSelector() {
     return animationSelectorProperty.get();
-  }
-
-  public ObjectProperty<AnimationSelector> animationSelectorProperty() {
-    return animationSelectorProperty;
-  }
-
-  public void setAnimationSelector(final AnimationSelector animationSelectorProperty) {
-    Platform.runLater(() -> this.animationSelectorProperty.set(animationSelectorProperty));
   }
 
   public StateSpace getStateSpace() {
