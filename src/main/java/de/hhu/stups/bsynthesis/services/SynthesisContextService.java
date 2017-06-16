@@ -3,10 +3,13 @@ package de.hhu.stups.bsynthesis.services;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
+import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
+import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import de.prob.model.representation.AbstractElement;
 import de.prob.model.representation.Variable;
 import de.prob.statespace.AnimationSelector;
@@ -24,6 +27,8 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
 
+import org.reactfx.EventSource;
+
 /**
  * A service providing several properties describing the current synthesis context, i.e. the
  * currently loaded machine's information, results from model checking.
@@ -35,14 +40,19 @@ public class SynthesisContextService {
   private final StateNodeFactory stateNodeFactory;
   private final TransitionNodeFactory transitionNodeFactory;
 
+  private final EventSource<ControllerTab> showTabEventStream;
+  private final EventSource<ContextEvent> contextEventStream;
+
+  private final BooleanProperty synthesisSucceededProperty;
+
   private final SetProperty<String> machineVarNamesProperty;
   private final ObjectProperty<SynthesisType> synthesisTypeProperty;
   private final ObjectProperty<StateSpace> stateSpaceProperty;
   private final StringProperty currentOperationProperty;
   private final BooleanProperty invariantViolatedProperty;
-  private final BooleanProperty showLibraryConfigurationProperty;
   private final ObjectProperty<AnimationSelector> animationSelectorProperty;
-  private final BooleanProperty showSynthesisTabProperty;
+  private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
+  private final StringProperty modifiedMachineCodeProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -55,19 +65,29 @@ public class SynthesisContextService {
     this.stateNodeFactory = stateNodeFactory;
     this.transitionNodeFactory = transitionNodeFactory;
     machineVarNamesProperty = new SimpleSetProperty<>();
-    synthesisTypeProperty = new SimpleObjectProperty<>();
+    synthesisTypeProperty = new SimpleObjectProperty<>(SynthesisType.NONE);
     stateSpaceProperty = new SimpleObjectProperty<>();
     animationSelectorProperty = new SimpleObjectProperty<>(new AnimationSelector());
     currentOperationProperty = new SimpleStringProperty();
     invariantViolatedProperty = new SimpleBooleanProperty(false);
-    showLibraryConfigurationProperty = new SimpleBooleanProperty(false);
-    showSynthesisTabProperty = new SimpleBooleanProperty(false);
+    selectedLibraryComponentsProperty = new SimpleObjectProperty<>();
+    synthesisSucceededProperty = new SimpleBooleanProperty(false);
+    modifiedMachineCodeProperty = new SimpleStringProperty();
+
+    showTabEventStream = new EventSource<>();
+    contextEventStream = new EventSource<>();
 
     stateSpaceProperty.addListener((observable, oldValue, newValue) -> {
-      currentOperationProperty.set("none");
-      synthesisTypeProperty.set(SynthesisType.ACTION);
+      synthesisTypeProperty.set(SynthesisType.NONE);
       updateCurrentVarNames();
     });
+    contextEventStream.subscribe(contextEvent -> {
+      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+        reset();
+      }
+    });
+    synthesisSucceededProperty.addListener((observable, oldValue, newValue) ->
+        showTabEventStream.push(ControllerTab.CODEVIEW));
   }
 
 
@@ -151,11 +171,34 @@ public class SynthesisContextService {
     this.stateSpaceProperty.set(stateSpace);
   }
 
-  public BooleanProperty showLibraryConfigurationProperty() {
-    return showLibraryConfigurationProperty;
+  public ObjectProperty<BLibrary> selectedLibraryComponentsProperty() {
+    return selectedLibraryComponentsProperty;
   }
 
-  public BooleanProperty showSynthesisTabProperty() {
-    return showSynthesisTabProperty;
+  public BooleanProperty synthesisSucceededProperty() {
+    return synthesisSucceededProperty;
+  }
+
+  public StringProperty modifiedMachineCodeProperty() {
+    return modifiedMachineCodeProperty;
+  }
+
+  /**
+   * Reset the current synthesis specific properties. For example if a synthesized solution is
+   * applied to the model.
+   */
+  private void reset() {
+    synthesisTypeProperty.set(SynthesisType.NONE);
+    synthesisSucceededProperty.set(false);
+    currentOperationProperty.set(null);
+    invariantViolatedProperty.set(false);
+  }
+
+  public EventSource<ControllerTab> showTabEventStream() {
+    return showTabEventStream;
+  }
+
+  public EventSource<ContextEvent> contextEventStream() {
+    return contextEventStream;
   }
 }
