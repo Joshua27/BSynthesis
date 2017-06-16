@@ -46,24 +46,49 @@ public class TransitionNode extends BasicNode implements Initializable {
     this.synthesisContextService = synthesisContextService;
     inputStateProperty = new SimpleObjectProperty<>(inputState);
     outputStateProperty = new SimpleObjectProperty<>(outputState);
+    transparentBackgroundProperty().set(true);
 
     Loader.loadFxml(loader, this, "transition_node.fxml");
   }
 
-
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
+    initializeStateNodes();
+    initializeNodeStateListener();
+
+    prefWidthProperty().bind(inputStateNode.widthProperty()
+        .add(outputStateNode.widthProperty()).add(100.0));
+    prefHeightProperty().bind(inputStateNode.heightProperty());
+
+    getChildren().addAll(inputStateNode, outputStateNode);
+    StackPane.setAlignment(inputStateNode, Pos.CENTER_LEFT);
+    StackPane.setAlignment(outputStateNode, Pos.CENTER_RIGHT);
+  }
+
+  private void initializeNodeStateListener() {
+    inputStateNode.nodeStateProperty().addListener((observable, oldValue, newValue) -> {
+      if (!newValue.isTentative() && !outputStateNode.isTentative()) {
+        nodeStateProperty().set(NodeState.VALID);
+      }
+    });
+    outputStateNode.nodeStateProperty().addListener((observable, oldValue, newValue) -> {
+      if (!newValue.isTentative() && !inputStateNode.isTentative()) {
+        nodeStateProperty().set(NodeState.VALID);
+      }
+    });
+  }
+
+  private void initializeStateNodes() {
     inputStateNode = synthesisContextService.getStateNodeFactory()
         .create(inputStateProperty.get(), traceProperty().get(), new Point2D(0, 0),
             nodeStateProperty().get());
-
-    isExpandedProperty().bindBidirectional(inputStateNode.isExpandedProperty());
-
     inputStateNode.titleProperty().set("Input");
     inputStateNode.nodeWidthProperty().set(100);
     inputStateNode.nodeHeightProperty().set(100);
     inputStateNode.moveIsEnabledProperty().set(false);
     inputStateNode.stateProperty().bindBidirectional(inputStateProperty);
+
+    isExpandedProperty().bindBidirectional(inputStateNode.isExpandedProperty());
 
     outputStateNode = synthesisContextService.getStateNodeFactory()
         .create(outputStateProperty.get(), traceProperty().get(),
@@ -77,14 +102,6 @@ public class TransitionNode extends BasicNode implements Initializable {
     outputStateNode.positionXProperty().bind(inputStateNode.widthProperty().add(100.0));
 
     inputStateNode.isExpandedProperty().bindBidirectional(outputStateNode.isExpandedProperty());
-
-    prefWidthProperty().bind(
-        inputStateNode.widthProperty().add(outputStateNode.widthProperty()).add(100.0));
-    prefHeightProperty().bind(inputStateNode.heightProperty());
-
-    getChildren().addAll(inputStateNode, outputStateNode);
-    StackPane.setAlignment(inputStateNode, Pos.CENTER_LEFT);
-    StackPane.setAlignment(outputStateNode, Pos.CENTER_RIGHT);
   }
 
   public State getInputState() {
@@ -114,5 +131,13 @@ public class TransitionNode extends BasicNode implements Initializable {
   public void childrenToFront() {
     inputStateNode.toFront();
     outputStateNode.toFront();
+  }
+
+  public void validateInputState() {
+    inputStateNode.validateState();
+  }
+
+  public void validateOutputState() {
+    outputStateNode.validateState();
   }
 }
