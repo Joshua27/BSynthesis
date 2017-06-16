@@ -3,6 +3,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
 import de.hhu.stups.bsynthesis.ui.components.library.LibraryComponent;
@@ -95,6 +96,9 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   private CheckBox cbDefaultConfiguration;
   @FXML
   @SuppressWarnings("unused")
+  private CheckBox cbConsiderIf;
+  @FXML
+  @SuppressWarnings("unused")
   private Button btIncreaseSelectedComponentAmount;
   @FXML
   @SuppressWarnings("unused")
@@ -109,17 +113,22 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * components selected by the user.
    */
   @Inject
-  public LibraryConfiguration(final FXMLLoader loader) {
+  public LibraryConfiguration(final FXMLLoader loader,
+                              final SynthesisContextService synthesisContextService) {
     staticBLibrary = new BLibrary();
     staticBLibrary.initializeLibrary();
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
     disableComponentsButtonsProperty = new SimpleBooleanProperty(true);
-
+    synthesisContextService.selectedLibraryComponentsProperty()
+        .bind(selectedLibraryComponentsProperty);
     Loader.loadFxml(loader, this, "library_configuration.fxml");
   }
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
+    selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+        .bindBidirectional(cbConsiderIf.selectedProperty());
+
     initializeButtons();
     initializeTreeViews();
     initializeTreeViewLibrary();
