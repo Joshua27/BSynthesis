@@ -65,23 +65,7 @@ public class StartSynthesisCommand extends AbstractCommand {
                                      final BasicNode basicNode) {
     if (basicNode instanceof StateNode) {
       // guard or invariant
-      final StateNode stateNode = ((StateNode) basicNode);
-      final State state = stateNode.getState();
-      if (stateNode.isValidatedPositive()) {
-        // set the positive state to be an output examples and compute the corresponding input state
-        final State predecessorState = stateNode.getPredecessor();
-        if (predecessorState != null) {
-          inputOutputExamples.add(
-              new InputOutputExample(new ExampleState(predecessorState), new ExampleState(state)));
-        }
-        return;
-      }
-      // otherwise, set the violating state to be an output and set its predecessor to be the input
-      // if available (synthesizing a precondition/guard we need to exclude the violating state's
-      // predecessor)
-      inputOutputExamples.add(new InputOutputExample(
-          new ExampleState(stateNode.getPredecessor()),
-          new ExampleState(state)));
+      addStateNode(inputOutputExamples, (StateNode) basicNode);
       return;
     }
     if (basicNode instanceof TransitionNode) {
@@ -91,6 +75,26 @@ public class StartSynthesisCommand extends AbstractCommand {
       inputOutputExamples.add(
           new InputOutputExample(new ExampleState(inputState), new ExampleState(outputState)));
     }
+  }
+
+  private void addStateNode(final Set<InputOutputExample> inputOutputExamples,
+                            final StateNode stateNode) {
+    final State state = stateNode.getState();
+    if (stateNode.isValidatedPositive()) {
+      // set the positive state to be an output examples and compute the corresponding input state
+      final State predecessorState = stateNode.getPredecessor();
+      if (predecessorState != null) {
+        inputOutputExamples.add(
+            new InputOutputExample(new ExampleState(predecessorState), new ExampleState(state)));
+      }
+      return;
+    }
+    // otherwise, set the violating state to be an output and set its predecessor to be the input
+    // if available (synthesizing a precondition/guard we need to exclude the violating state's
+    // predecessor)
+    inputOutputExamples.add(new InputOutputExample(
+        new ExampleState(stateNode.getPredecessor()),
+        new ExampleState(state)));
   }
 
   @Override
