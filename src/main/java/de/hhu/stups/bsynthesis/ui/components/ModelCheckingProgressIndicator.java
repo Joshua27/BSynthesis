@@ -28,8 +28,8 @@ import java.util.ResourceBundle;
 public class ModelCheckingProgressIndicator extends VBox implements Initializable {
 
   private final ModelCheckingService modelCheckingService;
-  private final BooleanProperty modelCheckingIndicatorPresentProperty;
-  private final StringProperty modelCheckingStatusTextProperty;
+  private final BooleanProperty indicatorPresentProperty;
+  private final StringProperty statusTextProperty;
 
   private ValidationPane validationPane;
 
@@ -53,8 +53,8 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
   public ModelCheckingProgressIndicator(final FXMLLoader loader,
                                         final ModelCheckingService modelCheckingService) {
     this.modelCheckingService = modelCheckingService;
-    modelCheckingIndicatorPresentProperty = new SimpleBooleanProperty(false);
-    modelCheckingStatusTextProperty = new SimpleStringProperty("");
+    indicatorPresentProperty = new SimpleBooleanProperty(false);
+    statusTextProperty = new SimpleStringProperty("");
 
     Loader.loadFxml(loader, this, "model_checking_progress_indicator.fxml");
   }
@@ -62,10 +62,10 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
     modelCheckingService.indicatorPresentProperty()
-        .bindBidirectional(modelCheckingIndicatorPresentProperty);
+        .bindBidirectional(indicatorPresentProperty);
     lbProgress.textProperty().bind(
         Bindings.when(Bindings.isNotNull(modelCheckingService.resultProperty()))
-            .then(modelCheckingStatusTextProperty)
+            .then(statusTextProperty)
             .otherwise(""));
 
     final StringExpression processedNodesBinding =
@@ -79,13 +79,13 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
 
     iconCancelModelChecking.setOnMouseClicked(event -> {
       modelCheckingService.runningProperty().set(false);
-      modelCheckingIndicatorPresentProperty.set(false);
+      indicatorPresentProperty.set(false);
     });
 
-    modelCheckingService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue != null) {
+    modelCheckingService.stateSpaceEventStream().subscribe(stateSpace -> {
+      if (stateSpace != null) {
         progressIndicator.setVisible(true);
-        modelCheckingIndicatorPresentProperty.set(true);
+        indicatorPresentProperty.set(true);
       }
     });
 
@@ -95,9 +95,9 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
       }
       progressIndicator.setVisible(false);
       if (newValue.getTrace() != null) {
-        modelCheckingStatusTextProperty.set("The model is defective. Error state found.");
+        statusTextProperty.set("The model is defective. Error state found.");
       } else {
-        modelCheckingStatusTextProperty.set("The model has been checked. No error found.");
+        statusTextProperty.set("The model has been checked. No error found.");
       }
     });
   }
@@ -122,7 +122,7 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
     this.validationPane = validationPane;
   }
 
-  public BooleanProperty modelCheckingIndicatorPresentProperty() {
-    return modelCheckingIndicatorPresentProperty;
+  public BooleanProperty indicatorPresentProperty() {
+    return indicatorPresentProperty;
   }
 }
