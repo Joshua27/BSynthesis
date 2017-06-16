@@ -41,6 +41,9 @@ public class SynthesisMain extends VBox implements Initializable {
   private Tab synthesisTab;
   @FXML
   @SuppressWarnings("unused")
+  private Tab codeViewTab;
+  @FXML
+  @SuppressWarnings("unused")
   private Tab libraryConfigurationTab;
   @FXML
   @SuppressWarnings("unused")
@@ -59,34 +62,35 @@ public class SynthesisMain extends VBox implements Initializable {
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
+    initializeTabs();
     tabPane.getTabs().remove(libraryConfigurationTab);
+    synthesisContextService.showTabEventStream().subscribe(this::selectTab);
+  }
 
-    synthesisContextService.showLibraryConfigurationProperty().addListener(
-        (observable, oldValue, newValue) -> {
-          if (newValue) {
-            tabPane.getTabs().add(libraryConfigurationTab);
-            tabPane.getSelectionModel().select(libraryConfigurationTab);
-          }
-        });
-    libraryConfigurationTab.setOnClosed(event -> {
-      synthesisContextService.showLibraryConfigurationProperty().set(false);
-      tabPane.getSelectionModel().selectFirst();
-    });
-    synthesisContextService.showSynthesisTabProperty().addListener(
-        (observable, oldValue, newValue) -> {
-          if (newValue) {
-            tabPane.getSelectionModel().select(synthesisTab);
-          }
-        });
-    tabPane.getSelectionModel().selectedItemProperty().addListener(
-        (observable, oldValue, newValue) -> {
-          if (!synthesisTab.equals(newValue)) {
-            synthesisContextService.showSynthesisTabProperty().set(false);
-          } else if (!libraryConfigurationTab.equals(newValue)) {
-            synthesisContextService.showLibraryConfigurationProperty().set(false);
-          }
+  private void initializeTabs() {
+    libraryConfigurationTab.disableProperty()
+        .bind(synthesisContextService.synthesisSucceededProperty());
+    libraryConfigurationTab.setOnClosed(event -> tabPane.getSelectionModel().selectFirst());
+    synthesisTab.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
+  }
+
+  private void selectTab(final ControllerTab controllerTab) {
+    switch (controllerTab) {
+      case SYNTHESIS:
+        tabPane.getSelectionModel().select(synthesisTab);
+        break;
+      case CODEVIEW:
+        tabPane.getSelectionModel().select(codeViewTab);
+        break;
+      case LIBRARY_CONFIGURATION:
+        if (!tabPane.getTabs().contains(libraryConfigurationTab)) {
+          tabPane.getTabs().add(libraryConfigurationTab);
         }
-    );
+        tabPane.getSelectionModel().select(libraryConfigurationTab);
+        break;
+      default:
+        break;
+    }
   }
 
   public void setStage(final Stage stage) {
