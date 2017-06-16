@@ -23,8 +23,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -186,10 +190,9 @@ public final class CodeView extends VBox {
   private void saveMachineCode() {
     final String destination = synthesisContextService.getStateSpace().getModel()
         .getModelFile().getPath();
-    try (FileWriter fileWriter = new FileWriter(destination)) {
-      final BufferedWriter out = new BufferedWriter(fileWriter);
-      out.write(codeArea.getText());
-      out.close();
+    try (final Writer fileWriterStream =
+             new OutputStreamWriter(new FileOutputStream(destination), StandardCharsets.UTF_8)) {
+      fileWriterStream.write(codeArea.getText());
     } catch (final IOException ioException) {
       final Logger logger = LoggerFactory.getLogger(getClass());
       logger.error("IOException when saving the machine to " + destination, ioException);
