@@ -1,17 +1,21 @@
 package de.hhu.stups.bsynthesis.ui;
 
 public enum SynthesisType {
-  ACTION, GUARD_OR_INVARIANT, DEADLOCK;
+  ACTION, GUARD, INVARIANT, DEADLOCK, NONE;
 
   @Override
   public String toString() {
     switch (this) {
       case ACTION:
         return "Action";
-      case GUARD_OR_INVARIANT:
-        return "Guard or Invariant";
+      case GUARD:
+        return "Guard";
+      case INVARIANT:
+        return "Invariant";
       case DEADLOCK:
         return "Deadlock";
+      case NONE:
+        return "Undefined";
       default:
         return "";
     }
@@ -19,5 +23,9 @@ public enum SynthesisType {
 
   public boolean isAction() {
     return this.equals(ACTION);
+  }
+
+  public boolean isUndefined() {
+    return this.equals(NONE);
   }
 }
