@@ -132,3 +132,5 @@ gradle-app.setting
 .idea/
 prob_log.txt
 ProB.log.*log
+*.log
+*.*~
