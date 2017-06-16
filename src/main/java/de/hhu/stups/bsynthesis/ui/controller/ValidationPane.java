@@ -7,6 +7,7 @@ import com.google.inject.Singleton;
 
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
@@ -25,10 +26,11 @@ import de.prob.statespace.State;
 import de.prob.statespace.Trace;
 
 import javafx.application.Platform;
+import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -65,7 +67,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
   private static final double MAX_ZOOM_OUT = 0.3;
   private static final int MODEL_CHECKING_STATE_AMOUNT = 5;
 
-  private final ObservableList<BasicNode> nodes;
+  private final ListProperty<BasicNode> nodes;
 
   private final SimpleDoubleProperty scaleFactorProperty;
   private final StateNodeFactory stateNodeFactory;
@@ -110,10 +112,30 @@ public class ValidationPane extends ScrollPane implements Initializable {
     this.modelCheckingProgressIndicator = modelCheckingProgressIndicator;
 
     scaleFactorProperty = new SimpleDoubleProperty(1.0);
-    validationContextMenu = validationContextMenuFactory.create(SynthesisType.ACTION);
-    nodes = FXCollections.observableArrayList();
+    validationContextMenu = validationContextMenuFactory.create(SynthesisType.NONE);
+    nodes = new SimpleListProperty<>(FXCollections.observableArrayList());
 
     Loader.loadFxml(loader, this, "validation_pane.fxml");
+  }
+
+  /**
+   * Set the {@link SynthesisContextService#synthesisTypeProperty()} according to the current ui
+   * state of the {@link #getNodes() nodes}.
+   */
+  private void updateSynthesisType(final BasicNode node) {
+    if (node instanceof TransitionNode || node.isTentative()
+        || SynthesisType.ACTION.equals(synthesisContextService.synthesisTypeProperty().get())) {
+      return;
+    }
+    final Optional<BasicNode> optionalValidNode = getValidNodes().stream().filter(basicNode ->
+        NodeState.INVARIANT_VIOLATED.equals(basicNode.nodeStateProperty().get())).findAny();
+    final Optional<BasicNode> optionalInvalidNode = getInvalidNodes().stream().filter(basicNode ->
+        NodeState.VALID.equals(basicNode.nodeStateProperty().get())).findAny();
+    if (optionalValidNode.isPresent() || optionalInvalidNode.isPresent()) {
+      synthesisContextService.synthesisTypeProperty().set(SynthesisType.INVARIANT);
+      return;
+    }
+    synthesisContextService.synthesisTypeProperty().set(SynthesisType.GUARD);
   }
 
   @Override
@@ -159,7 +181,13 @@ public class ValidationPane extends ScrollPane implements Initializable {
       synthesisInfoBox.updatePosition();
       modelCheckingProgressIndicator.updatePosition();
     });
-    synthesisContextService.synthesisTypeProperty().set(SynthesisType.ACTION);
+
+    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
+      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+        getNodes().clear();
+      }
+    });
+
     initializeModelCheckingIndicator();
     initializeContextMenu();
     initializeScaleEvents();
@@ -197,9 +225,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
   private void initializeContextMenu() {
     contentPane.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
       if (isValidDragObject((Node) event.getTarget())   // hide/don't show when a node is clicked
-          || !event.getButton().equals(MouseButton.SECONDARY)
-          || isInstanceOf(event.getTarget(), TransitionNode.class)
-          || synthesisContextService.getStateSpace() == null) {
+          || preventShowingContextMenu(event)) {
         validationContextMenu.hide();
         return;
       }
@@ -209,13 +235,25 @@ public class ValidationPane extends ScrollPane implements Initializable {
     });
   }
 
+  /**
+   * Don't show a context menu when {@link SynthesisContextService#stateSpaceProperty() no machine
+   * is loaded}, the {@link SynthesisContextService#synthesisTypeProperty()} is undefined, or a
+   * {@link BasicNode} is present at the current position.
+   */
+  private boolean preventShowingContextMenu(final MouseEvent event) {
+    return !event.getButton().equals(MouseButton.SECONDARY)
+        || isInstanceOf(event.getTarget(), BasicNode.class)
+        || synthesisContextService.getStateSpace() == null
+        || synthesisContextService.synthesisTypeProperty().get().isUndefined();
+  }
+
   private void initializeModelCheckingIndicator() {
     modelCheckingProgressIndicator.setValidationPane(this);
     modelCheckingProgressIndicator.setTranslateZ(1);
     modelCheckingProgressIndicator.updatePosition();
 
-    modelCheckingProgressIndicator.modelCheckingIndicatorPresentProperty()
-        .addListener((observable, oldValue, newValue) -> {
+    modelCheckingProgressIndicator.indicatorPresentProperty().addListener(
+        (observable, oldValue, newValue) -> {
           if (newValue
               && !contentAnchorPane.getChildren().contains(modelCheckingProgressIndicator)) {
             Platform.runLater(() ->
@@ -225,11 +263,6 @@ public class ValidationPane extends ScrollPane implements Initializable {
             removeModelCheckingIndicator();
           }
         });
-    modelCheckingService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue == null) {
-        removeModelCheckingIndicator();
-      }
-    });
     modelCheckingService.resultProperty().addListener((observable, oldValue, newValue) -> {
       if (newValue == null) {
         return;
@@ -239,7 +272,7 @@ public class ValidationPane extends ScrollPane implements Initializable {
         synthesisInfoBox.infoTextProperty().set("No invariant violation found.");
       } else {
         synthesisContextService.getAnimationSelector().addNewAnimation(newValue.getTrace());
-        synthesisContextService.setSynthesisType(SynthesisType.GUARD_OR_INVARIANT);
+        synthesisContextService.setSynthesisType(SynthesisType.GUARD);
         synthesisInfoBox.infoTextProperty().set("Invariant violation found.");
         synthesisInfoBox.isMinimizedProperty().set(false);
         synthesisInfoBox.showInfoProperty().set(true);
@@ -406,26 +439,30 @@ public class ValidationPane extends ScrollPane implements Initializable {
   }
 
   /**
-   * Return all nodes whose center is on the green side of the pane, i.e. in the left half.
+   * Return all validated nodes whose center is on the green side of the pane, i.e. in the left
+   * half. Tentative nodes are ignored.
    */
   @SuppressWarnings("unused")
-  private List<Node> getValidNodes() {
+  public List<BasicNode> getValidNodes() {
     return nodes.stream()
-        .filter(node -> node.getTranslateX() + node.getWidth() / 2 < ValidationPane.WIDTH / 2)
+        .filter(node -> !node.isTentative()
+            && node.getXPosition() + node.getWidth() / 2 < ValidationPane.WIDTH / 2)
         .collect(Collectors.toList());
   }
 
   /**
-   * Return all nodes whose center is on the red side of the pane, i.e. in the right half.
+   * Return all validated nodes whose center is on the red side of the pane, i.e. in the right half.
+   * Tentative nodes are ignored.
    */
   @SuppressWarnings("unused")
-  private List<Node> getInvalidNodes() {
+  public List<BasicNode> getInvalidNodes() {
     return nodes.stream()
-        .filter(node -> node.getTranslateX() + node.getWidth() / 2 >= ValidationPane.WIDTH / 2)
+        .filter(node -> !node.isTentative()
+            && node.getXPosition() + node.getWidth() / 2 >= ValidationPane.WIDTH / 2)
         .collect(Collectors.toList());
   }
 
-  public ObservableList<BasicNode> getNodes() {
+  public ListProperty<BasicNode> getNodes() {
     return nodes;
   }
 
@@ -443,7 +480,12 @@ public class ValidationPane extends ScrollPane implements Initializable {
   public void addNode(final BasicNode node) {
     Platform.runLater(() -> nodes.add(node));
     if (node instanceof StateNode) {
-      addStateNode((StateNode) node);
+      final StateNode stateNode = (StateNode) node;
+      addStateNode(stateNode);
+      stateNode.layoutXProperty().addListener((observable, oldValue, newValue) ->
+          updateSynthesisType(stateNode));
+      stateNode.layoutYProperty().addListener((observable, oldValue, newValue) ->
+          updateSynthesisType(stateNode));
     }
   }
 
