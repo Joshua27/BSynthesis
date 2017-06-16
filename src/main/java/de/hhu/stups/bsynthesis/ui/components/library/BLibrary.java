@@ -1,6 +1,8 @@
 package de.hhu.stups.bsynthesis.ui.components.library;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SetProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
@@ -23,6 +25,7 @@ public class BLibrary {
   private final SetProperty<LibraryComponent> numbersProperty;
   private final SetProperty<LibraryComponent> relationsProperty;
   private final SetProperty<LibraryComponent> sequencesProperty;
+  private final BooleanProperty considerIfStatementsProperty;
 
   /**
    * Initialize the set properties to store the {@link LibraryComponent library components} split by
@@ -34,6 +37,11 @@ public class BLibrary {
     numbersProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     relationsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     sequencesProperty = new SimpleSetProperty<>(FXCollections.observableSet());
+    considerIfStatementsProperty = new SimpleBooleanProperty(false);
+  }
+
+  public BooleanProperty considerIfStatementsProperty() {
+    return considerIfStatementsProperty;
   }
 
   /**
@@ -87,7 +95,7 @@ public class BLibrary {
         new LibraryComponent("Modulo", "n mod n", 0, LibraryComponentType.NUMBERS),
         new LibraryComponent("Greater", "m>n", 0, LibraryComponentType.NUMBERS),
         new LibraryComponent("Less", "m<n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Greater", "Equal m>=n", 0, LibraryComponentType.NUMBERS),
+        new LibraryComponent("Greater Equal", "m>=n", 0, LibraryComponentType.NUMBERS),
         new LibraryComponent("Less Equal", "m<=n", 0, LibraryComponentType.NUMBERS)));
     relationsProperty.addAll(Arrays.asList(
         new LibraryComponent("Domain", "dom(r)", 0, LibraryComponentType.RELATIONS),
