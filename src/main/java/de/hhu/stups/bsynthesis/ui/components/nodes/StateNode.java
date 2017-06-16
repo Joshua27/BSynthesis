@@ -12,6 +12,7 @@ import de.prob.animator.domainobjects.AbstractEvalResult;
 import de.prob.animator.domainobjects.ClassicalB;
 import de.prob.animator.domainobjects.EvalResult;
 import de.prob.animator.domainobjects.IEvalElement;
+import de.prob.statespace.AnimationSelector;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 import de.prob.statespace.Trace;
@@ -141,7 +142,7 @@ public class StateNode extends BasicNode implements Initializable {
     initializeTableView();
     initializeTableColumn();
 
-    setBackgroundColor();
+    refreshBackgroundColor();
 
     nodeStateProperty().addListener((observable, oldValue, newValue) -> initializeTableColumn());
 
@@ -243,6 +244,9 @@ public class StateNode extends BasicNode implements Initializable {
 
   void findPredecessor() {
     final StateNode predecessorNode = getPredecessorFromTrace();
+    if (predecessorNode == null) {
+      return;
+    }
     final StateNode nodeExists = getValidationPane().containsStateNode(predecessorNode);
     // check if node already exists and just set the ancestors
     if (nodeExists != null) {
@@ -358,6 +362,13 @@ public class StateNode extends BasicNode implements Initializable {
     }
   }
 
+  /**
+   * Return true if the state is validated to be valid by the user otherwise false.
+   */
+  public boolean isValidatedPositive() {
+    return getXPosition() < ValidationPane.WIDTH / 2;
+  }
+
   public State getState() {
     return stateProperty.get();
   }
@@ -381,18 +392,14 @@ public class StateNode extends BasicNode implements Initializable {
    * on the values which sets the type either to {@link NodeState#VALID} or {@link
    * NodeState#INVARIANT_VIOLATED}.
    */
-  void validateState() {
+  public void validateState() {
     if (!validateInputValues(tableViewState.getItems())) {
       return;
     }
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
     // create equality predicate with variable values
-    final Set<String> predicateStringSet = new HashSet<>(tableViewState.getItems().size());
-    tableViewState.getItems().forEach(stateTableCell ->
-        predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState()));
-    final String predicate = Joiner.on(" & ").join(predicateStringSet);
-    final StateSpace stateSpace = synthesisContextService.stateSpaceProperty().get();
     final FindValidStateCommand findValidStateCommand =
-        new FindValidStateCommand(stateSpace, new ClassicalB(predicate));
+        new FindValidStateCommand(stateSpace, getStateEqualityPredicate());
     stateSpace.execute(findValidStateCommand);
 
     if (!checkDuplicatedNode()) {
@@ -450,6 +457,9 @@ public class StateNode extends BasicNode implements Initializable {
    */
   private boolean equalStates(final StateNode stateNode) {
     final ObservableMap<String, String> tableViewStateMap = tableViewStateMapProperty.get();
+    if (stateNode == null) {
+      return false;
+    }
     for (final Map.Entry<IEvalElement, AbstractEvalResult>
         entry : stateNode.getState().getValues().entrySet()) {
       final String keyCode = entry.getKey().getCode();
@@ -471,6 +481,31 @@ public class StateNode extends BasicNode implements Initializable {
 
   public SetProperty<BasicNode> predecessorProperty() {
     return predecessorProperty;
+  }
+
+  /**
+   * Compute and return the {@link this state node}'s predecessor state if possible otherwise null.
+   */
+  public State getPredecessor() {
+    final StateNode predecessorStateNode = getPredecessorFromTrace();
+    if (predecessorStateNode != null) {
+      return predecessorStateNode.getState();
+    }
+    final Trace currentTrace = traceProperty().get();
+    if (!currentTrace.canGoBack()) {
+      return null;
+    }
+    final AnimationSelector animationSelector = synthesisContextService.getAnimationSelector();
+    animationSelector.addNewAnimation(currentTrace.back());
+    return animationSelector.getCurrentTrace().getCurrentState();
+  }
+
+  private IEvalElement getStateEqualityPredicate() {
+    final Set<String> predicateStringSet = new HashSet<>(tableViewState.getItems().size());
+    tableViewState.getItems().forEach(stateTableCell ->
+        predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState()));
+    final String predicate = Joiner.on(" & ").join(predicateStringSet);
+    return new ClassicalB(predicate);
   }
 
   /**
