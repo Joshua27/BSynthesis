@@ -37,7 +37,7 @@ class InputOutputExample {
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return input.toString() + " " + output.toString();
   }
 }
