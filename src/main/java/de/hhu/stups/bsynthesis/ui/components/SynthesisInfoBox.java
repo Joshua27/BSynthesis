@@ -97,7 +97,8 @@ public class SynthesisInfoBox extends VBox implements Initializable {
         isMinimizedProperty().set(!newValue));
 
     visibleProperty().bind(showInfoProperty
-        .and(synthesisContextService.stateSpaceProperty().isNotNull()));
+        .and(synthesisContextService.stateSpaceProperty().isNotNull())
+        .and(synthesisContextService.synthesisTypeProperty().isNotEqualTo(SynthesisType.NONE)));
 
     iconShowOrHide.glyphNameProperty().bind(
         Bindings.when(isMinimizedProperty()).then("CHEVRON_UP").otherwise("CHEVRON_DOWN"));
@@ -211,6 +212,7 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   /**
    * Set the state from a given {@link Trace} from the model checker.
    */
+  @SuppressWarnings("unused")
   public void setStateFromTrace(final Trace trace) {
     if (trace == null) {
       Platform.runLater(() -> {
@@ -220,7 +222,7 @@ public class SynthesisInfoBox extends VBox implements Initializable {
     } else {
       Platform.runLater(() -> {
         synthesisContextService.getAnimationSelector().addNewAnimation(trace);
-        synthesisContextService.setSynthesisType(SynthesisType.GUARD_OR_INVARIANT);
+        synthesisContextService.setSynthesisType(SynthesisType.GUARD);
         infoTextProperty.set("Invariant violation found.");
         isMinimizedProperty.set(false);
         showInfoProperty.set(true);
