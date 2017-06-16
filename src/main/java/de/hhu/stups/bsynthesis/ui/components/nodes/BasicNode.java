@@ -32,6 +32,7 @@ public class BasicNode extends StackPane {
   private final DoubleProperty nodeWidthProperty;
   private final DoubleProperty nodeHeightProperty;
   private final BooleanProperty moveIsEnabledProperty;
+  private final BooleanProperty transparentBackgroundProperty;
 
   BasicNode(final Point2D position,
             final NodeState nodeState,
@@ -39,6 +40,7 @@ public class BasicNode extends StackPane {
             final NodeContextMenuFactory nodeContextMenuFactory) {
     this.parent = parent;
 
+    transparentBackgroundProperty = new SimpleBooleanProperty();
     positionXProperty = new SimpleDoubleProperty(position.getX());
     positionXProperty.addListener((observable, oldValue, newValue) ->
         setLayoutX(newValue.doubleValue()));
@@ -58,10 +60,11 @@ public class BasicNode extends StackPane {
 
     setLayoutX(position.getX());
     setLayoutY(position.getY());
+    initializeContextMenuEvent();
+    initializeNodeListener();
+  }
 
-    nodeStateProperty().addListener((observable, oldValue, newValue) ->
-        setBackgroundColor());
-
+  private void initializeContextMenuEvent() {
     addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
       if (!event.getButton().equals(MouseButton.SECONDARY)) {
         contextMenu.hide();
@@ -71,6 +74,11 @@ public class BasicNode extends StackPane {
       toFront();
       event.consume();
     });
+  }
+
+  private void initializeNodeListener() {
+    nodeStateProperty().addListener((observable, oldValue, newValue) ->
+        refreshBackgroundColor());
 
     nodeWidthProperty.addListener((observable, oldValue, newValue) -> {
       setMaxSize(nodeWidthProperty.get(), nodeHeightProperty.get());
@@ -80,25 +88,36 @@ public class BasicNode extends StackPane {
       setMaxSize(nodeWidthProperty.get(), nodeHeightProperty.get());
       setMinSize(nodeWidthProperty.get(), nodeHeightProperty.get());
     });
+
+    transparentBackgroundProperty.addListener((observable, oldValue, newValue) ->
+        refreshBackgroundColor());
   }
 
-  void setBackgroundColor() {
+  void refreshBackgroundColor() {
     setStyle("-fx-border-color: #8E8E8E");
+    if (transparentBackgroundProperty.get()) {
+      setBackground(null);
+      return;
+    }
     final String notTentativeColor = isInvariantViolated() ? "#FF6464" : "#ABFF98";
     setBackground(new Background(new BackgroundFill(
         Color.web(isTentative() ? "#D8D8D8" : notTentativeColor),
         CornerRadii.EMPTY, Insets.EMPTY)));
   }
 
+  BooleanProperty transparentBackgroundProperty() {
+    return transparentBackgroundProperty;
+  }
+
   public void remove() {
     parent.getNodes().remove(this);
   }
 
-  Double getXPosition() {
+  public Double getXPosition() {
     return positionXProperty.get();
   }
 
-  Double getYPosition() {
+  public Double getYPosition() {
     return positionYProperty.get();
   }
 
@@ -136,11 +155,11 @@ public class BasicNode extends StackPane {
   }
 
   @SuppressWarnings("WeakerAccess")
-  Boolean isTentative() {
+  public Boolean isTentative() {
     return NodeState.TENTATIVE.equals(nodeStateProperty.get());
   }
 
-  ObjectProperty<NodeState> nodeStateProperty() {
+  public ObjectProperty<NodeState> nodeStateProperty() {
     return nodeStateProperty;
   }
 
