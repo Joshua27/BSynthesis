@@ -77,8 +77,8 @@ public class NodeHeader extends HBox implements Initializable {
 
     final BooleanBinding traceWalkingEnabledBinding = stateNode.nodeStateProperty()
         .isNotEqualTo(NodeState.TENTATIVE)
-        .and(synthesisContextService.synthesisTypeProperty()
-            .isEqualTo(SynthesisType.GUARD_OR_INVARIANT))
+        .and(synthesisContextService.synthesisTypeProperty().isEqualTo(SynthesisType.INVARIANT)
+            .or(synthesisContextService.synthesisTypeProperty().isEqualTo(SynthesisType.GUARD)))
         .and(stateNode.stateFromModelCheckingProperty());
 
     final BooleanBinding canGoBackBinding = Bindings.createBooleanBinding(
