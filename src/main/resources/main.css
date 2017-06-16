@@ -91,3 +91,15 @@
     -fx-border-style: dashed;
     -fx-border-color: #424242;
 }
+
+.validationSolutionBox {
+    -fx-padding: 0 10px 0 0;
+}
+
+.keyword {
+    -fx-font-weight: bold;
+}
+
+.comment {
+    -fx-fill: cadetblue;
+}
