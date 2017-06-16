@@ -11,10 +11,10 @@
 <fx:root type="VBox" xmlns:fx="http://javafx.com/fxml">
     <SynthesisMainMenu fx:id="synthesisMainMenu"/>
     <TabPane fx:id="tabPane" side="BOTTOM">
-        <Tab fx:id="synthesisTab" text="States" closable="false">
+        <Tab fx:id="synthesisTab" text="Examples" closable="false">
             <ValidationPane fx:id="validationPane"/>
         </Tab>
-        <Tab text="View Code" closable="false">
+        <Tab fx:id="codeViewTab" text="View Code" closable="false">
             <CodeView fx:id="codeView"/>
         </Tab>
         <Tab fx:id="libraryConfigurationTab" text="Library Configuration" closable="true">
