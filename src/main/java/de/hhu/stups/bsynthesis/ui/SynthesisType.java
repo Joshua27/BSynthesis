@@ -5,6 +5,7 @@ public enum SynthesisType {
 
   @Override
   public String toString() {
+    // TODO: maybe switch between B and Event-B wording according to the loaded machine?
     switch (this) {
       case ACTION:
         return "Action";

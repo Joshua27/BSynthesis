@@ -49,6 +49,7 @@ public class BLibrary {
    * tool.
    */
   public void initializeLibrary() {
+    // TODO: parse this from a file like csv ..
     predicatesProperty.addAll(Arrays.asList(
         new LibraryComponent("Conjunction", "P & Q", 0, LibraryComponentType.PREDICATES),
         new LibraryComponent("Disjunction", "P or Q", 0, LibraryComponentType.PREDICATES),
