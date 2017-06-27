@@ -11,6 +11,7 @@ import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
@@ -21,6 +22,7 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.NodeHeader;
 import de.hhu.stups.bsynthesis.ui.controller.CodeView;
 import de.hhu.stups.bsynthesis.ui.controller.LibraryConfiguration;
 import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
+import de.hhu.stups.bsynthesis.ui.controller.SynthesisView;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.MainModule;
 
@@ -42,11 +44,13 @@ public class BSynthesisModule extends AbstractModule {
     install(new MainModule());
 
     bind(SynthesisMain.class);
+    bind(SynthesisView.class);
     bind(SynthesisInfoBox.class);
     bind(SynthesisContextService.class);
     bind(UiService.class);
     bind(ModelCheckingService.class);
     bind(ServiceDelegator.class);
+    bind(ModelCheckingProgressIndicator.class);
     bind(SynthesisMainMenu.class);
     bind(NodeHeader.class);
     bind(ValidationPane.class);

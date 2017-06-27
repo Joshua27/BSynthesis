@@ -5,7 +5,6 @@ import com.google.inject.Singleton;
 
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.ui.Loader;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
 import javafx.beans.binding.Bindings;
@@ -30,8 +29,6 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
   private final ModelCheckingService modelCheckingService;
   private final BooleanProperty indicatorPresentProperty;
   private final StringProperty statusTextProperty;
-
-  private ValidationPane validationPane;
 
   @FXML
   @SuppressWarnings("unused")
@@ -100,26 +97,6 @@ public class ModelCheckingProgressIndicator extends VBox implements Initializabl
         statusTextProperty.set("The model has been checked. No error found.");
       }
     });
-  }
-
-  /**
-   * Update the position according to the {@link #validationPane validation pane's} scroll offset.
-   */
-  public void updatePosition() {
-    final double hmin = validationPane.getHmin();
-    final double viewportWidth = validationPane.getViewportBounds().getWidth();
-    setTranslateX(Math.max(0, ValidationPane.WIDTH - viewportWidth)
-        * (validationPane.getHvalue() - hmin) / (validationPane.getHmax() - hmin)
-        + (viewportWidth / 2) - (getPrefWidth() / 2)); // - 2 for a small border to the scroll bar
-    final double vmin = validationPane.getVmin();
-    final double viewportHeight = validationPane.getViewportBounds().getHeight();
-    setTranslateY(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
-        * (validationPane.getVvalue() - vmin) / (validationPane.getVmax() - vmin)
-        + (viewportHeight / 2) - (getPrefHeight() / 2));
-  }
-
-  public void setValidationPane(final ValidationPane validationPane) {
-    this.validationPane = validationPane;
   }
 
   public BooleanProperty indicatorPresentProperty() {

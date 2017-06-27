@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import de.hhu.stups.bsynthesis.ui.controller.CodeView?>
 <?import de.hhu.stups.bsynthesis.ui.controller.LibraryConfiguration?>
 <?import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu?>
-<?import de.hhu.stups.bsynthesis.ui.controller.ValidationPane?>
-<?import de.hhu.stups.bsynthesis.ui.controller.CodeView?>
+<?import de.hhu.stups.bsynthesis.ui.controller.SynthesisView?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.layout.VBox?>
@@ -12,13 +12,13 @@
     <SynthesisMainMenu fx:id="synthesisMainMenu"/>
     <TabPane fx:id="tabPane" side="BOTTOM">
         <Tab fx:id="synthesisTab" text="Examples" closable="false">
-            <ValidationPane fx:id="validationPane"/>
+            <SynthesisView/>
         </Tab>
         <Tab fx:id="codeViewTab" text="View Code" closable="false">
-            <CodeView fx:id="codeView"/>
+            <CodeView/>
         </Tab>
-        <Tab fx:id="libraryConfigurationTab" text="Library Configuration" closable="true">
-            <LibraryConfiguration fx:id="libraryConfiguration"/>
+        <Tab fx:id="libraryConfigurationTab" text="Library Configuration">
+            <LibraryConfiguration/>
         </Tab>
     </TabPane>
 </fx:root>

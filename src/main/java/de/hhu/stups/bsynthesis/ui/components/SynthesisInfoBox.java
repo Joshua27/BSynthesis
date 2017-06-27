@@ -3,10 +3,10 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import de.prob.statespace.Trace;
 
@@ -36,8 +36,8 @@ import java.util.ResourceBundle;
 @Singleton
 public class SynthesisInfoBox extends VBox implements Initializable {
 
-  private static final double HEIGHT = 150.0;
-  private static final double MINIMIZED_HEIGHT = 40.0;
+  public static final double HEIGHT = 150.0;
+  public static final double MINIMIZED_HEIGHT = 40.0;
   private static final double DIFFERENCE_HEIGHT = HEIGHT - MINIMIZED_HEIGHT;
 
   private final SynthesisContextService synthesisContextService;
@@ -47,8 +47,6 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   private final DoubleProperty positionYProperty;
   private final StringProperty infoTextProperty;
   private final Timeline timeline;
-
-  private ValidationPane validationPane;
 
   @FXML
   @SuppressWarnings("unused")
@@ -71,8 +69,8 @@ public class SynthesisInfoBox extends VBox implements Initializable {
    */
   @Inject
   public SynthesisInfoBox(final FXMLLoader loader,
-                          final SynthesisContextService synthesisContextService) {
-    this.synthesisContextService = synthesisContextService;
+                          final ServiceDelegator serviceDelegator) {
+    this.synthesisContextService = serviceDelegator.synthesisContextService();
 
     isMinimizedProperty = new SimpleBooleanProperty(false);
     showInfoProperty = new SimpleBooleanProperty(false);
@@ -145,22 +143,6 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   }
 
   /**
-   * Update the position according to the {@link #validationPane validation pane's} scroll offset.
-   */
-  public void updatePosition() {
-    final double hmin = validationPane.getHmin();
-    final double viewportWidth = validationPane.getViewportBounds().getWidth();
-    positionXProperty.set(Math.max(0, ValidationPane.WIDTH - viewportWidth)
-        * (validationPane.getHvalue() - hmin) / (validationPane.getHmax() - hmin)
-        + viewportWidth - getPrefWidth() - 2); // - 2 for a small border to the scroll bar
-    final double vmin = validationPane.getVmin();
-    final double viewportHeight = validationPane.getViewportBounds().getHeight();
-    positionYProperty.set(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
-        * (validationPane.getVvalue() - vmin) / (validationPane.getVmax() - vmin)
-        + viewportHeight - (isMinimized() ? MINIMIZED_HEIGHT : HEIGHT) - 2);
-  }
-
-  /**
    * Timeline animation to minimize or maximize the box. Add info labels on finished but remove the
    * labels directly when animation is minimizing.
    */
@@ -189,10 +171,6 @@ public class SynthesisInfoBox extends VBox implements Initializable {
     }
   }
 
-  public void setValidationPane(final ValidationPane validationPane) {
-    this.validationPane = validationPane;
-  }
-
   public StringProperty infoTextProperty() {
     return infoTextProperty;
   }
@@ -201,13 +179,22 @@ public class SynthesisInfoBox extends VBox implements Initializable {
     return isMinimizedProperty;
   }
 
-  private boolean isMinimized() {
+  public boolean isMinimized() {
     return isMinimizedProperty.get();
   }
 
   public BooleanProperty showInfoProperty() {
     return showInfoProperty;
   }
+
+  public DoubleProperty positionXProperty() {
+    return positionXProperty;
+  }
+
+  public DoubleProperty positionYProperty() {
+    return positionYProperty;
+  }
+
 
   /**
    * Set the state from a given {@link Trace} from the model checker.

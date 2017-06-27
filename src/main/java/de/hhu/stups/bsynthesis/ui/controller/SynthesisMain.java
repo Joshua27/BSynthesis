@@ -30,15 +30,6 @@ public class SynthesisMain extends VBox implements Initializable {
   private TabPane tabPane;
   @FXML
   @SuppressWarnings("unused")
-  private ValidationPane validationPane;
-  @FXML
-  @SuppressWarnings("unused")
-  private CodeView codeView;
-  @FXML
-  @SuppressWarnings("unused")
-  private LibraryConfiguration libraryConfiguration;
-  @FXML
-  @SuppressWarnings("unused")
   private Tab synthesisTab;
   @FXML
   @SuppressWarnings("unused")
