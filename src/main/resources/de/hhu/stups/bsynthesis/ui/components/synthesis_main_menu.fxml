@@ -7,13 +7,12 @@
 
 <fx:root type="MenuBar" useSystemMenuBar="true" xmlns:fx="http://javafx.com/fxml">
     <Menu text="Machine">
-        <MenuItem fx:id="menuItemOpen" text="Open..." onAction="#loadMachine"/>
-        <MenuItem fx:id="menuItemSave" text="Save" onAction="#save"/>
-        <MenuItem fx:id="menuItemSaveAs" text="Save as..." onAction="#saveAs"/>
+        <MenuItem fx:id="menuItemOpen" text="Open..." accelerator="Shortcut+O" onAction="#loadMachine"/>
+        <MenuItem fx:id="menuItemSaveAs" text="Save as..." accelerator="Shortcut+S" onAction="#saveAs"/>
         <MenuItem text="Close" onAction="#close"/>
     </Menu>
     <Menu text="Verify">
-        <MenuItem fx:id="menuItemCheckModel" text="Start Model Checking"
+        <MenuItem fx:id="menuItemCheckModel" accelerator="Shortcut+M" text="Start Model Checking"
                   onAction="#runModelChecking"/>
         <MenuItem fx:id="menuItemStopCheckModel" text="Stop Model Checking"
                   onAction="#stopModelChecking"/>
@@ -24,16 +23,18 @@
                   onAction="#verifyAllNodes"/>
     </Menu>
     <Menu text="Synthesis">
-        <MenuItem fx:id="menuItemRunSynthesis" text="Run Synthesis" onAction="#runSynthesis"/>
-        <MenuItem fx:id="menuItemStopSynthesis" text="Stop Synthesis" onAction="#stopSynthesis"/>
+        <MenuItem fx:id="menuItemRunSynthesis" accelerator="Shortcut+R" text="Run Synthesis" onAction="#runSynthesis"/>
+        <MenuItem fx:id="menuItemStopSynthesis" accelerator="Shortcut+B" text="Stop Synthesis" onAction="#stopSynthesis"/>
         <MenuItem fx:id="menuItemVisualizeOperation" text="Visualize Operation"
                   onAction="#visualizeOperation"/>
         <MenuItem fx:id="menuItemConfigureLibrary" text="Library Configuration"
                   onAction="#configureLibrary"/>
-        <MenuItem fx:id="menuItemNewOperation" text="New operation" onAction="#newOperation"/>
+        <MenuItem fx:id="menuItemNewOperation" text="New operation" accelerator="Shortcut+N" onAction="#newOperation"/>
         <MenuItem fx:id="menuItemSetTimeout" text="Set Solver Timeout" onAction="#setTimeout"/>
     </Menu>
     <Menu text="View">
+        <MenuItem fx:id="menuItemZoomIn" text="Zoom In" accelerator="Shortcut+PLUS" onAction="#zoomIn"/>
+        <MenuItem fx:id="menuItemZoomOut" text="Zoom Out" accelerator="Shortcut+MINUS" onAction="#zoomOut"/>
         <Menu text="Nodes">
             <MenuItem fx:id="menuItemExpandAll" text="Expand all" onAction="#expandAllNodes"/>
             <MenuItem fx:id="menuItemShrinkAll" text="Shrink all" onAction="#shrinkAllNodes"/>
