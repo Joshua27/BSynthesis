@@ -132,19 +132,24 @@ public class ValidationPane extends Pane implements Initializable {
    * Set the {@link SynthesisContextService#synthesisTypeProperty()} according to the current ui
    * state of the {@link #getNodes() nodes}.
    */
-  private void updateSynthesisType(final BasicNode node) {
+  public void updateSynthesisType(final BasicNode node) {
     if (node instanceof TransitionNode || node.isTentative()
-        || SynthesisType.ACTION.equals(synthesisContextService.synthesisTypeProperty().get())) {
+        || synthesisContextService.synthesisTypeProperty().get().isAction()) {
       return;
     }
+    System.out.println("update type");
     final Optional<BasicNode> optionalValidNode = getValidNodes().stream().filter(basicNode ->
         NodeState.INVARIANT_VIOLATED.equals(basicNode.nodeStateProperty().get())).findAny();
+    optionalValidNode.ifPresent(basicNode -> System.out.println(basicNode));
     final Optional<BasicNode> optionalInvalidNode = getInvalidNodes().stream().filter(basicNode ->
         NodeState.VALID.equals(basicNode.nodeStateProperty().get())).findAny();
+    optionalInvalidNode.ifPresent(basicNode -> System.out.println(basicNode));
     if (optionalValidNode.isPresent() || optionalInvalidNode.isPresent()) {
+      System.out.println("invariant");
       synthesisContextService.synthesisTypeProperty().set(SynthesisType.INVARIANT);
       return;
     }
+    System.out.println("guard");
     synthesisContextService.synthesisTypeProperty().set(SynthesisType.GUARD);
   }
 
@@ -375,11 +380,8 @@ public class ValidationPane extends Pane implements Initializable {
     Platform.runLater(() -> nodes.add(node));
     if (node instanceof StateNode) {
       final StateNode stateNode = (StateNode) node;
-      addStateNode(stateNode);
-      stateNode.layoutXProperty().addListener((observable, oldValue, newValue) ->
-          updateSynthesisType(stateNode));
-      stateNode.layoutYProperty().addListener((observable, oldValue, newValue) ->
-          updateSynthesisType(stateNode));
+      addStateNodeAncestors(stateNode);
+
       Platform.runLater(stateNode::validateState);
     }
   }
@@ -388,7 +390,7 @@ public class ValidationPane extends Pane implements Initializable {
    * After adding the {@link StateNode} itself we set the corresponding connections to
    * its successor and predecessor nodes if present.
    */
-  private void addStateNode(final StateNode stateNode) {
+  private void addStateNodeAncestors(final StateNode stateNode) {
     final StateNode successorNode = stateNode.getSuccessorFromTrace();
     if (successorNode != null) {
       final StateNode nodeExists = containsStateNode(successorNode);

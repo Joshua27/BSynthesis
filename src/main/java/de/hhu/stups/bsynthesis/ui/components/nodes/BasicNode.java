@@ -67,8 +67,10 @@ public class BasicNode extends StackPane {
 
     // update the user validation state of the node on move but add a small delay to prevent
     // performance issues
-    updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250),
-        () -> userValidationProperty.set(validationPane.getExampleValidation(this)));
+    updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250), () -> {
+      userValidationProperty.set(validationPane.getExampleValidation(this));
+      validationPane.updateSynthesisType(this);
+    });
 
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -144,8 +146,16 @@ public class BasicNode extends StackPane {
     return positionXProperty.get();
   }
 
+  public void setXPosition(final double positionX) {
+    positionXProperty.setValue(positionX);
+  }
+
   public Double getYPosition() {
     return positionYProperty.get();
+  }
+
+  public void setYPosition(final double positionY) {
+    positionYProperty.setValue(positionY);
   }
 
   DoubleProperty positionXProperty() {
@@ -154,14 +164,6 @@ public class BasicNode extends StackPane {
 
   DoubleProperty positionYProperty() {
     return positionYProperty;
-  }
-
-  public void setXPosition(final double positionX) {
-    positionXProperty.setValue(positionX);
-  }
-
-  public void setYPosition(final double positionY) {
-    positionYProperty.setValue(positionY);
   }
 
   @SuppressWarnings("WeakerAccess")
