@@ -22,6 +22,9 @@ public class UiService {
   private final BooleanProperty zoomInEnabledProperty;
   private final BooleanProperty zoomOutEnabledProperty;
 
+  /**
+   * Initialize node factories and event sources.
+   */
   @Inject
   public UiService(final NodeContextMenuFactory nodeContextMenuFactory,
                    final StateNodeFactory stateNodeFactory,
