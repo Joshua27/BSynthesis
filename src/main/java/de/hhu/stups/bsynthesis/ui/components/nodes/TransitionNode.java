@@ -3,15 +3,17 @@ package de.hhu.stups.bsynthesis.ui.components.nodes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.State;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.fxml.JavaFXBuilderFactory;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
@@ -25,9 +27,12 @@ public class TransitionNode extends BasicNode implements Initializable {
 
   private final ObjectProperty<State> inputStateProperty;
   private final ObjectProperty<State> outputStateProperty;
-  private final SynthesisContextService synthesisContextService;
 
+  @FXML
+  @SuppressWarnings("unused")
   private StateNode inputStateNode;
+  @FXML
+  @SuppressWarnings("unused")
   private StateNode outputStateNode;
 
   /**
@@ -36,18 +41,23 @@ public class TransitionNode extends BasicNode implements Initializable {
    */
   @Inject
   public TransitionNode(final FXMLLoader loader,
-                        final SynthesisContextService synthesisContextService,
+                        final UiService uiService,
                         final ValidationPane validationPane,
                         @Assisted("inputState") @Nullable final State inputState,
                         @Assisted("outputState") @Nullable final State outputState,
                         @Assisted final Point2D position,
                         @Assisted final NodeState nodeState) {
-    super(position, nodeState, validationPane, synthesisContextService.getNodeContextMenuFactory());
-    this.synthesisContextService = synthesisContextService;
+    super(position, nodeState, validationPane, uiService.getNodeContextMenuFactory());
     inputStateProperty = new SimpleObjectProperty<>(inputState);
     outputStateProperty = new SimpleObjectProperty<>(outputState);
     transparentBackgroundProperty().set(true);
-
+    loader.setBuilderFactory(type -> {
+      if (type.equals(StateNode.class)) {
+        return () -> uiService.getStateNodeFactory().create(null,
+            traceProperty().get(), new Point2D(0, 0), nodeStateProperty().get());
+      }
+      return new JavaFXBuilderFactory().getBuilder(type);
+    });
     Loader.loadFxml(loader, this, "transition_node.fxml");
   }
 
@@ -55,14 +65,28 @@ public class TransitionNode extends BasicNode implements Initializable {
   public void initialize(final URL location, final ResourceBundle resources) {
     initializeStateNodes();
     initializeNodeStateListener();
+    setUserValidationHighlighting(userValidationProperty().get());
+    
+    userValidationProperty().addListener((observable, oldValue, newValue) ->
+        setUserValidationHighlighting(newValue));
+    outputStateNode.disableProperty().bind(userValidationProperty().not());
 
     prefWidthProperty().bind(inputStateNode.widthProperty()
         .add(outputStateNode.widthProperty()).add(100.0));
     prefHeightProperty().bind(inputStateNode.heightProperty());
 
-    getChildren().addAll(inputStateNode, outputStateNode);
     StackPane.setAlignment(inputStateNode, Pos.CENTER_LEFT);
     StackPane.setAlignment(outputStateNode, Pos.CENTER_RIGHT);
+  }
+
+  private void setUserValidationHighlighting(final boolean positive) {
+    if (positive) {
+      getStyleClass().remove("transitionNodeInvalid");
+      getStyleClass().add("transitionNodeValid");
+      return;
+    }
+    getStyleClass().remove("transitionNodeValid");
+    getStyleClass().add("transitionNodeInvalid");
   }
 
   private void initializeNodeStateListener() {
@@ -79,9 +103,8 @@ public class TransitionNode extends BasicNode implements Initializable {
   }
 
   private void initializeStateNodes() {
-    inputStateNode = synthesisContextService.getStateNodeFactory()
-        .create(inputStateProperty.get(), traceProperty().get(), new Point2D(0, 0),
-            nodeStateProperty().get());
+    System.out.println(inputStateProperty.get());
+    inputStateNode.stateProperty().set(inputStateProperty.get());
     inputStateNode.titleProperty().set("Input");
     inputStateNode.nodeWidthProperty().set(100);
     inputStateNode.nodeHeightProperty().set(100);
@@ -90,10 +113,10 @@ public class TransitionNode extends BasicNode implements Initializable {
 
     isExpandedProperty().bindBidirectional(inputStateNode.isExpandedProperty());
 
-    outputStateNode = synthesisContextService.getStateNodeFactory()
-        .create(outputStateProperty.get(), traceProperty().get(),
-            new Point2D(inputStateNode.widthProperty().add(100.0).get(), 0),
-            nodeStateProperty().get());
+    System.out.println(outputStateProperty.get());
+    outputStateNode.stateProperty().set(outputStateProperty.get());
+    outputStateNode.setXPosition(inputStateNode.widthProperty().add(100.0).get());
+    outputStateNode.setYPosition(0);
     outputStateNode.titleProperty().set("Output");
     outputStateNode.nodeWidthProperty().set(100);
     outputStateNode.nodeHeightProperty().set(100);
@@ -108,7 +131,7 @@ public class TransitionNode extends BasicNode implements Initializable {
     return inputStateProperty.get();
   }
 
-  public ObjectProperty<State> getInputStateProperty() {
+  public ObjectProperty<State> inputStateProperty() {
     return inputStateProperty;
   }
 
@@ -120,7 +143,7 @@ public class TransitionNode extends BasicNode implements Initializable {
     return outputStateProperty.get();
   }
 
-  public ObjectProperty<State> getOutputStateProperty() {
+  public ObjectProperty<State> outputStateProperty() {
     return outputStateProperty;
   }
 
@@ -133,11 +156,16 @@ public class TransitionNode extends BasicNode implements Initializable {
     outputStateNode.toFront();
   }
 
-  public void validateInputState() {
+  public void validateTransition() {
+    validateInputState();
+    validateOutputState();
+  }
+
+  private void validateInputState() {
     inputStateNode.validateState();
   }
 
-  public void validateOutputState() {
+  private void validateOutputState() {
     outputStateNode.validateState();
   }
 }

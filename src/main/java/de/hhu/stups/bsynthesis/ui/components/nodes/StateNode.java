@@ -4,7 +4,9 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindValidStateCommand;
@@ -75,6 +77,7 @@ public class StateNode extends BasicNode implements Initializable {
   private final SetProperty<BasicNode> successorProperty;
   private final SetProperty<BasicNode> predecessorProperty;
   private final BooleanProperty stateFromModelCheckingProperty;
+  private final UiService uiService;
 
   @FXML
   @SuppressWarnings("unused")
@@ -101,14 +104,16 @@ public class StateNode extends BasicNode implements Initializable {
    */
   @Inject
   public StateNode(final FXMLLoader loader,
-                   final SynthesisContextService synthesisContextService,
+                   final ServiceDelegator serviceDelegator,
                    final ValidationPane validationPane,
                    @Assisted @Nullable final State state,
                    @Assisted @Nullable final Trace trace,
                    @Assisted final Point2D position,
                    @Assisted final NodeState nodeState) {
-    super(position, nodeState, validationPane, synthesisContextService.getNodeContextMenuFactory());
-    this.synthesisContextService = synthesisContextService;
+    super(position, nodeState, validationPane,
+        serviceDelegator.uiService().getNodeContextMenuFactory());
+    uiService = serviceDelegator.uiService();
+    synthesisContextService = serviceDelegator.synthesisContextService();
     timeline = new Timeline();
     auxiliaryTimeline = new Timeline();
     stateProperty = new SimpleObjectProperty<>(state);
@@ -118,6 +123,7 @@ public class StateNode extends BasicNode implements Initializable {
     tableViewStateMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
     stateFromModelCheckingProperty = new SimpleBooleanProperty(false);
 
+    setStyle("-fx-border-color: #8E8E8E");
     traceProperty().set(trace);
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -133,9 +139,6 @@ public class StateNode extends BasicNode implements Initializable {
     setTitle(stateProperty.get());
     nodeHeader.setBasicNode(this);
 
-    tableViewState.setStyle("-fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
-    tableViewState.onMouseClickedProperty().addListener((observable, oldValue, newValue) ->
-        toFront());
     setCompressedWidth();
 
     initializeSiblingConnections();
@@ -148,24 +151,28 @@ public class StateNode extends BasicNode implements Initializable {
 
     contentGridPane.getChildren().remove(tableViewState);
 
-    isExpandedProperty().addListener((observable, oldValue, newValue) -> {
-      contentGridPane.getChildren().remove(newValue ? lbTitle : tableViewState);
-      contentGridPane.getChildren().add(newValue ? tableViewState : lbTitle);
-    });
+    isExpandedProperty().addListener((observable, oldValue, newValue) ->
+        Platform.runLater(() -> {
+          contentGridPane.getChildren().remove(newValue ? lbTitle : tableViewState);
+          contentGridPane.getChildren().add(newValue ? tableViewState : lbTitle);
+        }));
 
     synthesisContextService.machineVarNamesProperty().addListener(
         (observable, oldValue, newValue) -> initializeTableView());
 
     lbTitle.textProperty().bind(titleProperty());
 
-    stateProperty.addListener((observable, oldValue, newValue) -> setTitle(newValue));
+    stateProperty.addListener((observable, oldValue, newValue) -> {
+      setTitle(newValue);
+      initializeTableView();
+    });
 
     nodeHeader.setBasicNode(this);
 
     setCompressedWidth();
     isExpandedProperty().addListener((observable, oldValue, newValue) -> {
       if (newValue != oldValue) {
-        resizeNode(newValue);
+        Platform.runLater(() -> resizeNode(newValue));
       }
     });
   }
@@ -212,6 +219,10 @@ public class StateNode extends BasicNode implements Initializable {
   }
 
   private void initializeTableView() {
+    tableViewState.disableProperty().bind(disableProperty());
+    tableViewState.setStyle("-fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+    tableViewState.onMouseClickedProperty().addListener((observable, oldValue, newValue) ->
+        toFront());
     tableViewState.getItems().clear();
     final ObservableSet<String> machineVarNames = synthesisContextService.getMachineVarNames();
     if (machineVarNames != null) {
@@ -235,7 +246,7 @@ public class StateNode extends BasicNode implements Initializable {
     }
     final Trace newTrace = trace.back();
     final State state = newTrace.getCurrentState();
-    final StateNode stateNode = synthesisContextService.getStateNodeFactory()
+    final StateNode stateNode = uiService.getStateNodeFactory()
         .create(state, newTrace, new Point2D(getXPosition() - getWidth() * 2, getYPosition()),
             state.isInvariantOk() ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
     stateNode.stateFromModelCheckingProperty().set(true);
@@ -271,7 +282,7 @@ public class StateNode extends BasicNode implements Initializable {
     }
     final Trace newTrace = trace.forward();
     final State state = newTrace.getCurrentState();
-    final StateNode stateNode = synthesisContextService.getStateNodeFactory()
+    final StateNode stateNode = uiService.getStateNodeFactory()
         .create(state, newTrace, new Point2D(getXPosition() + getWidth() * 2, getYPosition()),
             state.isInvariantOk() ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
     stateNode.stateFromModelCheckingProperty.setValue(true);
@@ -328,7 +339,6 @@ public class StateNode extends BasicNode implements Initializable {
         new KeyValue(nodeHeightProperty(), EXPANDED_HEIGHT - EXPANDED_HEIGHT / 3));
     timeline.getKeyFrames().add(shrinkAnimation);
     timeline.play();
-
   }
 
   private EventHandler<ActionEvent> partialHighlightNodeFinished() {
