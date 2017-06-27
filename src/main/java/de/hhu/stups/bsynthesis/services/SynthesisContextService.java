@@ -5,11 +5,7 @@ import com.google.inject.Singleton;
 
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
-import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
-import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
-import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
-import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import de.prob.model.representation.AbstractElement;
 import de.prob.model.representation.Variable;
 import de.prob.statespace.AnimationSelector;
@@ -36,20 +32,15 @@ import org.reactfx.EventSource;
 @Singleton
 public class SynthesisContextService {
 
-  private final NodeContextMenuFactory nodeContextMenuFactory;
-  private final StateNodeFactory stateNodeFactory;
-  private final TransitionNodeFactory transitionNodeFactory;
 
-  private final EventSource<ControllerTab> showTabEventStream;
   private final EventSource<ContextEvent> contextEventStream;
-
-  private final BooleanProperty synthesisSucceededProperty;
 
   private final SetProperty<String> machineVarNamesProperty;
   private final ObjectProperty<SynthesisType> synthesisTypeProperty;
   private final ObjectProperty<StateSpace> stateSpaceProperty;
   private final StringProperty currentOperationProperty;
   private final BooleanProperty invariantViolatedProperty;
+  private final BooleanProperty synthesisSucceededProperty;
   private final ObjectProperty<AnimationSelector> animationSelectorProperty;
   private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
   private final StringProperty modifiedMachineCodeProperty;
@@ -58,12 +49,7 @@ public class SynthesisContextService {
    * Initialize all properties and set the injected factories.
    */
   @Inject
-  public SynthesisContextService(final NodeContextMenuFactory nodeContextMenuFactory,
-                                 final StateNodeFactory stateNodeFactory,
-                                 final TransitionNodeFactory transitionNodeFactory) {
-    this.nodeContextMenuFactory = nodeContextMenuFactory;
-    this.stateNodeFactory = stateNodeFactory;
-    this.transitionNodeFactory = transitionNodeFactory;
+  public SynthesisContextService() {
     machineVarNamesProperty = new SimpleSetProperty<>();
     synthesisTypeProperty = new SimpleObjectProperty<>(SynthesisType.NONE);
     stateSpaceProperty = new SimpleObjectProperty<>();
@@ -74,7 +60,6 @@ public class SynthesisContextService {
     synthesisSucceededProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
 
-    showTabEventStream = new EventSource<>();
     contextEventStream = new EventSource<>();
 
     stateSpaceProperty.addListener((observable, oldValue, newValue) -> {
@@ -86,10 +71,7 @@ public class SynthesisContextService {
         reset();
       }
     });
-    synthesisSucceededProperty.addListener((observable, oldValue, newValue) ->
-        showTabEventStream.push(ControllerTab.CODEVIEW));
   }
-
 
   private void updateCurrentVarNames() {
     final StateSpace stateSpace = getStateSpace();
@@ -103,17 +85,6 @@ public class SynthesisContextService {
     setMachineVarNames(variableNames);
   }
 
-  public NodeContextMenuFactory getNodeContextMenuFactory() {
-    return nodeContextMenuFactory;
-  }
-
-  public StateNodeFactory getStateNodeFactory() {
-    return stateNodeFactory;
-  }
-
-  public TransitionNodeFactory getTransitionNodeFactory() {
-    return transitionNodeFactory;
-  }
 
   public ObservableSet<String> getMachineVarNames() {
     return machineVarNamesProperty.get();
@@ -192,10 +163,6 @@ public class SynthesisContextService {
     synthesisSucceededProperty.set(false);
     currentOperationProperty.set(null);
     invariantViolatedProperty.set(false);
-  }
-
-  public EventSource<ControllerTab> showTabEventStream() {
-    return showTabEventStream;
   }
 
   public EventSource<ContextEvent> contextEventStream() {
