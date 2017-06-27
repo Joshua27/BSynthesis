@@ -3,7 +3,9 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
@@ -28,6 +30,7 @@ public class ValidationContextMenu extends ContextMenu {
   private final ObjectProperty<Point2D> graphicPositionProperty;
   private final ObjectProperty<SynthesisType> synthesisTypeProperty;
   private final SynthesisContextService synthesisContextService;
+  private final UiService uiService;
 
   @FXML
   @SuppressWarnings("unused")
@@ -44,10 +47,11 @@ public class ValidationContextMenu extends ContextMenu {
    */
   @Inject
   public ValidationContextMenu(final FXMLLoader loader,
-                               final SynthesisContextService synthesisContextService,
+                               final ServiceDelegator serviceDelegator,
                                @Assisted final SynthesisType synthesisType) {
-    this.synthesisContextService = synthesisContextService;
     this.synthesisTypeProperty = new SimpleObjectProperty<>(synthesisType);
+    synthesisContextService = serviceDelegator.synthesisContextService();
+    uiService = serviceDelegator.uiService();
     graphicPositionProperty = new SimpleObjectProperty<>(new Point2D(0.0, 0.0));
 
     Loader.loadFxml(loader, this, "validation_context_menu.fxml");
@@ -63,11 +67,11 @@ public class ValidationContextMenu extends ContextMenu {
 
     menuItemAddNode.setOnAction(event -> {
       if (SynthesisType.ACTION.equals(synthesisTypeProperty.get())) {
-        validationPane.addNode(synthesisContextService.getTransitionNodeFactory().create(null, null,
+        validationPane.addNode(uiService.getTransitionNodeFactory().create(null, null,
             new Point2D(graphicPositionProperty.get().getX(), graphicPositionProperty.get().getY()),
             NodeState.TENTATIVE));
       } else {
-        validationPane.addNode(synthesisContextService.getStateNodeFactory().create(null, null,
+        validationPane.addNode(uiService.getStateNodeFactory().create(null, null,
             new Point2D(graphicPositionProperty.get().getX(), graphicPositionProperty.get().getY()),
             NodeState.TENTATIVE));
       }
