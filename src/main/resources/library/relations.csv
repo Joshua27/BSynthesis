@@ -1,0 +1,8 @@
+Domain,dom(r)
+Range,ran(r)
+Domain Restriction,S<|r
+Domain Subtraction,S<<|r
+Range Restriction,r|>S
+Range Subtraction,r|>>S
+Reflexive and Transitive Closure,closure(r)
+Transitive Closure,closure1(r)

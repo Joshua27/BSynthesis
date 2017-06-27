@@ -1,0 +1,17 @@
+Element of,E:S
+Not Element of,E/:S
+Union,S\/T
+Intersection,S/\T
+Difference,S-T
+Cartesian,S*T
+Cardinality,card(S)
+Subset Of,S<:T
+Not Subset Of,S/<:T
+Strict Subset Of,S<<:T
+Not Strict Subset Of,S/<<:T
+Powerset,POW(S)
+Powerset,POW1(S)
+Finite Subset,FIN(S)
+Finite Subset,FIN1(S)
+Generalized Union,union(S)
+Generalized Intersection,inter(S)

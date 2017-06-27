@@ -1,0 +1,17 @@
+Natural Numbers,NATURAL
+Non-Zero Natural Numbers,NATURAL1
+Implementable Natural Numbers,NAT
+Implementable Non-Zero Natural Numbers,NAT1
+Set of Integers,INTEGER
+Integers (MININT..MAXINT),INT
+Minimum,min(m)
+Maximum,max(m)
+Addition,m+n
+Subtraction,m-n
+Multiplication,m*n
+Division,m/n
+Modulo,n mod n
+Greater,m>n
+Less,m<n
+Greater Equal,m>=n
+Less Equal,m<=n

@@ -1,0 +1,7 @@
+Concat,s^t
+Size,size(s)
+Reverse,rev(s)
+First,first(s)
+Last,last(s)
+Tail,tail(s)
+Front,front(s)

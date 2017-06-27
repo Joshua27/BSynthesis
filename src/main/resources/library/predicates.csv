@@ -1,0 +1,7 @@
+Conjunction,P & Q
+Disjunction,P or Q
+Implication,P => Q
+Equivalence,P <=> Q
+Negation,not P
+Equality,E = F
+Inequality,E /= F
