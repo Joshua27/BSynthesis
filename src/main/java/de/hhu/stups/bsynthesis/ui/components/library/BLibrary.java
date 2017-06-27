@@ -6,9 +6,14 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 
 /**
@@ -20,6 +25,7 @@ import java.util.Optional;
  */
 public class BLibrary {
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final SetProperty<LibraryComponent> predicatesProperty;
   private final SetProperty<LibraryComponent> setsProperty;
   private final SetProperty<LibraryComponent> numbersProperty;
@@ -49,74 +55,32 @@ public class BLibrary {
    * tool.
    */
   public void initializeLibrary() {
-    // TODO: parse this from a file like csv ..
-    predicatesProperty.addAll(Arrays.asList(
-        new LibraryComponent("Conjunction", "P & Q", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Disjunction", "P or Q", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Implication", "P => Q", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Equivalence", "P <=> Q", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Negation", "not P", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Equality", "E = F", 0, LibraryComponentType.PREDICATES),
-        new LibraryComponent("Inequality", "E /= F", 0, LibraryComponentType.PREDICATES)));
-    setsProperty.addAll(Arrays.asList(
-        new LibraryComponent("Element of", "E:S", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Not Element of", "E/:S", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Union", "S\\/T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Intersection", "S/\\T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Difference", "S-T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Cartesian", "S*T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Cardinality", "card(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Subset Of", "S<:T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Not Subset Of", "S/<:T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Strict Subset Of", "S<<:T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Not Strict Subset Of", "S/<<:T", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Powerset", "POW(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Powerset", "POW1(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Finite Subset", "FIN(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Finite Subset", "FIN1(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Generalized Union", "union(S)", 0, LibraryComponentType.SETS),
-        new LibraryComponent("Generalized Intersection", "inter(S)", 0,
-            LibraryComponentType.SETS)));
-    numbersProperty.addAll(Arrays.asList(
-        new LibraryComponent("Natural Numbers", "NATURAL", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Non-Zero Natural Numbers", "NATURAL1", 0,
-            LibraryComponentType.NUMBERS),
-        new LibraryComponent("Implementable Natural Numbers", "NAT", 0,
-            LibraryComponentType.NUMBERS),
-        new LibraryComponent("Implementable Non-Zero Natural Numbers", "NAT1", 0,
-            LibraryComponentType.NUMBERS),
-        new LibraryComponent("Set of Integers", "INTEGER", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Integers (MININT..MAXINT)", "INT", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Minimum", "min(m)", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Maximum", "max(m)", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Addition", "m+n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Subtraction", "m-n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Multiplication", "m*n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Division", "m/n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Modulo", "n mod n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Greater", "m>n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Less", "m<n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Greater Equal", "m>=n", 0, LibraryComponentType.NUMBERS),
-        new LibraryComponent("Less Equal", "m<=n", 0, LibraryComponentType.NUMBERS)));
-    relationsProperty.addAll(Arrays.asList(
-        new LibraryComponent("Domain", "dom(r)", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Range", "ran(r)", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Domain Restriction", "S<|r", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Domain Subtraction", "S<<|r", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Range Restriction", "r|>S", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Range Subtraction", "r|>>S", 0, LibraryComponentType.RELATIONS),
-        new LibraryComponent("Reflexive and Transitive Closure", "closure(r)", 0,
-            LibraryComponentType.RELATIONS),
-        new LibraryComponent("Transitive Closure", "closure1(r)", 0,
-            LibraryComponentType.RELATIONS)));
-    sequencesProperty.addAll(Arrays.asList(
-        new LibraryComponent("Concat", "s^t", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("Size", "size(s)", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("Reverse", "rev(s)", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("First", "first(s)", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("Last", "last(s)", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("Tail", "tail(s)", 0, LibraryComponentType.SEQUENCES),
-        new LibraryComponent("Front", "front(s)", 0, LibraryComponentType.SEQUENCES)));
+    readLibraryFromFile("/library/predicates.csv", predicatesProperty,
+        LibraryComponentType.PREDICATES);
+    readLibraryFromFile("/library/relations.csv", relationsProperty,
+        LibraryComponentType.RELATIONS);
+    readLibraryFromFile("/library/sequences.csv", sequencesProperty,
+        LibraryComponentType.SEQUENCES);
+    readLibraryFromFile("/library/numbers.csv", numbersProperty, LibraryComponentType.NUMBERS);
+    readLibraryFromFile("/library/sets.csv", setsProperty, LibraryComponentType.SETS);
+  }
+
+  /**
+   * Read library components from a .csv file following the line format:
+   * ComponentName,ComponentSyntax
+   */
+  private void readLibraryFromFile(final String filePath,
+                                   final SetProperty<LibraryComponent> setProperty,
+                                   final LibraryComponentType componentType) {
+    try (final Stream<String> stream = Files.lines(
+        Paths.get(getClass().getResource(filePath).getFile()))) {
+      stream.forEach(line -> {
+        final String[] splitLine = line.split(",");
+        setProperty.add(new LibraryComponent(splitLine[0], splitLine[1], 0, componentType));
+      });
+    } catch (final IOException exception) {
+      logger.error("Error reading predicates from file.", exception);
+    }
   }
 
   /**
