@@ -20,9 +20,12 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 
+import org.reactfx.util.FxTimer;
+import org.reactfx.util.Timer;
+
 public class BasicNode extends StackPane {
 
-  private final ValidationPane parent;
+  private final ValidationPane validationPane;
   private final DoubleProperty positionXProperty;
   private final DoubleProperty positionYProperty;
   private final BooleanProperty isExpandedProperty;
@@ -33,12 +36,14 @@ public class BasicNode extends StackPane {
   private final DoubleProperty nodeHeightProperty;
   private final BooleanProperty moveIsEnabledProperty;
   private final BooleanProperty transparentBackgroundProperty;
+  private final BooleanProperty userValidationProperty;
+  private final Timer updateUserValidationTimer;
 
   BasicNode(final Point2D position,
             final NodeState nodeState,
-            final ValidationPane parent,
+            final ValidationPane validationPane,
             final NodeContextMenuFactory nodeContextMenuFactory) {
-    this.parent = parent;
+    this.validationPane = validationPane;
 
     transparentBackgroundProperty = new SimpleBooleanProperty();
     positionXProperty = new SimpleDoubleProperty(position.getX());
@@ -56,7 +61,14 @@ public class BasicNode extends StackPane {
     traceProperty = new SimpleObjectProperty<>();
     moveIsEnabledProperty = new SimpleBooleanProperty(true);
 
+    userValidationProperty = new SimpleBooleanProperty(validationPane.getExampleValidation(this));
+
     contextMenu = nodeContextMenuFactory.create(this);
+
+    // update the user validation state of the node on move but add a small delay to prevent
+    // performance issues
+    updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250),
+        () -> userValidationProperty.set(validationPane.getExampleValidation(this)));
 
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -91,10 +103,13 @@ public class BasicNode extends StackPane {
 
     transparentBackgroundProperty.addListener((observable, oldValue, newValue) ->
         refreshBackgroundColor());
+    positionXProperty.addListener((observable, oldValue, newValue) ->
+        updateUserValidationTimer.restart());
+    positionYProperty.addListener((observable, oldValue, newValue) ->
+        updateUserValidationTimer.restart());
   }
 
   void refreshBackgroundColor() {
-    setStyle("-fx-border-color: #8E8E8E");
     if (transparentBackgroundProperty.get()) {
       setBackground(null);
       return;
@@ -105,12 +120,24 @@ public class BasicNode extends StackPane {
         CornerRadii.EMPTY, Insets.EMPTY)));
   }
 
+  BooleanProperty userValidationProperty() {
+    return userValidationProperty;
+  }
+
+  public boolean userValidatedPositive() {
+    return userValidationProperty.get();
+  }
+
+  public boolean userValidatedNegative() {
+    return !userValidationProperty.get();
+  }
+
   BooleanProperty transparentBackgroundProperty() {
     return transparentBackgroundProperty;
   }
 
   public void remove() {
-    parent.getNodes().remove(this);
+    validationPane.getNodes().remove(this);
   }
 
   public Double getXPosition() {
@@ -168,7 +195,7 @@ public class BasicNode extends StackPane {
   }
 
   ValidationPane getValidationPane() {
-    return parent;
+    return validationPane;
   }
 
   NodeState getNodeState() {
