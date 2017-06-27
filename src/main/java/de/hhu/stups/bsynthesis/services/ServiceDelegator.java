@@ -10,6 +10,9 @@ public class ServiceDelegator {
   private final ModelCheckingService modelCheckingService;
   private final UiService uiService;
 
+  /**
+   * Delegate services.
+   */
   @Inject
   public ServiceDelegator(final SynthesisContextService synthesisContextService,
                           final ModelCheckingService modelCheckingService,

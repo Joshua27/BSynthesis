@@ -18,10 +18,11 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.net.URL;
 import java.util.ResourceBundle;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 /**
  * A {@link ScrollPane} wrapping two {@link Group}. A {@link #contentGroup} displaying the
@@ -58,6 +59,9 @@ public class SynthesisView extends ScrollPane implements Initializable {
   @SuppressWarnings("unused")
   private ModelCheckingProgressIndicator modelCheckingIndicator;
 
+  /**
+   * Initialize scale property and services.
+   */
   @Inject
   public SynthesisView(final FXMLLoader loader,
                        final ServiceDelegator serviceDelegator) {
@@ -194,6 +198,7 @@ public class SynthesisView extends ScrollPane implements Initializable {
         * (getVvalue() - vmin) / (getVmax() - vmin)
         + (viewportHeight / 2) - (modelCheckingIndicator.getPrefHeight() / 2));
   }
+
   private void removeModelCheckingIndicator() {
     Platform.runLater(() -> contentAnchorPane.getChildren().remove(modelCheckingIndicator));
   }
