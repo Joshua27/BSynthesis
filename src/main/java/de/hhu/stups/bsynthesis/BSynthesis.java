@@ -22,6 +22,8 @@ public class BSynthesis extends Application {
 
   @Override
   public void start(final Stage stage) throws Exception {
+    System.setProperty("logback.configurationFile", "config/logging.xml");
+
     injector = Guice.createInjector(new BSynthesisModule());
 
     final SynthesisMain root = injector.getInstance(SynthesisMain.class);
