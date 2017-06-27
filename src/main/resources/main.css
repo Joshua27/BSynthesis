@@ -89,7 +89,14 @@
     -fx-padding: 5px;
     -fx-border-width: 2;
     -fx-border-style: dashed;
-    -fx-border-color: #424242;
+}
+
+.transitionNodeInvalid {
+    -fx-border-color: #ce0016;
+}
+
+.transitionNodeValid {
+    -fx-border-color: #00b113;
 }
 
 .validationSolutionBox {
