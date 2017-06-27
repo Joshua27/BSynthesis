@@ -8,7 +8,9 @@ import com.google.inject.util.Providers;
 
 import de.codecentric.centerdevice.MenuToolkit;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
@@ -42,7 +44,9 @@ public class BSynthesisModule extends AbstractModule {
     bind(SynthesisMain.class);
     bind(SynthesisInfoBox.class);
     bind(SynthesisContextService.class);
+    bind(UiService.class);
     bind(ModelCheckingService.class);
+    bind(ServiceDelegator.class);
     bind(SynthesisMainMenu.class);
     bind(NodeHeader.class);
     bind(ValidationPane.class);
