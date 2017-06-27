@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
@@ -22,7 +23,7 @@ import java.util.ResourceBundle;
  */
 public class SynthesisMain extends VBox implements Initializable {
 
-  private final SynthesisContextService synthesisContextService;
+  private final ServiceDelegator serviceDelegator;
 
   @FXML
   @SuppressWarnings("unused")
@@ -54,9 +55,8 @@ public class SynthesisMain extends VBox implements Initializable {
    */
   @Inject
   public SynthesisMain(final FXMLLoader loader,
-                       final SynthesisContextService synthesisContextService) {
-    this.synthesisContextService = synthesisContextService;
-
+                       final ServiceDelegator serviceDelegator) {
+    this.serviceDelegator = serviceDelegator;
     Loader.loadFxml(loader, this, "synthesis_main.fxml");
   }
 
@@ -64,14 +64,19 @@ public class SynthesisMain extends VBox implements Initializable {
   public void initialize(final URL location, final ResourceBundle resources) {
     initializeTabs();
     tabPane.getTabs().remove(libraryConfigurationTab);
-    synthesisContextService.showTabEventStream().subscribe(this::selectTab);
+    serviceDelegator.uiService().showTabEventStream().subscribe(this::selectTab);
+
+    serviceDelegator.synthesisContextService().synthesisSucceededProperty().addListener(
+        (observable, oldValue, newValue) ->
+            serviceDelegator.uiService().showTabEventStream().push(ControllerTab.CODEVIEW));
   }
 
   private void initializeTabs() {
     libraryConfigurationTab.disableProperty()
-        .bind(synthesisContextService.synthesisSucceededProperty());
+        .bind(serviceDelegator.synthesisContextService().synthesisSucceededProperty());
     libraryConfigurationTab.setOnClosed(event -> tabPane.getSelectionModel().selectFirst());
-    synthesisTab.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
+    synthesisTab.disableProperty().bind(
+        serviceDelegator.synthesisContextService().synthesisSucceededProperty());
   }
 
   private void selectTab(final ControllerTab controllerTab) {
