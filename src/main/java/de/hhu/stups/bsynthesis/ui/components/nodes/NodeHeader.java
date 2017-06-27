@@ -7,6 +7,7 @@ import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
@@ -61,7 +62,7 @@ public class NodeHeader extends HBox implements Initializable {
     setIconExistence();
     final StateNode stateNode = stateNodeProperty.get();
     stateNode.nodeStateProperty().addListener((observable, oldValue, newValue) ->
-        setIconExistence());
+        Platform.runLater(this::setIconExistence));
 
     final ObservableValue<Number> iconBinding =
         Bindings.when(stateNode.isExpandedProperty()).then(18).otherwise(15);
