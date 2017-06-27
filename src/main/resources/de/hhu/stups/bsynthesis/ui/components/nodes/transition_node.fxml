@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode?>
+<?import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode?>
 
-<fx:root type="BasicNode" xmlns:fx="http://javafx.com/fxml" styleClass="transitionNode"/>
+<fx:root type="BasicNode" xmlns:fx="http://javafx.com/fxml" styleClass="transitionNode">
+    <StateNode fx:id="inputStateNode"/>
+    <StateNode fx:id="outputStateNode"/>
+</fx:root>
