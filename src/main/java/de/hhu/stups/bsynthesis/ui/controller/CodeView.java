@@ -2,19 +2,24 @@ package de.hhu.stups.bsynthesis.ui.controller;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.services.ProBApiService;
+import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 
+import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
+import javafx.scene.control.SplitPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import javafx.stage.FileChooser;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
 import org.fxmisc.richtext.model.StyleSpans;
@@ -22,14 +27,17 @@ import org.fxmisc.richtext.model.StyleSpansBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Matcher;
@@ -50,12 +58,20 @@ public final class CodeView extends VBox {
   private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")"
       + "|(?<COMMENT>" + COMMENT_PATTERN + ")", Pattern.CASE_INSENSITIVE);
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final SynthesisContextService synthesisContextService;
   private final StringProperty cachedMachineCode;
+  private final ProBApiService proBApiService;
 
   @FXML
   @SuppressWarnings("unused")
   private CodeArea codeArea;
+  @FXML
+  @SuppressWarnings("unused")
+  private CodeArea codeAreaSynthesized;
+  @FXML
+  @SuppressWarnings("unused")
+  private SplitPane splitPaneCodeAreas;
   @FXML
   @SuppressWarnings("unused")
   private HBox validateSolutionBox;
@@ -71,8 +87,9 @@ public final class CodeView extends VBox {
    */
   @Inject
   public CodeView(final FXMLLoader loader,
-                  final SynthesisContextService synthesisContextService) {
-    this.synthesisContextService = synthesisContextService;
+                  final ServiceDelegator serviceDelegator) {
+    this.synthesisContextService = serviceDelegator.synthesisContextService();
+    this.proBApiService = serviceDelegator.proBApiService();
     cachedMachineCode = new SimpleStringProperty();
 
     Loader.loadFxml(loader, this, "code_view.fxml");
@@ -84,26 +101,33 @@ public final class CodeView extends VBox {
    */
   @FXML
   public final void initialize() {
-    codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
-    codeArea.richChanges()
-        .filter(ch -> !ch.getInserted().equals(ch.getRemoved()))
-        .subscribe(change -> {
-          if (!codeArea.getText().isEmpty()) {
-            codeArea.setStyleSpans(0, computeHighlighting(codeArea.getText()));
-          }
-        });
-    codeArea.prefWidthProperty().bind(widthProperty());
-    codeArea.prefHeightProperty().bind(heightProperty());
+    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
+
+    initializeCodeArea(codeArea);
+    initializeCodeArea(codeAreaSynthesized);
 
     synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) ->
         loadMachineCode());
     synthesisContextService.contextEventStream().subscribe(this::handleContextEvent);
 
     synthesisContextService.modifiedMachineCodeProperty().addListener(
-        (observable, oldValue, newValue) -> updateMachineCode(oldValue, newValue));
+        (observable, oldValue, newValue) -> showModifiedMachineCode(oldValue, newValue));
 
     validateSolutionBox.visibleProperty().bind(
         synthesisContextService.synthesisSucceededProperty());
+  }
+
+  private void initializeCodeArea(final CodeArea codeArea) {
+    codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
+    codeArea.richChanges()
+        .filter(ch -> !ch.getInserted().equals(ch.getRemoved()))
+        .subscribe(change -> {
+          if (!codeArea.getText().isEmpty()) {
+            Platform.runLater(() ->
+                codeArea.setStyleSpans(0, computeHighlighting(codeArea.getText())));
+          }
+        });
+    codeArea.prefHeightProperty().bind(heightProperty());
   }
 
   private void handleContextEvent(final ContextEvent contextEvent) {
@@ -144,29 +168,33 @@ public final class CodeView extends VBox {
     return "";
   }
 
-  private void updateMachineCode(final String oldValue, final String newValue) {
+  /**
+   * Show the modified machine code containing the synthesized changes.
+   */
+  private void showModifiedMachineCode(final String oldValue, final String newValue) {
     if (!newValue.equals(oldValue) && !newValue.isEmpty()) {
       Platform.runLater(() -> {
-        cachedMachineCode.set(codeArea.getText());
-        codeArea.clear();
-        codeArea.appendText(newValue.replaceAll("\'", ""));
+        splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized);
+        codeAreaSynthesized.clear();
+        codeAreaSynthesized.appendText(newValue.replaceAll("\'", ""));
       });
-      // TODO: Highlight synthesized code
       synthesisContextService.modifiedMachineCodeProperty().set("");
     }
   }
 
   /**
-   * The solution is already displayed in the {@link #codeArea} so we just have to save the machine
-   * and undo the highlighting of the synthesized code.
+   * Copy the solution from {@link #codeAreaSynthesized} to {@link #codeArea} and save the machine
+   * code.
    */
   @FXML
   @SuppressWarnings("unused")
   public void applySolution() {
+    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
+    cachedMachineCode.set(codeArea.getText());
+    codeArea.clear();
+    codeArea.appendText(codeAreaSynthesized.getText());
     saveMachineCode();
-    // TODO: Unhighlight synthesized code
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
-    // synthesisContextService.synthesisSucceededProperty().set(false);
   }
 
   /**
@@ -176,42 +204,64 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void discardSolution() {
-    resetMachineCode();
+    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
     synthesisContextService.synthesisSucceededProperty().set(false);
   }
 
+  // TODO: provide a history of changed machine codes with undo/redo
   private void resetMachineCode() {
     codeArea.clear();
     codeArea.appendText(cachedMachineCode.get());
   }
 
+  /**
+   * Save the machine and synchronize the statespaces provided by {@link ProBApiService}.
+   */
   private void saveMachineCode() {
-    final String destination = synthesisContextService.getStateSpace().getModel()
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    proBApiService.synchronizeStateSpaces();
+    final String destination = stateSpace.getModel()
         .getModelFile().getPath();
     try (final Writer fileWriterStream =
              new OutputStreamWriter(new FileOutputStream(destination), StandardCharsets.UTF_8)) {
       fileWriterStream.write(codeArea.getText());
     } catch (final IOException ioException) {
-      final Logger logger = LoggerFactory.getLogger(getClass());
       logger.error("IOException when saving the machine to " + destination, ioException);
     }
   }
 
   private void saveMachineCodeAs() {
-    // TODO
+    final Path source = synthesisContextService.getStateSpace().getModel().getModelFile().toPath();
+    final FileChooser fileChooser = new FileChooser();
+    final String extensionFilterString =
+        synthesisContextService.getSpecificationType().isClassicalB() ? "Machine (*.mch)"
+            : "Machine (*.eventb)";
+    final FileChooser.ExtensionFilter extFilter =
+        new FileChooser.ExtensionFilter(extensionFilterString);
+    fileChooser.getExtensionFilters().add(extFilter);
+    fileChooser.setInitialFileName(source.getFileName().toString());
+    final File file = fileChooser.showSaveDialog(this.getScene().getWindow());
+    if (file != null) {
+      final Path destination = file.toPath();
+      try {
+        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+      } catch (final IOException exception) {
+        logger.error("Error saving machine " + source.getFileName() + " to "
+            + destination.toString(), exception);
+      }
+    }
   }
 
   private void loadMachineCode() {
     codeArea.clear();
-    if (synthesisContextService.getStateSpace() == null) {
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    if (stateSpace == null || stateSpace.getModel().getModelFile() == null) {
       return;
     }
     try (final Stream<String> stream =
-             Files.lines(Paths.get(synthesisContextService.getStateSpace().getModel()
-                 .getModelFile().getPath()))) {
-      stream.forEach(line -> codeArea.appendText(line + "\n"));
+             Files.lines(Paths.get(stateSpace.getModel().getModelFile().getPath()))) {
+      stream.forEach(line -> Platform.runLater(() -> codeArea.appendText(line + "\n")));
     } catch (final IOException exception) {
-      final org.slf4j.Logger logger = LoggerFactory.getLogger(getClass());
       logger.error("Error loading machine code", exception);
     }
     cachedMachineCode.set(codeArea.getText());
