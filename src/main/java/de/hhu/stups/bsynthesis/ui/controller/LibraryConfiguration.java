@@ -41,6 +41,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
 
   private final BLibrary staticBLibrary;
   private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
+  private final SynthesisContextService synthesisContextService;
+
   private BooleanProperty disableComponentsButtonsProperty;
 
   @FXML
@@ -67,6 +69,12 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   private TreeItem<LibraryComponent> treeItemSequences;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeItem<LibraryComponent> treeItemSubstitutions;
+  @FXML
+  @SuppressWarnings("unused")
+  private TreeItem<LibraryComponent> treeItemSelectedSubstitutions;
   @FXML
   @SuppressWarnings("unused")
   private TreeTableView<LibraryComponent> treeViewSelectedLibrary;
@@ -115,19 +123,28 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   @Inject
   public LibraryConfiguration(final FXMLLoader loader,
                               final SynthesisContextService synthesisContextService) {
+    this.synthesisContextService = synthesisContextService;
     staticBLibrary = new BLibrary();
-    staticBLibrary.initializeLibrary();
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
     disableComponentsButtonsProperty = new SimpleBooleanProperty(true);
-    synthesisContextService.selectedLibraryComponentsProperty()
-        .bind(selectedLibraryComponentsProperty);
+
     Loader.loadFxml(loader, this, "library_configuration.fxml");
   }
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
+    staticBLibrary.initializeLibrary();
     selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
         .bindBidirectional(cbConsiderIf.selectedProperty());
+
+    synthesisContextService.useDefaultLibraryProperty()
+        .bind(selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());
+    cbDefaultConfiguration.selectedProperty().bindBidirectional(
+        selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());
+    synthesisContextService.selectedLibraryComponentsProperty()
+        .bind(selectedLibraryComponentsProperty);
+    synthesisContextService.useDefaultLibraryProperty()
+        .bind(cbDefaultConfiguration.selectedProperty());
 
     initializeButtons();
     initializeTreeViews();
@@ -181,11 +198,12 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * and {@link #treeViewSelectedLibrary} and set selection listeners for section items.
    */
   private void initializeTreeViews() {
-    final LibraryComponent predicates = new LibraryComponent("Predicates", "", 0, null);
-    final LibraryComponent sets = new LibraryComponent("Sets", "", 0, null);
-    final LibraryComponent numbers = new LibraryComponent("Numbers", "", 0, null);
-    final LibraryComponent relations = new LibraryComponent("Relations", "", 0, null);
-    final LibraryComponent sequences = new LibraryComponent("Sequences", "", 0, null);
+    final LibraryComponent predicates = new LibraryComponent("Predicates", "", "", 0, null);
+    final LibraryComponent sets = new LibraryComponent("Sets", "", "", 0, null);
+    final LibraryComponent numbers = new LibraryComponent("Numbers", "", "", 0, null);
+    final LibraryComponent relations = new LibraryComponent("Relations", "", "", 0, null);
+    final LibraryComponent sequences = new LibraryComponent("Sequences", "", "", 0, null);
+    final LibraryComponent substitutions = new LibraryComponent("Substitutions", "", "", 0, null);
     // set the sectioning tree items that are the same for both tree views
     treeItemPredicates.setValue(predicates);
     treeItemSelectedPredicates.setValue(predicates);
@@ -197,6 +215,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     treeItemSelectedRelations.setValue(relations);
     treeItemSequences.setValue(sequences);
     treeItemSelectedSequences.setValue(sequences);
+    treeItemSubstitutions.setValue(substitutions);
+    treeItemSelectedSubstitutions.setValue(substitutions);
     treeViewLibrary.disableProperty().bind(cbDefaultConfiguration.selectedProperty());
     treeViewSelectedLibrary.disableProperty().bind(cbDefaultConfiguration.selectedProperty());
     disableRootTreeViewSelection(treeViewLibrary);
@@ -219,6 +239,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         .forEach(treeItem -> treeItemRelations.getChildren().add(treeItem));
     staticBLibrary.getSequences().stream().map(TreeItem::new)
         .forEach(treeItem -> treeItemSequences.getChildren().add(treeItem));
+    staticBLibrary.getSubstitutions().stream().map(TreeItem::new)
+        .forEach(treeItem -> treeItemSubstitutions.getChildren().add(treeItem));
 
     treeLibraryTableColumnName.setCellValueFactory(
         param -> param.getValue().getValue().componentNameProperty());
@@ -256,6 +278,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         treeItemSelectedRelations);
     setUpdateComponentsListener(selectedBLibrary.sequencesProperty(),
         treeItemSelectedSequences);
+    setUpdateComponentsListener(selectedBLibrary.substitutionsProperty(),
+        treeItemSelectedSubstitutions);
 
     treeSelectedLibraryTableColumnName.setCellValueFactory(
         param -> param.getValue().getValue().componentNameProperty());
@@ -335,9 +359,5 @@ public class LibraryConfiguration extends GridPane implements Initializable {
           newValue.stream().map(TreeItem::new).collect(Collectors.toList()));
       treeItem.setExpanded(true);
     });
-  }
-
-  public ObjectProperty<BLibrary> selectedLibraryComponentsProperty() {
-    return selectedLibraryComponentsProperty;
   }
 }

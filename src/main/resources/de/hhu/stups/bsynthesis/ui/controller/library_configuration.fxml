@@ -30,6 +30,7 @@
                 <TreeItem fx:id="treeItemNumbers"/>
                 <TreeItem fx:id="treeItemRelations"/>
                 <TreeItem fx:id="treeItemSequences"/>
+                <TreeItem fx:id="treeItemSubstitutions"/>
             </children>
         </TreeItem>
     </TreeTableView>
@@ -48,6 +49,7 @@
                 <TreeItem fx:id="treeItemSelectedNumbers"/>
                 <TreeItem fx:id="treeItemSelectedRelations"/>
                 <TreeItem fx:id="treeItemSelectedSequences"/>
+                <TreeItem fx:id="treeItemSelectedSubstitutions"/>
             </children>
         </TreeItem>
     </TreeTableView>
