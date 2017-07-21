@@ -1,9 +1,14 @@
 package de.hhu.stups.bsynthesis.ui.controller;
 
+import static de.hhu.stups.bsynthesis.prob.BMachineMisc.getMachineVars;
+
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
+import de.hhu.stups.bsynthesis.services.SpecificationType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
 
@@ -14,6 +19,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -24,6 +30,8 @@ import java.util.ResourceBundle;
 public class SynthesisMain extends VBox implements Initializable {
 
   private final ServiceDelegator serviceDelegator;
+  private final SynthesisContextService synthesisContextService;
+  private final ProBApiService proBApiService;
 
   @FXML
   @SuppressWarnings("unused")
@@ -48,21 +56,35 @@ public class SynthesisMain extends VBox implements Initializable {
   public SynthesisMain(final FXMLLoader loader,
                        final ServiceDelegator serviceDelegator) {
     this.serviceDelegator = serviceDelegator;
+    this.synthesisContextService = serviceDelegator.synthesisContextService();
+    this.proBApiService = serviceDelegator.proBApiService();
     Loader.loadFxml(loader, this, "synthesis_main.fxml");
   }
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
     initializeTabs();
-    tabPane.getTabs().remove(libraryConfigurationTab);
-    serviceDelegator.uiService().showTabEventStream().subscribe(this::selectTab);
+    final UiService uiService = serviceDelegator.uiService();
+    uiService.showTabEventStream().subscribe(this::selectTab);
+    EasyBind.subscribe(synthesisContextService.synthesisSucceededProperty(), succeeded ->
+        serviceDelegator.uiService().showTabEventStream().push(ControllerTab.CODEVIEW));
+    EasyBind.subscribe(synthesisContextService.stateSpaceProperty(), stateSpace -> {
+      if (stateSpace != null) {
+        uiService.initializeCurrentVarBindings(getMachineVars(stateSpace));
+      }
+    });
+  }
 
-    serviceDelegator.synthesisContextService().synthesisSucceededProperty().addListener(
-        (observable, oldValue, newValue) ->
-            serviceDelegator.uiService().showTabEventStream().push(ControllerTab.CODEVIEW));
+  private void setSpecificationType(final String fileName) {
+    if ("eventb".equals(fileName.substring(fileName.lastIndexOf('.') + 1))) {
+      synthesisContextService.setSpecificationType(SpecificationType.EVENT_B);
+      return;
+    }
+    synthesisContextService.setSpecificationType(SpecificationType.CLASSICAL_B);
   }
 
   private void initializeTabs() {
+    tabPane.getTabs().remove(libraryConfigurationTab);
     libraryConfigurationTab.disableProperty()
         .bind(serviceDelegator.synthesisContextService().synthesisSucceededProperty());
     libraryConfigurationTab.setOnClosed(event -> tabPane.getSelectionModel().selectFirst());

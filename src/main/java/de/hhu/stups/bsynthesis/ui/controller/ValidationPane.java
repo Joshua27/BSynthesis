@@ -5,9 +5,11 @@ import static java.beans.Beans.isInstanceOf;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.prob.GetViolatingVarsFromExamplesCommand;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
@@ -22,6 +24,7 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 
 import de.prob.statespace.State;
+import de.prob.statespace.StateSpace;
 import de.prob.statespace.Trace;
 
 import javafx.application.Platform;
@@ -69,6 +72,7 @@ public class ValidationPane extends Pane implements Initializable {
   private final ValidationContextMenu validationContextMenu;
   private final SynthesisContextService synthesisContextService;
   private final ModelCheckingService modelCheckingService;
+  private final UiService uiService;
 
   private BasicNode dragNode;
   private double offsetX;
@@ -85,6 +89,7 @@ public class ValidationPane extends Pane implements Initializable {
     this.stateNodeFactory = stateNodeFactory;
     modelCheckingService = serviceDelegator.modelCheckingService();
     synthesisContextService = serviceDelegator.synthesisContextService();
+    uiService = serviceDelegator.uiService();
 
     scaleFactorProperty = new SimpleDoubleProperty(1.0);
     validationContextMenu = validationContextMenuFactory.create(SynthesisType.NONE);
@@ -134,23 +139,27 @@ public class ValidationPane extends Pane implements Initializable {
    */
   public void updateSynthesisType(final BasicNode node) {
     if (node instanceof TransitionNode || node.isTentative()
-        || synthesisContextService.synthesisTypeProperty().get().isAction()) {
+        || synthesisContextService.synthesisTypeProperty().get().isAction()
+        || lockSynthesisType()) {
       return;
     }
-    System.out.println("update type");
+    // synthesis type is invariant if a violating state is set to be valid
     final Optional<BasicNode> optionalValidNode = getValidNodes().stream().filter(basicNode ->
         NodeState.INVARIANT_VIOLATED.equals(basicNode.nodeStateProperty().get())).findAny();
-    optionalValidNode.ifPresent(basicNode -> System.out.println(basicNode));
-    final Optional<BasicNode> optionalInvalidNode = getInvalidNodes().stream().filter(basicNode ->
-        NodeState.VALID.equals(basicNode.nodeStateProperty().get())).findAny();
-    optionalInvalidNode.ifPresent(basicNode -> System.out.println(basicNode));
-    if (optionalValidNode.isPresent() || optionalInvalidNode.isPresent()) {
-      System.out.println("invariant");
+    if (optionalValidNode.isPresent()) {
       synthesisContextService.synthesisTypeProperty().set(SynthesisType.INVARIANT);
       return;
     }
-    System.out.println("guard");
     synthesisContextService.synthesisTypeProperty().set(SynthesisType.GUARD);
+  }
+
+  /**
+   * Do not change the {@link SynthesisContextService#synthesisTypeProperty synthesis type } when
+   * synthesis is running or has been suspended by providing a distinguishing example.
+   */
+  private boolean lockSynthesisType() {
+    return synthesisContextService.synthesisSuspendedProperty()
+        .or(synthesisContextService.synthesisRunningProperty()).get();
   }
 
   /**
@@ -312,6 +321,27 @@ public class ValidationPane extends Pane implements Initializable {
       nodesFromTraceGenerator.setPreviousTrace(trace);
       synthesisContextService.getAnimationSelector().changeCurrentAnimation(trace.back());
     }
+    Platform.runLater(this::ignoreNonViolatingVars);
+  }
+
+  /**
+   * Finding an erroneous state we search for those variables that violate an invariant set the
+   * other variables to be ignored by setting
+   * {@link de.hhu.stups.bsynthesis.services.UiService#currentVarStatesMapProperty}.
+   */
+  private void ignoreNonViolatingVars() {
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    final GetViolatingVarsFromExamplesCommand getViolatingVarsFromExamplesCommand =
+        new GetViolatingVarsFromExamplesCommand(getValidNodes(), getInvalidNodes(),
+            synthesisContextService.machineVarNamesProperty().get());
+    stateSpace.execute(getViolatingVarsFromExamplesCommand);
+    // set all states to true, i.e., ignore all variables
+    uiService.currentVarStatesMapProperty().values()
+        .forEach(booleanProperty -> booleanProperty.set(true));
+    // then, only consider the violating vars
+    System.out.println("vars: " + getViolatingVarsFromExamplesCommand.getViolatingVarNames());
+    getViolatingVarsFromExamplesCommand.getViolatingVarNames().forEach(violatingVarName ->
+        uiService.currentVarStatesMapProperty().get(violatingVarName).set(false));
   }
 
   /**
