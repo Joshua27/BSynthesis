@@ -5,6 +5,8 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.CheckMenuItem?>
 
+<?import javafx.scene.control.RadioMenuItem?>
+<?import javafx.scene.control.ToggleGroup?>
 <fx:root type="MenuBar" useSystemMenuBar="true" xmlns:fx="http://javafx.com/fxml">
     <Menu text="Machine">
         <MenuItem fx:id="menuItemOpen" text="Open..." accelerator="Shortcut+O" onAction="#loadMachine"/>
@@ -22,15 +24,27 @@
         <MenuItem fx:id="menuItemVerifyAllNodes" text="Verify all nodes"
                   onAction="#verifyAllNodes"/>
     </Menu>
+    <fx:define>
+        <ToggleGroup fx:id="toggleGroupSolver"/>
+    </fx:define>
     <Menu text="Synthesis">
         <MenuItem fx:id="menuItemRunSynthesis" accelerator="Shortcut+R" text="Run Synthesis" onAction="#runSynthesis"/>
-        <MenuItem fx:id="menuItemStopSynthesis" accelerator="Shortcut+B" text="Stop Synthesis" onAction="#stopSynthesis"/>
+        <MenuItem fx:id="menuItemStopSynthesis" accelerator="Shortcut+B" text="Stop Synthesis"
+                  onAction="#stopSynthesis"/>
+        <MenuItem fx:id="menuItemNewOperation" text="New operation" accelerator="Shortcut+N" onAction="#newOperation"/>
         <MenuItem fx:id="menuItemVisualizeOperation" text="Visualize Operation"
                   onAction="#visualizeOperation"/>
+        <MenuItem fx:id="menuItemModifyInvariants" text="Modify Invariants" accelerator="Shortcut+I"
+                  onAction="#modifyInvariants"/>
+    </Menu>
+    <Menu text="Settings">
         <MenuItem fx:id="menuItemConfigureLibrary" text="Library Configuration"
                   onAction="#configureLibrary"/>
-        <MenuItem fx:id="menuItemNewOperation" text="New operation" accelerator="Shortcut+N" onAction="#newOperation"/>
         <MenuItem fx:id="menuItemSetTimeout" text="Set Solver Timeout" onAction="#setTimeout"/>
+        <Menu text="Solver Backend">
+            <RadioMenuItem fx:id="radioMenuItemProB" text="ProB" selected="true" toggleGroup="$toggleGroupSolver"/>
+            <RadioMenuItem fx:id="radioMenuItemZ3" text="Z3" toggleGroup="$toggleGroupSolver"/>
+        </Menu>
     </Menu>
     <Menu text="View">
         <MenuItem fx:id="menuItemZoomIn" text="Zoom In" accelerator="Shortcut+PLUS" onAction="#zoomIn"/>
