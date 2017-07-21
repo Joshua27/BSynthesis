@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -25,9 +26,11 @@ class ExampleState {
   private final ProBParserBaseAdapter parserBaseAdapter =
       new ProBParserBaseAdapter(new ClassicalBParser());
   private final HashMap<String, String> stateMap = new HashMap<>();
+  private final Set<String> currentMachineVars;
 
-  ExampleState(final State state) {
+  ExampleState(final State state, final Set<String> currentMachineVars) {
     this.state = state;
+    this.currentMachineVars = currentMachineVars;
     if (state == null) {
       return;
     }
@@ -35,16 +38,22 @@ class ExampleState {
         stateMap.put(evalElement.getCode(), ((EvalResult) abstractEvalResult).getValue()));
   }
 
+  /**
+   * Print a list of tuples of machine variable name and parsed value to the given
+   * {@link IPrologTermOutput}.
+   */
   void printStateToPrologTerm(final IPrologTermOutput prologTerm) {
     prologTerm.openList();
-    stateMap.entrySet().forEach(entry -> {
-      prologTerm.openTerm(",").printAtom(entry.getKey());
-      try {
-        prologTerm.printTerm(parserBaseAdapter.parseExpression(entry.getValue(), false));
-      } catch (final ProBParseException parseException) {
-        logger.error("Error parsing value from synthesis node.", parseException);
+    stateMap.forEach((key, value) -> {
+      if (currentMachineVars.contains(key)) {
+        prologTerm.openTerm(",").printAtom(key);
+        try {
+          prologTerm.printTerm(parserBaseAdapter.parseExpression(value, false));
+        } catch (final ProBParseException parseException) {
+          logger.error("Error parsing value from synthesis node.", parseException);
+        }
+        prologTerm.closeTerm();
       }
-      prologTerm.closeTerm();
     });
     prologTerm.closeList();
   }

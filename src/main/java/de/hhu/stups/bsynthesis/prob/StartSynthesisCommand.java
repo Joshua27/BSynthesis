@@ -1,17 +1,18 @@
 package de.hhu.stups.bsynthesis.prob;
 
+import static de.hhu.stups.bsynthesis.prob.ExamplesToProlog.getInputOutputExamples;
+import static de.hhu.stups.bsynthesis.prob.ExamplesToProlog.printList;
+
+import de.hhu.stups.bsynthesis.services.SolverBackend;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
-import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
-import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.prob.animator.command.AbstractCommand;
 import de.prob.parser.BindingGenerator;
 import de.prob.parser.ISimplifiedROMap;
 import de.prob.prolog.output.IPrologTermOutput;
 import de.prob.prolog.term.CompoundPrologTerm;
 import de.prob.prolog.term.PrologTerm;
-import de.prob.statespace.State;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -24,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,20 +45,23 @@ public class StartSynthesisCommand extends AbstractCommand {
   private final BooleanProperty synthesisSucceededProperty;
   private final StringProperty modifiedMachineCodeProperty;
   private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty;
+  private final SolverBackend solverBackend;
 
   /**
    * Start the synthesis workflow by calling the prolog backend.
    */
   public StartSynthesisCommand(final BLibrary selectedLibraryComponents,
                                final String currentOperation,
+                               final Set<String> currentVarNames,
                                final SynthesisType synthesisType,
-                               final List<BasicNode> positiveExamples,
-                               final List<BasicNode> negativeExamples) {
+                               final Map<String, List<BasicNode>> examples,
+                               final SolverBackend solverBackend) {
     this.currentOperation = currentOperation;
     this.synthesisType = synthesisType;
-    this.positiveExamples = getInputOutputExamples(positiveExamples);
-    this.negativeExamples = getInputOutputExamples(negativeExamples);
+    this.positiveExamples = getInputOutputExamples(examples.get("valid"), currentVarNames);
+    this.negativeExamples = getInputOutputExamples(examples.get("invalid"), currentVarNames);
     this.selectedLibraryComponents = selectedLibraryComponents;
+    this.solverBackend = solverBackend;
     synthesisSucceededProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty("");
     distinguishingExampleProperty = new SimpleObjectProperty<>();
@@ -65,90 +69,44 @@ public class StartSynthesisCommand extends AbstractCommand {
 
   @Override
   public void writeCommand(final IPrologTermOutput pto) {
-    pto.openTerm(PROLOG_COMMAND_NAME)
+    pto.openTerm(PROLOG_COMMAND_NAME);
+    selectedLibraryComponents.printToPrologTerm(pto);
+    pto.printAtom(solverBackend.toString())
         .printAtom(selectedLibraryComponents.considerIfStatementsProperty().get()
             ? "yes" : "no")
         .printAtom(currentOperation)
-        .printAtom(synthesisType.toString().toLowerCase());
-    printPrologListFromExamples(pto, positiveExamples);
-    printPrologListFromExamples(pto, negativeExamples);
+        .printAtom(synthesisType.toEventBString().toLowerCase());
+    printList(pto, positiveExamples);
+    printList(pto, negativeExamples);
     pto.printVariable(MODIFIED_MACHINE).printVariable(DISTINGUISHING_EXAMPLE).closeTerm();
-    System.out.println(pto.toString());
     logger.info("Start synthesis prolog backend by calling prob2_interface: {}", pto);
-  }
-
-  private void printPrologListFromExamples(final IPrologTermOutput pto,
-                                           final Set<InputOutputExample> examples) {
-    pto.openList();
-    examples.forEach(example -> {
-      pto.openTerm(",");
-      example.printInputOutputStateToPrologTerm(pto);
-      pto.closeTerm();
-    });
-    pto.closeList();
   }
 
   @Override
   public void processResult(final ISimplifiedROMap<String, PrologTerm> bindings) {
     final String newMachineCode = bindings.get(MODIFIED_MACHINE).getFunctor();
-    if ("none".equals(newMachineCode)) {
-      logger.info("Distinguishing example: {}", bindings.get(DISTINGUISHING_EXAMPLE));
-      setDistinguishingExample(bindings.get(DISTINGUISHING_EXAMPLE));
-      return;
-    }
-    synthesisSucceededProperty.set(true);
-    modifiedMachineCodeProperty.set(newMachineCode);
-  }
-
-  private Set<InputOutputExample> getInputOutputExamples(final List<BasicNode> examples) {
-    final Set<InputOutputExample> inputOutputExamples = new HashSet<>();
-    examples.forEach(basicNode -> addInputOutputExample(inputOutputExamples, basicNode));
-    return inputOutputExamples;
-  }
-
-  private void addInputOutputExample(final Set<InputOutputExample> inputOutputExamples,
-                                     final BasicNode basicNode) {
-    if (basicNode instanceof StateNode) {
-      // guard or invariant
-      addStateNode(inputOutputExamples, (StateNode) basicNode);
-      return;
-    }
-    if (basicNode instanceof TransitionNode) {
-      // operation / substitution
-      final State inputState = ((TransitionNode) basicNode).getInputState();
-      final State outputState = ((TransitionNode) basicNode).getOutputState();
-      inputOutputExamples.add(
-          new InputOutputExample(new ExampleState(inputState), new ExampleState(outputState)));
+    switch (newMachineCode) {
+      case "none":
+        // distinguishing example
+        logger.info("Distinguishing example: {}", bindings.get(DISTINGUISHING_EXAMPLE));
+        setDistinguishingExample(bindings.get(DISTINGUISHING_EXAMPLE));
+        break;
+      case "operation_satisfied":
+        // synthesizing an operation: an operation executes the provided behavior, and thus,
+        // there is nothing to do for synthesis
+        final String operationName = bindings.get(MODIFIED_MACHINE).getArgument(1).getFunctor();
+        logger.info("Operation {} already satisfies the desired behavior.", operationName);
+        synthesisSucceededProperty.set(true);
+        break;
+      default:
+        // synthesis succeeded and the machine code has been adapted respectively
+        synthesisSucceededProperty.set(true);
+        modifiedMachineCodeProperty.set(newMachineCode);
+        break;
     }
   }
 
-  private void addStateNode(final Set<InputOutputExample> inputOutputExamples,
-                            final StateNode stateNode) {
-    final State state = stateNode.getState();
-    if (stateNode.isValidatedPositive()) {
-      // set the positive state to be an input examples and compute the corresponding output state
-      final StateNode successorState = stateNode.getSuccessorFromTrace();
-      if (successorState != null) {
-        inputOutputExamples.add(new InputOutputExample(
-            new ExampleState(state),
-            new ExampleState(successorState.getState())));
-      } else {
-        // no successor, just add the same node since we synthesize guard/invariant and
-        // split transitions
-        inputOutputExamples.add(
-            new InputOutputExample(new ExampleState(state), new ExampleState(state)));
-      }
-      return;
-    }
-    // otherwise, set the violating state to be an output and set its predecessor to be the input
-    // if available (synthesizing a precondition/guard we need to exclude the violating state's
-    // predecessor)
-    inputOutputExamples.add(new InputOutputExample(
-        new ExampleState(stateNode.getPredecessor()),
-        new ExampleState(state)));
-  }
-
-  private BasicNode setDistinguishingExample(final PrologTerm prologTerm) {
+  private void setDistinguishingExample(final PrologTerm prologTerm) {
     final String resultFunctor = prologTerm.getFunctor();
     switch (resultFunctor) {
       case "state":
@@ -170,7 +128,6 @@ public class StartSynthesisCommand extends AbstractCommand {
       default:
         throw new AssertionError("Unexpected result of synthesis command.");
     }
-    return null;
   }
 
   private VarValueTuple getVarValueTupleFromProlog(final PrologTerm prologTerm) {
