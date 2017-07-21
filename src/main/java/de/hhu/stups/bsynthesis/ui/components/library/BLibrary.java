@@ -1,5 +1,6 @@
 package de.hhu.stups.bsynthesis.ui.components.library;
 
+import de.prob.prolog.output.IPrologTermOutput;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -31,7 +32,9 @@ public class BLibrary {
   private final SetProperty<LibraryComponent> numbersProperty;
   private final SetProperty<LibraryComponent> relationsProperty;
   private final SetProperty<LibraryComponent> sequencesProperty;
+  private final SetProperty<LibraryComponent> substitutionsProperty;
   private final BooleanProperty considerIfStatementsProperty;
+  private final BooleanProperty useDefaultLibraryProperty;
 
   /**
    * Initialize the set properties to store the {@link LibraryComponent library components} split by
@@ -43,7 +46,9 @@ public class BLibrary {
     numbersProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     relationsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     sequencesProperty = new SimpleSetProperty<>(FXCollections.observableSet());
+    substitutionsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     considerIfStatementsProperty = new SimpleBooleanProperty(false);
+    useDefaultLibraryProperty = new SimpleBooleanProperty(true);
   }
 
   public BooleanProperty considerIfStatementsProperty() {
@@ -63,11 +68,14 @@ public class BLibrary {
         LibraryComponentType.SEQUENCES);
     readLibraryFromFile("/library/numbers.csv", numbersProperty, LibraryComponentType.NUMBERS);
     readLibraryFromFile("/library/sets.csv", setsProperty, LibraryComponentType.SETS);
+    readLibraryFromFile("/library/substitutions.csv", substitutionsProperty,
+        LibraryComponentType.SUBSTITUTIONS);
   }
 
   /**
    * Read library components from a .csv file following the line format:
-   * ComponentName,ComponentSyntax
+   * ComponentName,InternalName,ComponentSyntax
+   * E.g.: Natural Numbers,nat,NAT
    */
   private void readLibraryFromFile(final String filePath,
                                    final SetProperty<LibraryComponent> setProperty,
@@ -76,7 +84,8 @@ public class BLibrary {
         Paths.get(getClass().getResource(filePath).getFile()))) {
       stream.forEach(line -> {
         final String[] splitLine = line.split(",");
-        setProperty.add(new LibraryComponent(splitLine[0], splitLine[1], 0, componentType));
+        setProperty.add(new LibraryComponent(splitLine[0], splitLine[1], splitLine[2], 0,
+            componentType));
       });
     } catch (final IOException exception) {
       logger.error("Error reading predicates from file.", exception);
@@ -104,6 +113,9 @@ public class BLibrary {
       case SEQUENCES:
         sequencesProperty.remove(libraryComponent);
         break;
+      case SUBSTITUTIONS:
+        substitutionsProperty.remove(libraryComponent);
+        break;
       default:
         break;
     }
@@ -130,6 +142,9 @@ public class BLibrary {
       case SEQUENCES:
         addComponentOrIncreaseAmount(sequencesProperty, libraryComponent);
         break;
+      case SUBSTITUTIONS:
+        addComponentOrIncreaseAmount(substitutionsProperty, libraryComponent);
+        break;
       default:
         break;
     }
@@ -148,6 +163,52 @@ public class BLibrary {
       libraryComponent.reset();
       libraryComponent.increaseAmount();
     }
+  }
+
+  /**
+   * Print the selected library components to a {@link IPrologTermOutput prolog term}.
+   */
+  public void printToPrologTerm(final IPrologTermOutput pto) {
+    if (useDefaultLibraryProperty.get()) {
+      pto.printAtom("default");
+      return;
+    }
+    pto.openList();
+    pto.openTerm("predicates").openList();
+    getPredicates().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.openTerm("numbers").openList();
+    getNumbers().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.openTerm("relations").openList();
+    getRelations().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.openTerm("sequences").openList();
+    getSequences().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.openTerm("sets").openList();
+    getSets().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.openTerm("substitutions").openList();
+    getSubstitutions().forEach(libraryComponent -> libraryComponent.printToPrologList(pto));
+    pto.closeList().closeTerm();
+    pto.closeList();
+  }
+
+  public BooleanProperty useDefaultLibraryProperty() {
+    return useDefaultLibraryProperty;
+  }
+
+  /**
+   * Return true if there are no selected library components.
+   */
+  public boolean isEmpty() {
+    return predicatesProperty.isEmpty()
+        && setsProperty.isEmpty()
+        && numbersProperty.isEmpty()
+        && sequencesProperty.isEmpty()
+        && relationsProperty.isEmpty()
+        && substitutionsProperty.isEmpty();
   }
 
   public SetProperty<LibraryComponent> predicatesProperty() {
@@ -170,6 +231,10 @@ public class BLibrary {
     return sequencesProperty;
   }
 
+  public SetProperty<LibraryComponent> substitutionsProperty() {
+    return substitutionsProperty;
+  }
+
   public ObservableSet<LibraryComponent> getPredicates() {
     return predicatesProperty.get();
   }
@@ -188,5 +253,9 @@ public class BLibrary {
 
   public ObservableSet<LibraryComponent> getSequences() {
     return sequencesProperty.get();
+  }
+
+  public ObservableSet<LibraryComponent> getSubstitutions() {
+    return substitutionsProperty.get();
   }
 }
