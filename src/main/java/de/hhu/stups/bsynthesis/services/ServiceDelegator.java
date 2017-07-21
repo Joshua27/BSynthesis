@@ -9,6 +9,7 @@ public class ServiceDelegator {
   private final SynthesisContextService synthesisContextService;
   private final ModelCheckingService modelCheckingService;
   private final UiService uiService;
+  private final ProBApiService proBApiService;
 
   /**
    * Delegate services.
@@ -16,10 +17,12 @@ public class ServiceDelegator {
   @Inject
   public ServiceDelegator(final SynthesisContextService synthesisContextService,
                           final ModelCheckingService modelCheckingService,
-                          final UiService uiService) {
+                          final UiService uiService,
+                          final ProBApiService proBApiService) {
     this.synthesisContextService = synthesisContextService;
     this.modelCheckingService = modelCheckingService;
     this.uiService = uiService;
+    this.proBApiService = proBApiService;
   }
 
   public SynthesisContextService synthesisContextService() {
@@ -32,5 +35,9 @@ public class ServiceDelegator {
 
   public UiService uiService() {
     return uiService;
+  }
+
+  public ProBApiService proBApiService() {
+    return proBApiService;
   }
 }

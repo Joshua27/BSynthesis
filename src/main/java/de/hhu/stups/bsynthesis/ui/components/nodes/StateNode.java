@@ -9,10 +9,8 @@ import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
-import de.prob.animator.command.FindValidStateCommand;
-import de.prob.animator.domainobjects.AbstractEvalResult;
+import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
-import de.prob.animator.domainobjects.EvalResult;
 import de.prob.animator.domainobjects.IEvalElement;
 import de.prob.statespace.AnimationSelector;
 import de.prob.statespace.State;
@@ -26,7 +24,6 @@ import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleMapProperty;
@@ -36,7 +33,6 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
 import javafx.event.ActionEvent;
@@ -45,6 +41,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -54,7 +51,6 @@ import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -79,6 +75,9 @@ public class StateNode extends BasicNode implements Initializable {
   private final BooleanProperty stateFromModelCheckingProperty;
   private final UiService uiService;
 
+  // TODO: parallelize library expansions by running several instances of prob  - service einführen anstatt in main menu prob api injectn
+  // TODO: cancel MC or Synthesis?
+
   @FXML
   @SuppressWarnings("unused")
   private GridPane contentGridPane;
@@ -97,6 +96,9 @@ public class StateNode extends BasicNode implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   private TableColumn<StateTableCell, String> tableColumnInputState;
+  @FXML
+  @SuppressWarnings("unused")
+  private TableColumn<StateTableCell, CheckBox> tableColumnIgnoreVar;
 
   /**
    * Initialize the {@link BasicNode} and set the node specific properties as well as the default
@@ -123,7 +125,6 @@ public class StateNode extends BasicNode implements Initializable {
     tableViewStateMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
     stateFromModelCheckingProperty = new SimpleBooleanProperty(false);
 
-    setStyle("-fx-border-color: #8E8E8E");
     traceProperty().set(trace);
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -230,9 +231,18 @@ public class StateNode extends BasicNode implements Initializable {
         tableViewStateMapProperty.put(machineVarName, "");
         tableViewState.getItems().add(new StateTableCell(
             machineVarName, getState() != null && getState().isInitialised()
-            ? getState().eval(machineVarName).toString() : ""));
+            ? getState().eval(machineVarName).toString() : "",
+            uiService.currentVarStatesMapProperty().get(machineVarName)));
       });
     }
+    tableColumnVarName.setCellValueFactory(param -> param.getValue().varNameProperty());
+    tableColumnInputState.setCellValueFactory(param -> param.getValue().inputStateProperty());
+    tableColumnIgnoreVar.setCellValueFactory(arg0 -> {
+      final StateTableCell stateTableCell = arg0.getValue();
+      final CheckBox checkBox = new CheckBox();
+      checkBox.selectedProperty().bindBidirectional(stateTableCell.ignoreVarProperty());
+      return new SimpleObjectProperty<>(checkBox);
+    });
   }
 
   /**
@@ -408,43 +418,41 @@ public class StateNode extends BasicNode implements Initializable {
     }
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     // create equality predicate with variable values
-    final FindValidStateCommand findValidStateCommand =
-        new FindValidStateCommand(stateSpace, getStateEqualityPredicate());
-    stateSpace.execute(findValidStateCommand);
+    final FindStateCommand findStateCommand =
+        new FindStateCommand(stateSpace, getStateEqualityPredicate(), false);
+    stateSpace.execute(findStateCommand);
 
-    if (!checkDuplicatedNode()) {
-      final FindValidStateCommand.ResultType resultType = findValidStateCommand.getResult();
-      if (resultType.equals(FindValidStateCommand.ResultType.ERROR)) {
-        return;
-      }
-      if (resultType.equals(FindValidStateCommand.ResultType.NO_STATE_FOUND)) {
-        nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
-        return;
-      }
-      // check for duplicated state before setting the state property
-      stateProperty.set(stateSpace.getState(findValidStateCommand.getStateId()));
-      nodeStateProperty().set(stateProperty.get().isInvariantOk()
-          ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+    final FindStateCommand.ResultType resultType = findStateCommand.getResult();
+    if (resultType.equals(FindStateCommand.ResultType.ERROR)) {
+      return;
     }
+    if (resultType.equals(FindStateCommand.ResultType.NO_STATE_FOUND)) {
+      nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
+      return;
+    }
+    // check for duplicated state before setting the state property
+    stateProperty.set(stateSpace.getState(findStateCommand.getStateId()));
+    nodeStateProperty().set(stateProperty.get().isInvariantOk()
+        ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+    removeIfDuplicate();
   }
 
   /**
    * When a tentative {@link StateNode} is validated we check if the node already exists.
    * In this case we delete the new node and expand the existing equivalent node.
    */
-  private boolean checkDuplicatedNode() {
+  private void removeIfDuplicate() {
     if (synthesisContextService.getSynthesisType().isAction()) {
-      return false;
+      return;
     }
-    final Optional<StateNode> optionalStateNode = getValidationPane().getNodes().stream()
-        .map(basicNode -> (StateNode) basicNode)
-        .filter(stateNode -> stateNode != this && equalStates(stateNode)).findFirst();
+    final Optional<BasicNode> optionalStateNode = getValidationPane().getNodes().stream()
+        .filter(basicNode -> basicNode != this
+            && getState().getId().equals(((StateNode) basicNode).getState().getId()))
+        .findFirst();
     if (optionalStateNode.isPresent()) {
-      remove();
-      optionalStateNode.get().highlightNodeEffect();
-      return true;
+      this.remove();
+      ((StateNode) optionalStateNode.get()).highlightNodeEffect();
     }
-    return false;
   }
 
   /**
@@ -454,27 +462,6 @@ public class StateNode extends BasicNode implements Initializable {
     // TODO: validate types and well-definedness
     for (final StateTableCell stateTableCell : stateTableCells) {
       if (stateTableCell.getInputState().replaceAll("\\s+", "").isEmpty()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Two {@link StateNode}'s are equal if they have exactly the same state values. We can't directly
-   * compare {@link State} objects since we can also have erroneous states that are not added to the
-   * state space and thus missing a corresponding state object.
-   */
-  private boolean equalStates(final StateNode stateNode) {
-    final ObservableMap<String, String> tableViewStateMap = tableViewStateMapProperty.get();
-    if (stateNode == null) {
-      return false;
-    }
-    for (final Map.Entry<IEvalElement, AbstractEvalResult>
-        entry : stateNode.getState().getValues().entrySet()) {
-      final String keyCode = entry.getKey().getCode();
-      if (!tableViewStateMap.containsKey(keyCode)
-          || !tableViewStateMap.get(keyCode).equals(((EvalResult) entry.getValue()).getValue())) {
         return false;
       }
     }
@@ -515,45 +502,7 @@ public class StateNode extends BasicNode implements Initializable {
     tableViewState.getItems().forEach(stateTableCell ->
         predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState()));
     final String predicate = Joiner.on(" & ").join(predicateStringSet);
+    System.out.println(predicate);
     return new ClassicalB(predicate);
-  }
-
-  /**
-   * State table cell.
-   */
-  @SuppressWarnings( {"unused", "WeakerAccess"})
-  public static final class StateTableCell {
-    private final StringProperty varName;
-    private final StringProperty inputState;
-
-    public StateTableCell(final String varName,
-                          final String inputState) {
-      this.varName = new SimpleStringProperty(this, "varName", varName);
-      this.inputState = new SimpleStringProperty(this, "inputState", inputState);
-    }
-
-    public String getVarName() {
-      return varName.get();
-    }
-
-    public void setVarName(final String varName) {
-      this.varName.set(varName);
-    }
-
-    public ReadOnlyStringProperty varNameProperty() {
-      return varName;
-    }
-
-    public String getInputState() {
-      return inputState.get();
-    }
-
-    public void setInputState(final String inputState) {
-      this.inputState.set(inputState);
-    }
-
-    public ReadOnlyStringProperty inputStateProperty() {
-      return inputState;
-    }
   }
 }

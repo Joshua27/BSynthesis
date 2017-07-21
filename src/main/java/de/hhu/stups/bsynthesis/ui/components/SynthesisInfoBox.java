@@ -29,6 +29,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -86,18 +87,48 @@ public class SynthesisInfoBox extends VBox implements Initializable {
   public void initialize(final URL location, final ResourceBundle resources) {
     setPrefHeight(HEIGHT);
 
-    synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
-      showInfoProperty.set(newValue != null);
-      infoTextProperty.set("");
-    });
-
-    showInfoProperty.addListener((observable, oldValue, newValue) ->
-        isMinimizedProperty().set(!newValue));
+    EasyBind.subscribe(synthesisContextService.stateSpaceProperty(), stateSpace ->
+        Platform.runLater(() -> {
+          showInfoProperty.set(stateSpace != null);
+          infoTextProperty.set("");
+        }));
+    EasyBind.subscribe(showInfoProperty, showInfo -> isMinimizedProperty().set(!showInfo));
+    EasyBind.subscribe(isMinimizedProperty, this::showOrHide);
 
     visibleProperty().bind(showInfoProperty
         .and(synthesisContextService.stateSpaceProperty().isNotNull())
         .and(synthesisContextService.synthesisTypeProperty().isNotEqualTo(SynthesisType.NONE)));
 
+    initializeIcons();
+    initializeLabels();
+
+    positionXProperty.addListener((observable, oldValue, newValue) ->
+        setLayoutX(newValue.doubleValue()));
+    positionYProperty.addListener((observable, oldValue, newValue) ->
+        setLayoutY(newValue.doubleValue()));
+  }
+
+  private void initializeLabels() {
+    lbInfo.textProperty().bind(infoTextProperty);
+    final String operationString =
+        synthesisContextService.getSpecificationType().isClassicalB() ? "Current operation: "
+            : "Current event: ";
+    lbCurrentOperation.textProperty().bind(Bindings.createStringBinding(() ->
+            operationString + ((synthesisContextService.getCurrentOperation() != null)
+                ? synthesisContextService.getCurrentOperation() : "none"),
+        synthesisContextService.currentOperationProperty()));
+
+    EasyBind.subscribe(synthesisContextService.synthesisTypeProperty(), synthesisType ->
+        Platform.runLater(() -> lbSynthesisType.setText("Synthesis type: "
+            + getContextSpecificSynthesisType())));
+    EasyBind.subscribe(synthesisContextService.currentOperationProperty(), currentOperation -> {
+      if (currentOperation == null) {
+        infoTextProperty.set("");
+      }
+    });
+  }
+
+  private void initializeIcons() {
     iconShowOrHide.glyphNameProperty().bind(
         Bindings.when(isMinimizedProperty()).then("CHEVRON_UP").otherwise("CHEVRON_DOWN"));
     iconShowOrHide.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
@@ -113,33 +144,6 @@ public class SynthesisInfoBox extends VBox implements Initializable {
       }
       showInfoProperty().set(false);
     });
-
-    lbInfo.textProperty().bind(infoTextProperty);
-
-    positionXProperty.addListener((observable, oldValue, newValue) ->
-        setLayoutX(newValue.doubleValue()));
-    positionYProperty.addListener((observable, oldValue, newValue) ->
-        setLayoutY(newValue.doubleValue()));
-
-    isMinimizedProperty.addListener((observable, oldValue, newValue) -> showOrHide(newValue));
-
-    lbCurrentOperation.textProperty().bind(Bindings.createStringBinding(() ->
-            "Current operation: "
-                + ((synthesisContextService.getCurrentOperation() != null)
-                ? synthesisContextService.getCurrentOperation() : "none"),
-        synthesisContextService.currentOperationProperty()));
-
-    synthesisContextService.synthesisTypeProperty().addListener(
-        (observable, oldValue, newValue) ->
-            Platform.runLater(() -> lbSynthesisType.setText("Synthesis type: "
-                + synthesisContextService.getSynthesisType().toString())));
-
-    synthesisContextService.currentOperationProperty().addListener(
-        (observable, oldValue, newValue) -> {
-          if (newValue == null) {
-            infoTextProperty.set("");
-          }
-        });
   }
 
   /**
@@ -219,5 +223,15 @@ public class SynthesisInfoBox extends VBox implements Initializable {
 
   void reset() {
     Platform.runLater(() -> infoTextProperty.set(""));
+  }
+
+  /**
+   * Return a string of the current {@link #synthesisContextService synthesis type} using the naming
+   * of current machine's language specification, i.e., either Event-B or classical B.
+   */
+  private String getContextSpecificSynthesisType() {
+    return synthesisContextService.getSpecificationType().isClassicalB() ?
+        synthesisContextService.getSynthesisType().toString()
+        : synthesisContextService.getSynthesisType().toEventBString();
   }
 }

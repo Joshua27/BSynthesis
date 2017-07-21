@@ -1,11 +1,13 @@
 package de.hhu.stups.bsynthesis.ui.components.library;
 
+import de.prob.prolog.output.IPrologTermOutput;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 /**
  * A container for a library component to configure the used library for the synthesis tool. The
@@ -14,6 +16,7 @@ import java.util.Objects;
 public class LibraryComponent {
 
   private final StringProperty componentNameProperty;
+  private final StringProperty internalNameProperty;
   private final StringProperty syntaxProperty;
   private final IntegerProperty amountProperty;
   private final LibraryComponentType libraryComponentType;
@@ -27,11 +30,13 @@ public class LibraryComponent {
    * @param libraryComponentType The component's {@link LibraryComponentType}.
    */
   public LibraryComponent(final String componentName,
+                          final String internalName,
                           final String syntax,
                           final int amount,
                           final LibraryComponentType libraryComponentType) {
     this.libraryComponentType = libraryComponentType;
     componentNameProperty = new SimpleStringProperty(componentName);
+    internalNameProperty = new SimpleStringProperty(internalName);
     syntaxProperty = new SimpleStringProperty(syntax);
     amountProperty = new SimpleIntegerProperty(amount);
   }
@@ -72,6 +77,10 @@ public class LibraryComponent {
     return amountProperty;
   }
 
+  private String getInternalName() {
+    return internalNameProperty.get();
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -93,5 +102,9 @@ public class LibraryComponent {
   @Override
   public String toString() {
     return componentNameProperty.get();
+  }
+
+  void printToPrologList(final IPrologTermOutput pto) {
+    IntStream.range(0,amountProperty.get()).forEach(value -> pto.printAtom(getInternalName()));
   }
 }

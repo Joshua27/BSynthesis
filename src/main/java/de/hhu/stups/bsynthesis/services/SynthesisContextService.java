@@ -37,13 +37,18 @@ public class SynthesisContextService {
 
   private final SetProperty<String> machineVarNamesProperty;
   private final ObjectProperty<SynthesisType> synthesisTypeProperty;
+  private final ObjectProperty<SpecificationType> specificationTypeProperty;
   private final ObjectProperty<StateSpace> stateSpaceProperty;
   private final StringProperty currentOperationProperty;
   private final BooleanProperty invariantViolatedProperty;
   private final BooleanProperty synthesisSucceededProperty;
+  private final BooleanProperty synthesisRunningProperty;
+  private final BooleanProperty synthesisSuspendedProperty;
+  private final BooleanProperty useDefaultLibraryProperty;
   private final ObjectProperty<AnimationSelector> animationSelectorProperty;
   private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
   private final StringProperty modifiedMachineCodeProperty;
+  private final ObjectProperty<SolverBackend> solverBackendProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -56,15 +61,27 @@ public class SynthesisContextService {
     animationSelectorProperty = new SimpleObjectProperty<>(new AnimationSelector());
     currentOperationProperty = new SimpleStringProperty();
     invariantViolatedProperty = new SimpleBooleanProperty(false);
+    useDefaultLibraryProperty = new SimpleBooleanProperty();
     selectedLibraryComponentsProperty = new SimpleObjectProperty<>();
     synthesisSucceededProperty = new SimpleBooleanProperty(false);
+    synthesisSuspendedProperty = new SimpleBooleanProperty(false);
+    synthesisRunningProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
+    solverBackendProperty = new SimpleObjectProperty<>(SolverBackend.PROB);
+    specificationTypeProperty = new SimpleObjectProperty<>(SpecificationType.CLASSICAL_B);
 
     contextEventStream = new EventSource<>();
 
     stateSpaceProperty.addListener((observable, oldValue, newValue) -> {
+      if (newValue == null) {
+        return;
+      }
       synthesisTypeProperty.set(SynthesisType.NONE);
-      updateCurrentVarNames();
+      final ObservableSet<String> variableNames = FXCollections.observableSet();
+      final AbstractElement mainComponent = newValue.getMainComponent();
+      mainComponent.getChildrenOfType(Variable.class)
+          .forEach(variable -> variableNames.add(variable.getName()));
+      setMachineVarNames(variableNames);
     });
     contextEventStream.subscribe(contextEvent -> {
       if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
@@ -73,57 +90,56 @@ public class SynthesisContextService {
     });
   }
 
-  private void updateCurrentVarNames() {
-    final StateSpace stateSpace = getStateSpace();
-    if (stateSpace == null) {
-      return;
-    }
-    final ObservableSet<String> variableNames = FXCollections.observableSet();
-    final AbstractElement mainComponent = stateSpace.getMainComponent();
-    mainComponent.getChildrenOfType(Variable.class)
-        .forEach(variable -> variableNames.add(variable.getName()));
-    setMachineVarNames(variableNames);
-  }
-
-
   public ObservableSet<String> getMachineVarNames() {
     return machineVarNamesProperty.get();
-  }
-
-  public SetProperty<String> machineVarNamesProperty() {
-    return machineVarNamesProperty;
   }
 
   private void setMachineVarNames(final ObservableSet<String> machineVarNamesProperty) {
     Platform.runLater(() -> this.machineVarNamesProperty.set(machineVarNamesProperty));
   }
 
-  public SynthesisType getSynthesisType() {
-    return synthesisTypeProperty.get();
+  public SetProperty<String> machineVarNamesProperty() {
+    return machineVarNamesProperty;
   }
 
-  public ObjectProperty<SynthesisType> synthesisTypeProperty() {
-    return synthesisTypeProperty;
+  public SynthesisType getSynthesisType() {
+    return synthesisTypeProperty.get();
   }
 
   public void setSynthesisType(final SynthesisType synthesisType) {
     synthesisTypeProperty.set(synthesisType);
   }
 
-  public String getCurrentOperation() {
-    return currentOperationProperty.get();
+  public ObjectProperty<SynthesisType> synthesisTypeProperty() {
+    return synthesisTypeProperty;
   }
 
-  public StringProperty currentOperationProperty() {
-    return currentOperationProperty;
+  public String getCurrentOperation() {
+    return currentOperationProperty.get();
   }
 
   public void setCurrentOperation(final String currentOperationProperty) {
     Platform.runLater(() -> this.currentOperationProperty.set(currentOperationProperty));
   }
 
+  public SpecificationType getSpecificationType() {
+    return specificationTypeProperty.get();
+  }
+
+  public void setSpecificationType(final SpecificationType specificationType) {
+    specificationTypeProperty.set(specificationType);
+  }
+
+  public StringProperty currentOperationProperty() {
+    return currentOperationProperty;
+  }
+
   public BooleanProperty invariantViolatedProperty() {
     return invariantViolatedProperty;
+  }
+
+  public BooleanProperty useDefaultLibraryProperty() {
+    return useDefaultLibraryProperty;
   }
 
   public AnimationSelector getAnimationSelector() {
@@ -134,20 +150,32 @@ public class SynthesisContextService {
     return stateSpaceProperty.get();
   }
 
-  public ObjectProperty<StateSpace> stateSpaceProperty() {
-    return stateSpaceProperty;
-  }
-
   public void setStateSpace(final StateSpace stateSpace) {
     this.stateSpaceProperty.set(stateSpace);
+  }
+
+  public ObjectProperty<StateSpace> stateSpaceProperty() {
+    return stateSpaceProperty;
   }
 
   public ObjectProperty<BLibrary> selectedLibraryComponentsProperty() {
     return selectedLibraryComponentsProperty;
   }
 
+  public ObjectProperty<SolverBackend> solverBackendProperty() {
+    return solverBackendProperty;
+  }
+
   public BooleanProperty synthesisSucceededProperty() {
     return synthesisSucceededProperty;
+  }
+
+  public BooleanProperty synthesisRunningProperty() {
+    return synthesisRunningProperty;
+  }
+
+  public BooleanProperty synthesisSuspendedProperty() {
+    return synthesisSuspendedProperty;
   }
 
   public StringProperty modifiedMachineCodeProperty() {
@@ -167,5 +195,13 @@ public class SynthesisContextService {
 
   public EventSource<ContextEvent> contextEventStream() {
     return contextEventStream;
+  }
+
+  public boolean useDefaultLibrary() {
+    return useDefaultLibraryProperty().get();
+  }
+
+  public BLibrary getSelectedLibraryComponents() {
+    return selectedLibraryComponentsProperty.get();
   }
 }

@@ -5,12 +5,11 @@ public enum SynthesisType {
 
   @Override
   public String toString() {
-    // TODO: maybe switch between B and Event-B wording according to the loaded machine?
     switch (this) {
       case ACTION:
-        return "Action";
+        return "Operation";
       case GUARD:
-        return "Guard";
+        return "Precondition";
       case INVARIANT:
         return "Invariant";
       case DEADLOCK:
@@ -28,5 +27,25 @@ public enum SynthesisType {
 
   public boolean isUndefined() {
     return this.equals(NONE);
+  }
+
+  /**
+   * Return corresponding Event-B names like 'event' instead of 'operation'.
+   */
+  public String toEventBString() {
+    switch (this) {
+      case ACTION:
+        return "Action";
+      case GUARD:
+        return "Guard";
+      case INVARIANT:
+        return "Invariant";
+      case DEADLOCK:
+        return "Deadlock";
+      case NONE:
+        return "Undefined";
+      default:
+        return "";
+    }
   }
 }
