@@ -66,7 +66,7 @@ class ExampleState {
   public String toString() {
     return state.getValues().entrySet().stream()
         .map(iEvalElementAbstractEvalResultEntry ->
-            ((EvalResult) iEvalElementAbstractEvalResultEntry.getValue()).toString())
+            iEvalElementAbstractEvalResultEntry.getValue().toString())
         .collect(Collectors.joining(", "));
   }
 }
