@@ -42,5 +42,6 @@ public class BSynthesis extends Application {
   public void stop() {
     injector.getInstance(ProBInstanceProvider.class).shutdownAll();
     Platform.exit();
+    System.exit(0);
   }
 }
