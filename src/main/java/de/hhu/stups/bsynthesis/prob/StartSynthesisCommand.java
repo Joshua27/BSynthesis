@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,9 +43,12 @@ public class StartSynthesisCommand extends AbstractCommand {
   private final Set<InputOutputExample> positiveExamples;
   private final Set<InputOutputExample> negativeExamples;
   private final BLibrary selectedLibraryComponents;
-  private final BooleanProperty synthesisSucceededProperty;
-  private final StringProperty modifiedMachineCodeProperty;
-  private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty;
+  private final BooleanProperty synthesisSucceededProperty =
+      new SimpleBooleanProperty(false);
+  private final StringProperty modifiedMachineCodeProperty =
+      new SimpleStringProperty();
+  private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty =
+      new SimpleObjectProperty<>();
   private final SolverBackend solverBackend;
 
   /**
@@ -62,9 +66,18 @@ public class StartSynthesisCommand extends AbstractCommand {
     this.negativeExamples = getInputOutputExamples(examples.get("invalid"), currentVarNames);
     this.selectedLibraryComponents = selectedLibraryComponents;
     this.solverBackend = solverBackend;
-    synthesisSucceededProperty = new SimpleBooleanProperty(false);
-    modifiedMachineCodeProperty = new SimpleStringProperty("");
-    distinguishingExampleProperty = new SimpleObjectProperty<>();
+  }
+
+  /**
+   * Copy constructor for {@link StartSynthesisCommand} with deep copy of {@link BLibrary}.
+   */
+  public StartSynthesisCommand(final StartSynthesisCommand startSynthesisCommand) {
+    currentOperation = startSynthesisCommand.getCurrentOperation();
+    synthesisType = startSynthesisCommand.getSynthesisType();
+    positiveExamples = new HashSet<>(startSynthesisCommand.getPositiveExamples());
+    negativeExamples = new HashSet<>(startSynthesisCommand.getNegativeExamples());
+    selectedLibraryComponents = new BLibrary(startSynthesisCommand.getSelectedLibraryComponents());
+    solverBackend = startSynthesisCommand.getSolverBackend();
   }
 
   @Override
@@ -100,8 +113,8 @@ public class StartSynthesisCommand extends AbstractCommand {
         break;
       default:
         // synthesis succeeded and the machine code has been adapted respectively
-        synthesisSucceededProperty.set(true);
         modifiedMachineCodeProperty.set(newMachineCode);
+        synthesisSucceededProperty.set(true);
         break;
     }
   }
@@ -140,11 +153,51 @@ public class StartSynthesisCommand extends AbstractCommand {
     return distinguishingExampleProperty;
   }
 
+  public int getLibraryExpansion() {
+    return selectedLibraryComponents.getLibraryExpansion();
+  }
+
+  public void setLibraryExpansion(final int libraryExpansion) {
+    selectedLibraryComponents.setLibraryExpansion(libraryExpansion);
+  }
+
+  public boolean isDefaultLibraryConfiguration() {
+    return selectedLibraryComponents.useDefaultLibraryProperty().get();
+  }
+
+  public SynthesisType getSynthesisType() {
+    return synthesisType;
+  }
+
   public BooleanProperty synthesisSucceededProperty() {
     return synthesisSucceededProperty;
   }
 
   public StringProperty modifiedMachineCodeProperty() {
     return modifiedMachineCodeProperty;
+  }
+
+  public boolean expandLibrary() {
+    return selectedLibraryComponents.expandDefaultLibrary();
+  }
+
+  private Set<InputOutputExample> getPositiveExamples() {
+    return positiveExamples;
+  }
+
+  private Set<InputOutputExample> getNegativeExamples() {
+    return negativeExamples;
+  }
+
+  private String getCurrentOperation() {
+    return currentOperation;
+  }
+
+  private BLibrary getSelectedLibraryComponents() {
+    return selectedLibraryComponents;
+  }
+
+  private SolverBackend getSolverBackend() {
+    return solverBackend;
   }
 }

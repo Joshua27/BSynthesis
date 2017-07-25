@@ -2,8 +2,10 @@ package de.hhu.stups.bsynthesis.ui.components.library;
 
 import de.prob.prolog.output.IPrologTermOutput;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
@@ -16,39 +18,62 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-
 /**
  * A class representing a B/Event-B library configuration used for the synthesis tool. Using {@link
  * #initializeLibrary()} we are able to initialize all default components with an amount of zero,
  * e.g. to display and select components from. Without default initialization the class can be used
  * to store the user selected library components by adding and removing from the specific set
- * properties.
+ * properties. In case {@link #useDefaultLibraryProperty} is true we send the current
+ * {@link #defaultLibraryExpansionProperty} to the Prolog backend instead of an explicit list of
+ * components. Then, an appropriate default library configuration is generated in Prolog (see
+ * library_setup.pl).
  */
 public class BLibrary {
 
+  private static final int MAXIMUM_LIBRARY_EXPANSION = 5;
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final SetProperty<LibraryComponent> predicatesProperty;
-  private final SetProperty<LibraryComponent> setsProperty;
-  private final SetProperty<LibraryComponent> numbersProperty;
-  private final SetProperty<LibraryComponent> relationsProperty;
-  private final SetProperty<LibraryComponent> sequencesProperty;
-  private final SetProperty<LibraryComponent> substitutionsProperty;
+  private final SetProperty<LibraryComponent> predicatesProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
+  private final SetProperty<LibraryComponent> setsProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
+  private final SetProperty<LibraryComponent> numbersProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
+  private final SetProperty<LibraryComponent> relationsProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
+  private final SetProperty<LibraryComponent> sequencesProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
+  private final SetProperty<LibraryComponent> substitutionsProperty =
+      new SimpleSetProperty<>(FXCollections.observableSet());
   private final BooleanProperty considerIfStatementsProperty;
   private final BooleanProperty useDefaultLibraryProperty;
+  private final IntegerProperty defaultLibraryExpansionProperty;
 
   /**
-   * Initialize the set properties to store the {@link LibraryComponent library components} split by
-   * their {@link LibraryComponentType} respectively.
+   * Initialize library settings properties.
    */
   public BLibrary() {
-    predicatesProperty = new SimpleSetProperty<>(FXCollections.observableSet());
-    setsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
-    numbersProperty = new SimpleSetProperty<>(FXCollections.observableSet());
-    relationsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
-    sequencesProperty = new SimpleSetProperty<>(FXCollections.observableSet());
-    substitutionsProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     considerIfStatementsProperty = new SimpleBooleanProperty(false);
     useDefaultLibraryProperty = new SimpleBooleanProperty(true);
+    defaultLibraryExpansionProperty = new SimpleIntegerProperty(1);
+  }
+
+  /**
+   * Deep copy of a given {@link BLibrary}.
+   */
+  public BLibrary(final BLibrary library) {
+    predicatesProperty.addAll(library.getPredicates());
+    setsProperty.addAll(library.getSets());
+    numbersProperty.addAll(library.getNumbers());
+    relationsProperty.addAll(library.getRelations());
+    sequencesProperty.addAll(library.getSequences());
+    substitutionsProperty.addAll(library.getSubstitutions());
+    considerIfStatementsProperty = new SimpleBooleanProperty(
+        library.considerIfStatementsProperty.get());
+    useDefaultLibraryProperty = new SimpleBooleanProperty(
+        library.useDefaultLibraryProperty.get());
+    defaultLibraryExpansionProperty = new SimpleIntegerProperty(
+        library.getLibraryExpansion());
   }
 
   public BooleanProperty considerIfStatementsProperty() {
@@ -166,11 +191,16 @@ public class BLibrary {
   }
 
   /**
-   * Print the selected library components to a {@link IPrologTermOutput prolog term}.
+   * Print the selected library components to a {@link IPrologTermOutput prolog term} or, for
+   * instance, default:1 for a default library configuration at level 1 of its predefined
+   * expansions.
    */
   public void printToPrologTerm(final IPrologTermOutput pto) {
     if (useDefaultLibraryProperty.get()) {
-      pto.printAtom("default");
+      pto.openTerm(":")
+          .printAtom("default")
+          .printNumber(defaultLibraryExpansionProperty.get())
+          .closeTerm();
       return;
     }
     pto.openList();
@@ -209,6 +239,24 @@ public class BLibrary {
         && sequencesProperty.isEmpty()
         && relationsProperty.isEmpty()
         && substitutionsProperty.isEmpty();
+  }
+
+  /**
+   * Expand the library by setting {@link #defaultLibraryExpansionProperty} if we have not reached
+   * the predefined {@link #MAXIMUM_LIBRARY_EXPANSION maximum amount of library expansions}.
+   */
+  public boolean expandDefaultLibrary() {
+    final int libraryExpansion = defaultLibraryExpansionProperty.get();
+    if (libraryExpansion >= MAXIMUM_LIBRARY_EXPANSION || !useDefaultLibraryProperty.get()) {
+      defaultLibraryExpansionProperty.setValue(1);
+      return false;
+    }
+    defaultLibraryExpansionProperty.setValue(libraryExpansion + 1);
+    return true;
+  }
+
+  public IntegerProperty defaultLibraryExpansionProperty() {
+    return defaultLibraryExpansionProperty;
   }
 
   public SetProperty<LibraryComponent> predicatesProperty() {
@@ -257,5 +305,13 @@ public class BLibrary {
 
   public ObservableSet<LibraryComponent> getSubstitutions() {
     return substitutionsProperty.get();
+  }
+
+  public int getLibraryExpansion() {
+    return defaultLibraryExpansionProperty.get();
+  }
+
+  public void setLibraryExpansion(final int libraryExpansion) {
+    defaultLibraryExpansionProperty().set(libraryExpansion);
   }
 }
