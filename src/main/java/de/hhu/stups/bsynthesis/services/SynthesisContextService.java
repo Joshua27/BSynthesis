@@ -26,29 +26,27 @@ import javafx.collections.ObservableSet;
 import org.reactfx.EventSource;
 
 /**
- * A service providing several properties describing the current synthesis context, i.e. the
- * currently loaded machine's information, results from model checking.
+ * A service providing several properties describing the current synthesis context, e.g., the
+ * currently loaded machine's information or the synthesis type.
  */
 @Singleton
 public class SynthesisContextService {
 
-
   private final EventSource<ContextEvent> contextEventStream;
-
   private final SetProperty<String> machineVarNamesProperty;
   private final ObjectProperty<SynthesisType> synthesisTypeProperty;
   private final ObjectProperty<SpecificationType> specificationTypeProperty;
   private final ObjectProperty<StateSpace> stateSpaceProperty;
+  private final ObjectProperty<AnimationSelector> animationSelectorProperty;
+  private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
+  private final ObjectProperty<SolverBackend> solverBackendProperty;
   private final StringProperty currentOperationProperty;
+  private final StringProperty modifiedMachineCodeProperty;
   private final BooleanProperty invariantViolatedProperty;
   private final BooleanProperty synthesisSucceededProperty;
   private final BooleanProperty synthesisRunningProperty;
   private final BooleanProperty synthesisSuspendedProperty;
   private final BooleanProperty useDefaultLibraryProperty;
-  private final ObjectProperty<AnimationSelector> animationSelectorProperty;
-  private final ObjectProperty<BLibrary> selectedLibraryComponentsProperty;
-  private final StringProperty modifiedMachineCodeProperty;
-  private final ObjectProperty<SolverBackend> solverBackendProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -191,6 +189,7 @@ public class SynthesisContextService {
     synthesisSucceededProperty.set(false);
     currentOperationProperty.set(null);
     invariantViolatedProperty.set(false);
+    selectedLibraryComponentsProperty.get().defaultLibraryExpansionProperty().set(1);
   }
 
   public EventSource<ContextEvent> contextEventStream() {
