@@ -3,6 +3,9 @@ package de.hhu.stups.bsynthesis.services;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
+import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
+import de.hhu.stups.bsynthesis.ui.components.nodes.NodeLine;
+import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.MapProperty;
@@ -23,12 +26,19 @@ public class UiService {
 
   private final EventSource<ControllerTab> showTabEventStream;
   private final EventSource<UiZoom> zoomEventStream;
+  // TODO: merge some event sources
+  private final EventSource<BasicNode> showNodeEventSource;
+  private final EventSource<BasicNode> removeNodeEventSource;
+  private final EventSource<StateNode> checkDuplicateStateNodeEventSource;
+  private final EventSource<NodeLine> addNodeConnectionEventSource;
   private final NodeContextMenuFactory nodeContextMenuFactory;
   private final StateNodeFactory stateNodeFactory;
   private final TransitionNodeFactory transitionNodeFactory;
   private final BooleanProperty zoomInEnabledProperty;
   private final BooleanProperty zoomOutEnabledProperty;
   private final MapProperty<String, BooleanProperty> currentVarStatesMapProperty;
+  private final EventSource<BasicNode> userValidationEventSource;
+  private final EventSource<BasicNode> adjustNodePositionEventSource;
 
   /**
    * Initialize node factories and event sources.
@@ -43,8 +53,14 @@ public class UiService {
     currentVarStatesMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
     showTabEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
+    showNodeEventSource = new EventSource<>();
+    removeNodeEventSource = new EventSource<>();
+    checkDuplicateStateNodeEventSource = new EventSource<>();
+    userValidationEventSource = new EventSource<>();
     zoomInEnabledProperty = new SimpleBooleanProperty();
     zoomOutEnabledProperty = new SimpleBooleanProperty();
+    addNodeConnectionEventSource = new EventSource<>();
+    adjustNodePositionEventSource = new EventSource<>();
   }
 
   /**
@@ -105,6 +121,30 @@ public class UiService {
   public void resetCurrentVarBindings() {
     currentVarStatesMapProperty.forEach((machineVarname, booleanProperty) ->
         currentVarStatesMapProperty.get(machineVarname).set(false));
+  }
+
+  public EventSource<BasicNode> removeNodeEventSource() {
+    return removeNodeEventSource;
+  }
+
+  public EventSource<StateNode> checkDuplicateStateNodeEventSource() {
+    return checkDuplicateStateNodeEventSource;
+  }
+
+  public EventSource<BasicNode> showNodeEventSource() {
+    return showNodeEventSource;
+  }
+
+  public EventSource<BasicNode> userValidationEventSource() {
+    return userValidationEventSource;
+  }
+
+  public EventSource<NodeLine> addNodeConnectionEventSource() {
+    return addNodeConnectionEventSource;
+  }
+
+  public EventSource<BasicNode> adjustNodePositionEventSource() {
+    return adjustNodePositionEventSource;
   }
 
   public enum UiZoom {

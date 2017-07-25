@@ -5,7 +5,6 @@ import com.google.inject.assistedinject.Assisted;
 
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.statespace.State;
 
 import javafx.beans.property.ObjectProperty;
@@ -42,12 +41,11 @@ public class TransitionNode extends BasicNode implements Initializable {
   @Inject
   public TransitionNode(final FXMLLoader loader,
                         final UiService uiService,
-                        final ValidationPane validationPane,
                         @Assisted("inputState") @Nullable final State inputState,
                         @Assisted("outputState") @Nullable final State outputState,
                         @Assisted final Point2D position,
                         @Assisted final NodeState nodeState) {
-    super(position, nodeState, validationPane, uiService.getNodeContextMenuFactory());
+    super(position, nodeState, uiService);
     inputStateProperty = new SimpleObjectProperty<>(inputState);
     outputStateProperty = new SimpleObjectProperty<>(outputState);
     transparentBackgroundProperty().set(true);
@@ -66,7 +64,7 @@ public class TransitionNode extends BasicNode implements Initializable {
     initializeStateNodes();
     initializeNodeStateListener();
     setUserValidationHighlighting(userValidationProperty().get());
-    
+
     userValidationProperty().addListener((observable, oldValue, newValue) ->
         setUserValidationHighlighting(newValue));
     outputStateNode.disableProperty().bind(userValidationProperty().not());
@@ -103,7 +101,6 @@ public class TransitionNode extends BasicNode implements Initializable {
   }
 
   private void initializeStateNodes() {
-    System.out.println(inputStateProperty.get());
     inputStateNode.stateProperty().set(inputStateProperty.get());
     inputStateNode.titleProperty().set("Input");
     inputStateNode.nodeWidthProperty().set(100);
@@ -113,7 +110,6 @@ public class TransitionNode extends BasicNode implements Initializable {
 
     isExpandedProperty().bindBidirectional(inputStateNode.isExpandedProperty());
 
-    System.out.println(outputStateProperty.get());
     outputStateNode.stateProperty().set(outputStateProperty.get());
     outputStateNode.setXPosition(inputStateNode.widthProperty().add(100.0).get());
     outputStateNode.setYPosition(0);
@@ -131,24 +127,8 @@ public class TransitionNode extends BasicNode implements Initializable {
     return inputStateProperty.get();
   }
 
-  public ObjectProperty<State> inputStateProperty() {
-    return inputStateProperty;
-  }
-
-  public void setInputState(final State inputStateProperty) {
-    this.inputStateProperty.set(inputStateProperty);
-  }
-
   public State getOutputState() {
     return outputStateProperty.get();
-  }
-
-  public ObjectProperty<State> outputStateProperty() {
-    return outputStateProperty;
-  }
-
-  public void setOutputState(final State outputStateProperty) {
-    this.outputStateProperty.set(outputStateProperty);
   }
 
   public void childrenToFront() {

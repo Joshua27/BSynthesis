@@ -51,7 +51,6 @@ import javafx.util.Duration;
 
 import java.net.URL;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -68,16 +67,11 @@ public class StateNode extends BasicNode implements Initializable {
   private final MapProperty<String, String> tableViewStateMapProperty;
   private final SynthesisContextService synthesisContextService;
   private final StringProperty titleProperty;
-  private final Timeline timeline;
-  private final Timeline auxiliaryTimeline;
   private final SetProperty<BasicNode> successorProperty;
   private final SetProperty<BasicNode> predecessorProperty;
   private final BooleanProperty stateFromModelCheckingProperty;
   private final UiService uiService;
-
-  // TODO: parallelize library expansions by running several instances of prob  - service einführen anstatt in main menu prob api injectn
-  // TODO: cancel MC or Synthesis?
-
+  private ObjectProperty<StateNode> equivalentNodeProperty;
   @FXML
   @SuppressWarnings("unused")
   private GridPane contentGridPane;
@@ -107,33 +101,30 @@ public class StateNode extends BasicNode implements Initializable {
   @Inject
   public StateNode(final FXMLLoader loader,
                    final ServiceDelegator serviceDelegator,
-                   final ValidationPane validationPane,
                    @Assisted @Nullable final State state,
                    @Assisted @Nullable final Trace trace,
                    @Assisted final Point2D position,
                    @Assisted final NodeState nodeState) {
-    super(position, nodeState, validationPane,
-        serviceDelegator.uiService().getNodeContextMenuFactory());
+    super(position, nodeState, serviceDelegator.uiService());
     uiService = serviceDelegator.uiService();
     synthesisContextService = serviceDelegator.synthesisContextService();
-    timeline = new Timeline();
-    auxiliaryTimeline = new Timeline();
     stateProperty = new SimpleObjectProperty<>(state);
     titleProperty = new SimpleStringProperty();
     successorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     predecessorProperty = new SimpleSetProperty<>(FXCollections.observableSet());
     tableViewStateMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
     stateFromModelCheckingProperty = new SimpleBooleanProperty(false);
+    equivalentNodeProperty = new SimpleObjectProperty<>();
 
     traceProperty().set(trace);
     setLayoutX(position.getX());
     setLayoutY(position.getY());
-    adjustPositionIfNecessary();
     Loader.loadFxml(loader, this, "state_node.fxml");
   }
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
+    uiService.adjustNodePositionEventSource().push(this);
     nodeWidthProperty().set(WIDTH);
     nodeHeightProperty().set(HEIGHT);
 
@@ -176,6 +167,11 @@ public class StateNode extends BasicNode implements Initializable {
         Platform.runLater(() -> resizeNode(newValue));
       }
     });
+    equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
+      if (newValue != null) {
+        uiService.removeNodeEventSource().push(this);
+      }
+    });
   }
 
   /**
@@ -189,12 +185,12 @@ public class StateNode extends BasicNode implements Initializable {
   private void initializeSiblingConnections() {
     successorProperty().addListener((SetChangeListener<BasicNode>) change -> {
       if (change.wasAdded()) {
-        getValidationPane().addNodeConnection(new NodeLine(this, change.getElementAdded()));
+        uiService.addNodeConnectionEventSource().push(new NodeLine(this, change.getElementAdded()));
       }
     });
     predecessorProperty().addListener((SetChangeListener<BasicNode>) change -> {
       if (change.wasAdded()) {
-        getValidationPane().addNodeConnection(new NodeLine(change.getElementAdded(), this));
+        uiService.addNodeConnectionEventSource().push(new NodeLine(change.getElementAdded(), this));
       }
     });
   }
@@ -268,17 +264,22 @@ public class StateNode extends BasicNode implements Initializable {
     if (predecessorNode == null) {
       return;
     }
-    final StateNode nodeExists = getValidationPane().containsStateNode(predecessorNode);
+    uiService.checkDuplicateStateNodeEventSource().push(predecessorNode);
     // check if node already exists and just set the ancestors
-    if (nodeExists != null) {
-      nodeExists.successorProperty().add(this);
-      predecessorProperty().add(nodeExists);
-      return;
-    }
-    predecessorNode.successorProperty().add(this);
-    getValidationPane().addNode(predecessorNode);
+    predecessorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
+      if (newValue != null) {
+        newValue.successorProperty().add(this);
+        predecessorProperty().add(newValue);
+      } else {
+        predecessorNode.successorProperty().add(this);
+        uiService.showNodeEventSource().push(predecessorNode);
+        predecessorProperty().add(predecessorNode);
+      }
+    });
+  }
 
-    predecessorProperty().add(predecessorNode);
+  public ObjectProperty<StateNode> equivalentNodeProperty() {
+    return equivalentNodeProperty;
   }
 
   /**
@@ -304,17 +305,18 @@ public class StateNode extends BasicNode implements Initializable {
     if (successorNode == null) {
       return;
     }
-    final StateNode nodeExists = getValidationPane().containsStateNode(successorNode);
+    uiService.checkDuplicateStateNodeEventSource().push(successorNode);
     // check if node already exists and just set the ancestors
-    if (nodeExists != null) {
-      nodeExists.predecessorProperty().add(this);
-      successorProperty().add(nodeExists);
-      return;
-    }
-    successorNode.predecessorProperty().add(this);
-    getValidationPane().addNode(successorNode);
-
-    successorProperty().add(successorNode);
+    successorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
+      if (newValue != null) {
+        newValue.predecessorProperty().add(this);
+        successorProperty().add(newValue);
+      } else {
+        successorNode.predecessorProperty().add(this);
+        uiService.showNodeEventSource().push(successorNode);
+        successorProperty().add(successorNode);
+      }
+    });
   }
 
   private void setCompressedWidth() {
@@ -323,7 +325,7 @@ public class StateNode extends BasicNode implements Initializable {
   }
 
   private void resizeNode(final boolean expand) {
-    timeline.getKeyFrames().clear();
+    final Timeline timeline = new Timeline();
     final double targetWidth = expand ? EXPANDED_WIDTH : WIDTH;
     final double targetHeight = expand ? EXPANDED_HEIGHT : HEIGHT;
     final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250.0),
@@ -331,17 +333,20 @@ public class StateNode extends BasicNode implements Initializable {
         new KeyValue(nodeHeightProperty(), targetHeight));
     timeline.getKeyFrames().add(expandAnimation);
     timeline.play();
-    adjustPositionIfNecessary();
+    uiService.adjustNodePositionEventSource().push(this);
     toFront();
   }
 
-  private void highlightNodeEffect() {
-    toFront();
+  /**
+   * Highlight the node with an resize effect.
+   */
+  public void highlightNodeEffect() {
+    Platform.runLater(this::toFront);
     if (!isExpanded()) {
       isExpandedProperty().set(true);
       return;
     }
-    timeline.getKeyFrames().clear();
+    final Timeline timeline = new Timeline();
 
     final KeyFrame shrinkAnimation = new KeyFrame(Duration.millis(250.0),
         partialHighlightNodeFinished(),
@@ -353,33 +358,15 @@ public class StateNode extends BasicNode implements Initializable {
 
   private EventHandler<ActionEvent> partialHighlightNodeFinished() {
     return event -> {
-      auxiliaryTimeline.getKeyFrames().clear();
+      final Timeline timeline = new Timeline();
+      timeline.getKeyFrames().clear();
       final KeyFrame expandAnimation = new KeyFrame(Duration.millis(250.0),
           new KeyValue(nodeWidthProperty(), EXPANDED_WIDTH),
           new KeyValue(nodeHeightProperty(), EXPANDED_HEIGHT));
-      auxiliaryTimeline.getKeyFrames().clear();
-      auxiliaryTimeline.getKeyFrames().add(expandAnimation);
-      auxiliaryTimeline.play();
+      timeline.getKeyFrames().clear();
+      timeline.getKeyFrames().add(expandAnimation);
+      timeline.play();
     };
-  }
-
-  private void adjustPositionIfNecessary() {
-    final double currentWidth = isExpanded() ? EXPANDED_WIDTH : WIDTH;
-    final double currentHeight = isExpanded() ? EXPANDED_HEIGHT : HEIGHT;
-    if (!getValidationPane().isValidXPosition(getXPosition(), currentWidth)) {
-      if (getXPosition() < 0) {
-        setXPosition(5.0);
-      } else if (getXPosition() + currentWidth > ValidationPane.WIDTH) {
-        setXPosition(ValidationPane.WIDTH - currentWidth - 5.0);
-      }
-    }
-    if (!getValidationPane().isValidYPosition(getYPosition(), currentHeight)) {
-      if (getYPosition() < 0) {
-        setYPosition(5.0);
-      } else if (getYPosition() + currentHeight > ValidationPane.HEIGHT) {
-        setYPosition(ValidationPane.HEIGHT - currentHeight - 5.0);
-      }
-    }
   }
 
   /**
@@ -404,7 +391,7 @@ public class StateNode extends BasicNode implements Initializable {
 
   @Override
   public void remove() {
-    getValidationPane().getNodes().remove(this);
+    uiService.removeNodeEventSource().push(this);
   }
 
   /**
@@ -434,24 +421,8 @@ public class StateNode extends BasicNode implements Initializable {
     stateProperty.set(stateSpace.getState(findStateCommand.getStateId()));
     nodeStateProperty().set(stateProperty.get().isInvariantOk()
         ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
-    removeIfDuplicate();
-  }
-
-  /**
-   * When a tentative {@link StateNode} is validated we check if the node already exists.
-   * In this case we delete the new node and expand the existing equivalent node.
-   */
-  private void removeIfDuplicate() {
-    if (synthesisContextService.getSynthesisType().isAction()) {
-      return;
-    }
-    final Optional<BasicNode> optionalStateNode = getValidationPane().getNodes().stream()
-        .filter(basicNode -> basicNode != this
-            && getState().getId().equals(((StateNode) basicNode).getState().getId()))
-        .findFirst();
-    if (optionalStateNode.isPresent()) {
-      this.remove();
-      ((StateNode) optionalStateNode.get()).highlightNodeEffect();
+    if (!synthesisContextService.getSynthesisType().isAction()) {
+      uiService.checkDuplicateStateNodeEventSource().push(this);
     }
   }
 
@@ -502,7 +473,6 @@ public class StateNode extends BasicNode implements Initializable {
     tableViewState.getItems().forEach(stateTableCell ->
         predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState()));
     final String predicate = Joiner.on(" & ").join(predicateStringSet);
-    System.out.println(predicate);
     return new ClassicalB(predicate);
   }
 }

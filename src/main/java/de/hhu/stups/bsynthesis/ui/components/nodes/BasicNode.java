@@ -1,7 +1,6 @@
 package de.hhu.stups.bsynthesis.ui.components.nodes;
 
-import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.prob.statespace.Trace;
 
 import javafx.beans.property.BooleanProperty;
@@ -25,7 +24,6 @@ import org.reactfx.util.Timer;
 
 public class BasicNode extends StackPane {
 
-  private final ValidationPane validationPane;
   private final DoubleProperty positionXProperty;
   private final DoubleProperty positionYProperty;
   private final BooleanProperty isExpandedProperty;
@@ -38,12 +36,12 @@ public class BasicNode extends StackPane {
   private final BooleanProperty transparentBackgroundProperty;
   private final BooleanProperty userValidationProperty;
   private final Timer updateUserValidationTimer;
+  private final UiService uiService;
 
   BasicNode(final Point2D position,
             final NodeState nodeState,
-            final ValidationPane validationPane,
-            final NodeContextMenuFactory nodeContextMenuFactory) {
-    this.validationPane = validationPane;
+            final UiService uiService) {
+    this.uiService = uiService;
 
     transparentBackgroundProperty = new SimpleBooleanProperty();
     positionXProperty = new SimpleDoubleProperty(position.getX());
@@ -61,16 +59,15 @@ public class BasicNode extends StackPane {
     traceProperty = new SimpleObjectProperty<>();
     moveIsEnabledProperty = new SimpleBooleanProperty(true);
 
-    userValidationProperty = new SimpleBooleanProperty(validationPane.getExampleValidation(this));
+    userValidationProperty = new SimpleBooleanProperty();
+    uiService.userValidationEventSource().push(this);
 
-    contextMenu = nodeContextMenuFactory.create(this);
+    contextMenu = uiService.getNodeContextMenuFactory().create(this);
 
     // update the user validation state of the node on move but add a small delay to prevent
     // performance issues
-    updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250), () -> {
-      userValidationProperty.set(validationPane.getExampleValidation(this));
-      validationPane.updateSynthesisType(this);
-    });
+    updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250), () ->
+        uiService.userValidationEventSource().push(this));
 
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -122,7 +119,7 @@ public class BasicNode extends StackPane {
         CornerRadii.EMPTY, Insets.EMPTY)));
   }
 
-  BooleanProperty userValidationProperty() {
+  public BooleanProperty userValidationProperty() {
     return userValidationProperty;
   }
 
@@ -139,7 +136,7 @@ public class BasicNode extends StackPane {
   }
 
   public void remove() {
-    validationPane.getNodes().remove(this);
+    uiService.removeNodeEventSource().push(this);
   }
 
   public Double getXPosition() {
@@ -194,10 +191,6 @@ public class BasicNode extends StackPane {
 
   ObjectProperty<Trace> traceProperty() {
     return traceProperty;
-  }
-
-  ValidationPane getValidationPane() {
-    return validationPane;
   }
 
   NodeState getNodeState() {
