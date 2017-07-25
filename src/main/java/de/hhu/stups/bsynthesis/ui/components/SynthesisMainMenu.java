@@ -2,7 +2,6 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 
-import de.hhu.stups.bsynthesis.prob.DistinguishingExample;
 import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
@@ -15,30 +14,23 @@ import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
-import de.hhu.stups.bsynthesis.ui.components.nodes.NodeState;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
-import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.command.GetPreferenceCommand;
 import de.prob.animator.command.SetPreferenceCommand;
-import de.prob.animator.domainobjects.ClassicalB;
-import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.geometry.Point2D;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -56,15 +48,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class SynthesisMainMenu extends MenuBar implements Initializable {
-
-  private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final ObjectProperty<Stage> stageProperty;
@@ -73,7 +59,6 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   private final SynthesisInfoBox synthesisInfoBox;
   private final ModelCheckingService modelCheckingService;
   private final BooleanProperty synthesisRunningProperty;
-  private final ObjectProperty<Task<Boolean>> runSynthesisTaskProperty;
   private final BooleanProperty ignoreModelCheckerProperty;
   private final UiService uiService;
   private final ProBApiService proBApiService;
@@ -161,7 +146,6 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     this.proBApiService = serviceDelegator.proBApiService();
     stageProperty = new SimpleObjectProperty<>();
     synthesisRunningProperty = new SimpleBooleanProperty(false);
-    runSynthesisTaskProperty = new SimpleObjectProperty<>();
     ignoreModelCheckerProperty = new SimpleBooleanProperty(false);
 
     Loader.loadFxml(loader, this, "synthesis_main_menu.fxml");
@@ -177,12 +161,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     // synchronize statespaces after model checking
     EasyBind.subscribe(modelCheckingService.resultProperty(), modelCheckingResult ->
         proBApiService.synchronizeStateSpaces());
+
+    synthesisRunningProperty.bind(proBApiService.synthesisRunningProperty());
   }
 
   private void initializeMenuItemBindings() {
     final BooleanBinding disableMenu = synthesisContextService.stateSpaceProperty().isNull()
-        .or(synthesisRunningProperty)
-        .or(synthesisContextService.synthesisSucceededProperty());
+        .or(synthesisRunningProperty);
     final BooleanBinding extendMachineDisabled = disableMenu
         .or(Bindings.when(ignoreModelCheckerProperty).then(false)
             .otherwise(modelCheckingService.errorFoundProperty().isNotNull()
@@ -223,10 +208,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         .or(validationPane.getNodes().emptyProperty())
         .or(modelCheckingService.indicatorPresentProperty())
         .or(synthesisRunningProperty));
-    menuItemStopSynthesis.disableProperty().bind(disableMenu
-        .or(validationPane.getNodes().emptyProperty())
-        .or(modelCheckingService.indicatorPresentProperty())
-        .or(synthesisRunningProperty.not()));
+    menuItemStopSynthesis.disableProperty().bind(synthesisRunningProperty.not());
     menuItemConfigureLibrary.disableProperty()
         .bind(synthesisContextService.synthesisSucceededProperty());
     menuItemZoomIn.disableProperty().bind(uiService.zoomInEnabledProperty().not());
@@ -284,6 +266,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void modifyInvariants() {
+    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
     synthesisContextService.setSynthesisType(SynthesisType.INVARIANT);
   }
@@ -409,40 +392,32 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     }
     if (!synthesisContextService.useDefaultLibrary()
         && synthesisContextService.getSelectedLibraryComponents().isEmpty()) {
+      // cancel if default configuration not selected but also no selected library components
+      // are given
       uiService.showTabEventStream().push(ControllerTab.LIBRARY_CONFIGURATION);
       return;
     }
-    final Task<Boolean> runSynthesisTask = getRunSynthesisTask();
-    if (runSynthesisTask == null) {
+    final List<BasicNode> invalidNodes = validationPane.getInvalidNodes();
+    addPredecessorNodesIfGuard(invalidNodes);
+    final List<BasicNode> validNodes = validationPane.getValidNodes();
+    if (validNodes.isEmpty() && invalidNodes.isEmpty()) {
+      logger.error(
+          "Positive and negative examples are empty, running synthesis should not be enabled.");
       return;
     }
-    runSynthesisTaskProperty.set(runSynthesisTask);
-    runSynthesisTask.setOnSucceeded(event -> {
-      try {
-        synthesisContextService.synthesisSucceededProperty().set(runSynthesisTask.get());
-      } catch (final InterruptedException interruptedException) {
-        logger.error("Synthesis task interrupted during execution.", interruptedException);
-        Thread.currentThread().interrupt();
-      } catch (final ExecutionException executionException) {
-        logger.error("Exception during excecution of the synthesis task.", executionException);
-      }
-    });
-    runSynthesisTask.setOnFailed(event -> shutdownExecutor(EXECUTOR_SERVICE));
-    synthesisRunningProperty.unbind();
-    synthesisRunningProperty.bind(runSynthesisTask.runningProperty());
-    EXECUTOR_SERVICE.execute(runSynthesisTask);
-  }
-
-  private void shutdownExecutor(final ExecutorService executorService) {
-    executorService.shutdown();
-    try {
-      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException ie) {
-      executorService.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
+    final HashMap<String, List<BasicNode>> examples = new HashMap<>();
+    examples.put("valid", validNodes);
+    examples.put("invalid", invalidNodes);
+    // TODO: do we want to reset the library expansion to 1?
+    synthesisContextService.selectedLibraryComponentsProperty().get().setLibraryExpansion(1);
+    final StartSynthesisCommand startSynthesisCommand = new StartSynthesisCommand(
+        synthesisContextService.selectedLibraryComponentsProperty().get(),
+        synthesisContextService.getCurrentOperation(),
+        uiService.getCurrentVarNames(),
+        synthesisContextService.synthesisTypeProperty().get(),
+        examples, synthesisContextService.solverBackendProperty().get());
+    new Thread(() -> proBApiService.startSynthesisEventSource().push(startSynthesisCommand))
+        .start();
   }
 
   /**
@@ -451,117 +426,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void stopSynthesis() {
-    final Task<Boolean> runSynthesisTask = runSynthesisTaskProperty.get();
-    if (synthesisRunningProperty.get() && runSynthesisTask != null) {
-      runSynthesisTask.cancel(true);
-      synthesisContextService.stateSpaceProperty().get().sendInterrupt();
-    }
-  }
-
-  /**
-   * Create a task that calls the synthesis prolog backend using {@link StartSynthesisCommand}.
-   */
-  private Task<Boolean> getRunSynthesisTask() {
-    final List<BasicNode> invalidNodes = validationPane.getInvalidNodes();
-    addPredecessorNodesIfGuard(invalidNodes);
-    final List<BasicNode> validNodes = validationPane.getValidNodes();
-    if (validNodes.isEmpty() && invalidNodes.isEmpty()) {
-      return null;
-    }
-    return new Task<Boolean>() {
-      @Override
-      protected Boolean call() throws Exception {
-        final HashMap<String, List<BasicNode>> examples = new HashMap<>();
-        examples.put("valid", validNodes);
-        examples.put("invalid", invalidNodes);
-        final StartSynthesisCommand startSynthesisCommand = new StartSynthesisCommand(
-            synthesisContextService.selectedLibraryComponentsProperty().get(),
-            synthesisContextService.getCurrentOperation(),
-            uiService.getCurrentVarNames(),
-            synthesisContextService.synthesisTypeProperty().get(),
-            examples, synthesisContextService.solverBackendProperty().get());
-        final StateSpace stateSpace = synthesisContextService.stateSpaceProperty().get();
-        startSynthesisCommand.distinguishingExampleProperty()
-            .addListener((observable, oldValue, newValue) -> handleDistinguishingExample(newValue));
-        startSynthesisCommand.synthesisSucceededProperty().addListener(
-            (observable, oldValue, newValue) -> {
-              if (newValue) {
-                synthesisContextService.synthesisSuspendedProperty().set(false);
-              }
-            });
-        stateSpace.execute(startSynthesisCommand);
-        synthesisContextService.modifiedMachineCodeProperty().set(
-            startSynthesisCommand.modifiedMachineCodeProperty().get());
-        return startSynthesisCommand.synthesisSucceededProperty().get();
-      }
-    };
-  }
-
-  private void handleDistinguishingExample(final DistinguishingExample distinguishingExample) {
-    synthesisContextService.synthesisSuspendedProperty().set(true);
-    final StateSpace stateSpace = synthesisContextService.getStateSpace();
-    final FindStateCommand inputStateCommand = new FindStateCommand(
-        stateSpace, new ClassicalB(distinguishingExample.getInputStateEquality()), false);
-    stateSpace.execute(inputStateCommand);
-    final State inputState = stateSpace.getState(inputStateCommand.getStateId());
-    if (handleDistinguishingTransition(inputState, distinguishingExample)) {
-      return;
-    }
-    handleDistinguishingState(inputState);
-  }
-
-  private void handleDistinguishingState(final State inputState) {
-    final StateSpace stateSpace = synthesisContextService.getStateSpace();
-    final Point2D distinguishingNodePosition =
-        new Point2D(ValidationPane.WIDTH / 2, ValidationPane.HEIGHT / 2);
-    final StateNode stateNode = uiService.getStateNodeFactory()
-        .create(inputState, stateSpace.getTrace(inputState.getId()), distinguishingNodePosition,
-            NodeState.TENTATIVE);
-    initializeDistNode(stateNode);
-    validationPane.addNode(stateNode);
-  }
-
-  private boolean handleDistinguishingTransition(final State inputState,
-                                                 final DistinguishingExample distExample) {
-    final Point2D distinguishingNodePosition =
-        new Point2D(ValidationPane.WIDTH / 2, ValidationPane.HEIGHT / 2);
-    if (!distExample.getOutputTuples().isEmpty()) {
-      final StateSpace stateSpace = synthesisContextService.getStateSpace();
-      final FindStateCommand outputStateCommand = new FindStateCommand(
-          stateSpace, new ClassicalB(distExample.getOutputStateEquality()), false);
-      stateSpace.execute(outputStateCommand);
-      final State outputState = stateSpace.getState(outputStateCommand.getStateId());
-      final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
-          .create(inputState, outputState, distinguishingNodePosition, NodeState.TENTATIVE);
-      initializeDistNode(transitionNode);
-      validationPane.addNode(transitionNode);
-      return true;
-    }
-    if (synthesisContextService.getSynthesisType().isAction()) {
-      // synthesizing an action but simultaneous synthesis of an appropriate guard returned a
-      // distinguishing state, therefore we set the transitions input and output state to be equal:
-      // if the state should be negative we only need the input, otherwise the user has to adapt
-      // the output anyways
-      final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
-          .create(inputState, inputState, distinguishingNodePosition, NodeState.TENTATIVE);
-      validationPane.addNode(transitionNode);
-      initializeDistNode(transitionNode);
-      return true;
-    }
-    return false;
-  }
-
-  private void initializeDistNode(final BasicNode basicNode) {
-    Platform.runLater(() -> {
-      basicNode.isExpandedProperty().set(true);
-      if (basicNode instanceof StateNode) {
-        final StateNode stateNode = (StateNode) basicNode;
-        stateNode.validateState();
-        stateNode.stateFromModelCheckingProperty().set(true);
-        return;
-      }
-      ((TransitionNode) basicNode).validateTransition();
-    });
+    proBApiService.reset();
   }
 
   /**
