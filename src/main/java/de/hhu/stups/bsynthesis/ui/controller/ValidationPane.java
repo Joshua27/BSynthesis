@@ -33,6 +33,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
@@ -43,11 +44,15 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -65,14 +70,16 @@ public class ValidationPane extends Pane implements Initializable {
   private static final String VALID_COLOR = "#C2FFC0";
   private static final String INVALID_COLOR = "#FFC0C0";
 
-  private final ListProperty<BasicNode> nodes;
+  private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+  private final ListProperty<BasicNode> nodes;
   private final SimpleDoubleProperty scaleFactorProperty;
   private final StateNodeFactory stateNodeFactory;
   private final ValidationContextMenu validationContextMenu;
   private final SynthesisContextService synthesisContextService;
   private final ModelCheckingService modelCheckingService;
   private final UiService uiService;
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private BasicNode dragNode;
   private double offsetX;
@@ -104,6 +111,60 @@ public class ValidationPane extends Pane implements Initializable {
     this.requestFocus();
     this.setPrefSize(WIDTH, HEIGHT);
 
+    synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
+      getNodes().clear();
+      modelCheckingService.indicatorPresentProperty().set(false);
+    });
+
+    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
+      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+        getNodes().clear();
+      }
+    });
+
+    handleNodeChanges();
+    subscribeToUiEvents();
+    initializeContextMenu();
+    initializeDragEvents();
+    initializeBackground();
+  }
+
+  private void subscribeToUiEvents() {
+    uiService.showNodeEventSource().subscribe(this::addNode);
+    uiService.removeNodeEventSource().subscribe(nodes::remove);
+    uiService.userValidationEventSource().subscribe(basicNode -> {
+      basicNode.userValidationProperty().set(getExampleValidation(basicNode));
+      updateSynthesisType(basicNode);
+    });
+    uiService.checkDuplicateStateNodeEventSource().subscribe(stateNode ->
+        stateNode.equivalentNodeProperty().set(containsStateNode(stateNode)));
+    uiService.addNodeConnectionEventSource().subscribe(this::addNodeConnection);
+    uiService.adjustNodePositionEventSource().subscribe(this::adjustPositionIfNecessary);
+  }
+
+  /**
+   * Prevent {@link BasicNode} to leave the validation pane.
+   */
+  private void adjustPositionIfNecessary(final BasicNode basicNode) {
+    final double currentWidth = basicNode.getWidth();
+    final double currentHeight = basicNode.getHeight();
+    if (!isValidXPosition(basicNode.getXPosition(), currentWidth)) {
+      if (basicNode.getXPosition() < 0) {
+        basicNode.setXPosition(5.0);
+      } else if (basicNode.getXPosition() + currentWidth > ValidationPane.WIDTH) {
+        basicNode.setXPosition(ValidationPane.WIDTH - currentWidth - 5.0);
+      }
+    }
+    if (!isValidYPosition(basicNode.getYPosition(), currentHeight)) {
+      if (basicNode.getYPosition() < 0) {
+        basicNode.setYPosition(5.0);
+      } else if (basicNode.getYPosition() + currentHeight > ValidationPane.HEIGHT) {
+        basicNode.setYPosition(ValidationPane.HEIGHT - currentHeight - 5.0);
+      }
+    }
+  }
+
+  private void handleNodeChanges() {
     nodes.addListener((ListChangeListener<BasicNode>) change -> {
       /*  add nodes to the pane when added to {@link #nodes} */
       while (change.next()) {
@@ -116,28 +177,13 @@ public class ValidationPane extends Pane implements Initializable {
         }
       }
     });
-
-    synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
-      getNodes().clear();
-      modelCheckingService.indicatorPresentProperty().set(false);
-    });
-
-    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
-      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
-        getNodes().clear();
-      }
-    });
-
-    initializeContextMenu();
-    initializeDragEvents();
-    initializeBackground();
   }
 
   /**
    * Set the {@link SynthesisContextService#synthesisTypeProperty()} according to the current ui
    * state of the {@link #getNodes() nodes}.
    */
-  public void updateSynthesisType(final BasicNode node) {
+  private void updateSynthesisType(final BasicNode node) {
     if (node instanceof TransitionNode || node.isTentative()
         || synthesisContextService.synthesisTypeProperty().get().isAction()
         || lockSynthesisType()) {
@@ -325,8 +371,8 @@ public class ValidationPane extends Pane implements Initializable {
   }
 
   /**
-   * Finding an erroneous state we search for those variables that violate an invariant set the
-   * other variables to be ignored by setting
+   * Finding an erroneous state we search for those variables that violate an invariant and consider
+   * the other machine variables to be ignored by setting the bindings in
    * {@link de.hhu.stups.bsynthesis.services.UiService#currentVarStatesMapProperty}.
    */
   private void ignoreNonViolatingVars() {
@@ -339,7 +385,8 @@ public class ValidationPane extends Pane implements Initializable {
     uiService.currentVarStatesMapProperty().values()
         .forEach(booleanProperty -> booleanProperty.set(true));
     // then, only consider the violating vars
-    System.out.println("vars: " + getViolatingVarsFromExamplesCommand.getViolatingVarNames());
+    logger.info("Invariant violating vars: "
+        + getViolatingVarsFromExamplesCommand.getViolatingVarNames());
     getViolatingVarsFromExamplesCommand.getViolatingVarNames().forEach(violatingVarName ->
         uiService.currentVarStatesMapProperty().get(violatingVarName).set(false));
   }
@@ -359,11 +406,11 @@ public class ValidationPane extends Pane implements Initializable {
         && (scaleFactorProperty.get() < 2.0 || scaleFactor < 1.0);
   }
 
-  public boolean isValidXPosition(final double positionX, final double nodeWidth) {
+  private boolean isValidXPosition(final double positionX, final double nodeWidth) {
     return positionX > 5.0 && positionX + nodeWidth < WIDTH - 5.0;
   }
 
-  public boolean isValidYPosition(final double positionY, final double nodeHeight) {
+  private boolean isValidYPosition(final double positionY, final double nodeHeight) {
     return positionY > 5.0 && positionY + nodeHeight < HEIGHT - 5.0;
   }
 
@@ -407,12 +454,37 @@ public class ValidationPane extends Pane implements Initializable {
    * relations.
    */
   public void addNode(final BasicNode node) {
-    Platform.runLater(() -> nodes.add(node));
     if (node instanceof StateNode) {
-      final StateNode stateNode = (StateNode) node;
-      addStateNodeAncestors(stateNode);
-
-      Platform.runLater(stateNode::validateState);
+      executorService.execute(new Task<Void>() {
+        @Override
+        protected Void call() throws Exception {
+          final StateNode stateNode = (StateNode) node;
+          stateNode.validateState();
+          final StateNode equivalentNode = containsStateNode(stateNode);
+          if (equivalentNode != null) {
+            equivalentNode.highlightNodeEffect();
+            return null;
+          } else {
+            Platform.runLater(() -> nodes.add(node));
+            addStateNodeAncestors(stateNode);
+          }
+          return null;
+        }
+      });
+    } else {
+      executorService.execute((new Task<Void>() {
+        @Override
+        protected Void call() throws Exception {
+          final TransitionNode transitionNode = (TransitionNode) node;
+          transitionNode.validateTransition();
+          final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
+          if (equivalentNode != null) {
+            //Platform.runLater(equivalentNode::highlightNodeEffect);
+          }
+          Platform.runLater(() -> nodes.add(node));
+          return null;
+        }
+      }));
     }
   }
 
@@ -442,7 +514,7 @@ public class ValidationPane extends Pane implements Initializable {
   /**
    * Add a {@link NodeLine} to the validation pane.
    */
-  public void addNodeConnection(final NodeLine nodeConnection) {
+  private void addNodeConnection(final NodeLine nodeConnection) {
     if (this.getChildren().contains(nodeConnection)) {
       return;
     }
@@ -471,14 +543,34 @@ public class ValidationPane extends Pane implements Initializable {
    * Check if the validation pane already contains a specific {@link StateNode}. Return the node if
    * present otherwise return null.
    */
-  public StateNode containsStateNode(final StateNode stateNode) {
-    if (SynthesisType.ACTION.equals(synthesisContextService.getSynthesisType())) {
+  private StateNode containsStateNode(final StateNode stateNode) {
+    if (synthesisContextService.getSynthesisType().isAction() || stateNode.getState() == null) {
       return null;
     }
     final Optional<BasicNode> optionalNode = nodes.stream()
-        .filter(basicNode -> stateNode.getState() != null && stateNode.getState().getId()
-            .equals(((StateNode) basicNode).getState().getId())).findFirst();
+        .filter(basicNode -> !stateNode.equals(basicNode)
+            && stateNode.getState().getId().equals(((StateNode) basicNode).getState().getId()))
+        .findFirst();
     return (StateNode) optionalNode.orElse(null);
+  }
+
+  /**
+   * Check if the validation pane already contains a specific {@link StateNode}. Return the node if
+   * present otherwise return null.
+   */
+  private TransitionNode containsTransitionNode(final TransitionNode transitionNode) {
+    if (!synthesisContextService.getSynthesisType().isAction()
+        || transitionNode.getInputState() == null || transitionNode.getOutputState() == null) {
+      return null;
+    }
+    final Optional<BasicNode> optionalNode = nodes.stream()
+        .filter(basicNode -> !transitionNode.equals(basicNode)
+            && transitionNode.getInputState().getId()
+            .equals(((TransitionNode) basicNode).getInputState().getId())
+            && transitionNode.getOutputState().getId()
+            .equals(((TransitionNode) basicNode).getOutputState().getId()))
+        .findFirst();
+    return (TransitionNode) optionalNode.orElse(null);
   }
 
   public void expandAllNodes() {
@@ -489,7 +581,7 @@ public class ValidationPane extends Pane implements Initializable {
     getNodes().forEach(basicNode -> basicNode.isExpandedProperty().set(false));
   }
 
-  public boolean getExampleValidation(final BasicNode basicNode) {
+  private boolean getExampleValidation(final BasicNode basicNode) {
     return basicNode.getXPosition() + basicNode.getWidth() / 2 < ValidationPane.WIDTH / 2;
   }
 }
