@@ -23,6 +23,16 @@ public class ServiceDelegator {
     this.modelCheckingService = modelCheckingService;
     this.uiService = uiService;
     this.proBApiService = proBApiService;
+    setBindings();
+  }
+
+  private void setBindings() {
+    synthesisContextService.synthesisRunningProperty()
+        .bind(proBApiService.synthesisRunningProperty());
+    synthesisContextService.synthesisSucceededProperty()
+        .bindBidirectional(proBApiService.synthesisSucceededProperty());
+    synthesisContextService.modifiedMachineCodeProperty()
+        .bindBidirectional(proBApiService.modifiedMachineCodeProperty());
   }
 
   public SynthesisContextService synthesisContextService() {
