@@ -82,6 +82,8 @@ public final class CodeView extends VBox {
   @SuppressWarnings("unused")
   private Button btDiscardSolution;
 
+  // TODO: undo/redo history?
+
   /**
    * Set the {@link SynthesisContextService} and load the fxml resource.
    */
@@ -107,7 +109,7 @@ public final class CodeView extends VBox {
     initializeCodeArea(codeAreaSynthesized);
 
     synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) ->
-        loadMachineCode());
+        Platform.runLater(this::loadMachineCode));
     synthesisContextService.contextEventStream().subscribe(this::handleContextEvent);
 
     synthesisContextService.modifiedMachineCodeProperty().addListener(
@@ -172,13 +174,13 @@ public final class CodeView extends VBox {
    * Show the modified machine code containing the synthesized changes.
    */
   private void showModifiedMachineCode(final String oldValue, final String newValue) {
+    if (newValue == null) {
+      return;
+    }
     if (!newValue.equals(oldValue) && !newValue.isEmpty()) {
-      Platform.runLater(() -> {
-        splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized);
-        codeAreaSynthesized.clear();
-        codeAreaSynthesized.appendText(newValue.replaceAll("\'", ""));
-      });
-      synthesisContextService.modifiedMachineCodeProperty().set("");
+      Platform.runLater(() -> splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized));
+      new Thread(() -> codeAreaSynthesized.clear()).start();
+      Platform.runLater(() -> codeAreaSynthesized.appendText(newValue.replaceAll("\'", "")));
     }
   }
 
@@ -195,6 +197,7 @@ public final class CodeView extends VBox {
     codeArea.appendText(codeAreaSynthesized.getText());
     saveMachineCode();
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
+    proBApiService.reset();
   }
 
   /**
@@ -205,13 +208,7 @@ public final class CodeView extends VBox {
   @SuppressWarnings("unused")
   public void discardSolution() {
     splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
-    synthesisContextService.synthesisSucceededProperty().set(false);
-  }
-
-  // TODO: provide a history of changed machine codes with undo/redo
-  private void resetMachineCode() {
-    codeArea.clear();
-    codeArea.appendText(cachedMachineCode.get());
+    proBApiService.reset();
   }
 
   /**
