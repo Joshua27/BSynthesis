@@ -35,6 +35,7 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -42,6 +43,7 @@ import org.fxmisc.easybind.EasyBind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -227,7 +229,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void loadMachine() {
-    final SpecificationType specificationType = proBApiService.loadMachine(stageProperty.get());
+    final FileChooser fileChooser = new FileChooser();
+    final FileChooser.ExtensionFilter extFilter =
+        new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch");
+    //new FileChooser.ExtensionFilter("Machine (*.mch, *.eventb)", "*.mch", "*.eventb");
+    fileChooser.getExtensionFilters().add(extFilter);
+    final File file = fileChooser.showOpenDialog(stageProperty.get());
+    final SpecificationType specificationType = proBApiService.loadMachine(file);
     if (specificationType != null) {
       synthesisContextService.setSpecificationType(specificationType);
       synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
