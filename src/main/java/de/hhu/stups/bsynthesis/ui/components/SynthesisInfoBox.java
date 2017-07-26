@@ -230,8 +230,8 @@ public class SynthesisInfoBox extends VBox implements Initializable {
    * of current machine's language specification, i.e., either Event-B or classical B.
    */
   private String getContextSpecificSynthesisType() {
-    return synthesisContextService.getSpecificationType().isClassicalB() ?
-        synthesisContextService.getSynthesisType().toString()
+    return synthesisContextService.getSpecificationType().isClassicalB()
+        ? synthesisContextService.getSynthesisType().toString()
         : synthesisContextService.getSynthesisType().toEventBString();
   }
 }
