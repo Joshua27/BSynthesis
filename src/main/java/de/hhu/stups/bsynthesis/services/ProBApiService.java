@@ -35,7 +35,6 @@ import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.geometry.Point2D;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import org.reactfx.EventSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

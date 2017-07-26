@@ -1,6 +1,5 @@
 package de.hhu.stups.bsynthesis.ui.controller;
 
-import de.hhu.stups.bsynthesis.prob.GetViolatingVarsFromExamplesCommand;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
@@ -9,7 +8,6 @@ import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
-import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.fxml.FXML;
@@ -22,7 +20,6 @@ import javafx.scene.layout.AnchorPane;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

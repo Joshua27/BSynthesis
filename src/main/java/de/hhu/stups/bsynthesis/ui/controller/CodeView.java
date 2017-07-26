@@ -234,6 +234,8 @@ public final class CodeView extends VBox {
     proBApiService.loadMachine(modelFile);
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressWarnings(
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "There is no NP!")
   private void saveMachineCodeAs() {
     final Path source = synthesisContextService.getStateSpace().getModel().getModelFile().toPath();
     final FileChooser fileChooser = new FileChooser();
