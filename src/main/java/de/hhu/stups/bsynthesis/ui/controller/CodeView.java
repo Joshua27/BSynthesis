@@ -40,6 +40,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -58,6 +60,7 @@ public final class CodeView extends VBox {
   private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")"
       + "|(?<COMMENT>" + COMMENT_PATTERN + ")", Pattern.CASE_INSENSITIVE);
 
+  private final ExecutorService executorService = Executors.newSingleThreadExecutor();
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final SynthesisContextService synthesisContextService;
   private final StringProperty cachedMachineCode;
@@ -124,7 +127,8 @@ public final class CodeView extends VBox {
     codeArea.richChanges()
         .filter(ch -> !ch.getInserted().equals(ch.getRemoved()))
         .subscribe(change -> {
-          if (!codeArea.getText().isEmpty()) {
+          if (!codeArea.getText().isEmpty() && (!change.getInserted().getText().isEmpty()
+              || !change.getRemoved().getText().isEmpty())) {
             Platform.runLater(() ->
                 codeArea.setStyleSpans(0, computeHighlighting(codeArea.getText())));
           }
@@ -178,9 +182,11 @@ public final class CodeView extends VBox {
       return;
     }
     if (!newValue.equals(oldValue) && !newValue.isEmpty()) {
-      Platform.runLater(() -> splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized));
-      new Thread(() -> codeAreaSynthesized.clear()).start();
-      Platform.runLater(() -> codeAreaSynthesized.appendText(newValue.replaceAll("\'", "")));
+      executorService.execute(() -> Platform.runLater(() -> {
+        codeAreaSynthesized.clear();
+        splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized);
+        codeAreaSynthesized.appendText(newValue);
+      }));
     }
   }
 
@@ -216,15 +222,16 @@ public final class CodeView extends VBox {
    */
   private void saveMachineCode() {
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
-    proBApiService.synchronizeStateSpaces();
-    final String destination = stateSpace.getModel()
-        .getModelFile().getPath();
+    final File modelFile = stateSpace.getModel().getModelFile();
+    final String destination = modelFile.getPath();
     try (final Writer fileWriterStream =
              new OutputStreamWriter(new FileOutputStream(destination), StandardCharsets.UTF_8)) {
       fileWriterStream.write(codeArea.getText());
     } catch (final IOException ioException) {
       logger.error("IOException when saving the machine to " + destination, ioException);
     }
+    // reload machine
+    proBApiService.loadMachine(modelFile);
   }
 
   private void saveMachineCodeAs() {
@@ -251,6 +258,7 @@ public final class CodeView extends VBox {
 
   private void loadMachineCode() {
     codeArea.clear();
+    // TODO: use full_b_machine/1 instead of reading from file?
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     if (stateSpace == null || stateSpace.getModel().getModelFile() == null) {
       return;
