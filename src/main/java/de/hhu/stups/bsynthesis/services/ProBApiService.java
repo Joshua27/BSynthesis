@@ -112,14 +112,16 @@ public class ProBApiService {
     stateSpacesProperty.clear();
     idleStateSpaceQueue.clear();
     // load the same model to several instances in a background thread
-    new Thread(() ->
+    final Thread loadInstancesThread = new Thread(() ->
         IntStream.range(0, INSTANCES).forEach(value -> {
           final StateSpace newStateSpace = loadStateSpace(file);
           if (newStateSpace != null) {
             stateSpacesProperty.add(newStateSpace);
             idleStateSpaceQueue.add(newStateSpace);
           }
-        })).start();
+        }));
+    loadInstancesThread.setDaemon(true);
+    loadInstancesThread.start();
     return hasClassicalBExtension(file) ? SpecificationType.CLASSICAL_B : SpecificationType.EVENT_B;
   }
 
@@ -176,25 +178,20 @@ public class ProBApiService {
   private void startSynthesis(final StartSynthesisCommand startSynthesisCommand) {
     currentLibraryExpansionProperty.set(startSynthesisCommand.getLibraryExpansion());
     synthesisRunningProperty.set(true);
+    // the user selected the library components, and thus, we just start one instance using
+    // this configuration
     if (!startSynthesisCommand.isDefaultLibraryConfiguration()) {
-      // the user selected the library components, and thus, we just start one instance using
-      // this configuration
-      logger.info(
-          "Start a single synthesis instance using the library components selected by the user.");
-      final StateSpace stateSpace = idleStateSpaceQueue.poll();
-      if (stateSpace == null) {
-        // TODO: save this startsynthesiscommand if it could not be executed right now?
-        return;
-      }
-      final Task<Void> synthesisTask = getSynthesisTask(stateSpace, startSynthesisCommand);
-      synthesisTasksMap.put(synthesisTask, stateSpace);
-      threadPoolExecutor.execute(synthesisTask);
+      startSynthesisSingleInstance(startSynthesisCommand);
       return;
     }
-    logger.info("Available statespace instances: {}", idleStateSpaceQueue);
     // otherwise, we run several instances of synthesis with different library configurations
+    startSynthesisParallel(startSynthesisCommand);
+  }
+
+  private void startSynthesisParallel(final StartSynthesisCommand startSynthesisCommand) {
+    logger.info("Starting synthesis on several instances. "
+        + "Available statespace instances: {}", idleStateSpaceQueue);
     IntStream.range(0, INSTANCES).forEach(value -> {
-      logger.info("Start synthesis instance {}.", value);
       final StartSynthesisCommand copiedCommand = new StartSynthesisCommand(startSynthesisCommand);
       final StateSpace stateSpace;
       if (suspendedStateSpacesMap.isEmpty()) {
@@ -205,6 +202,7 @@ public class ProBApiService {
           // TODO: save this startsynthesiscommand if it could not be executed right now?
           return;
         }
+        logger.info("Start synthesis instance {}.", value);
       } else {
         // or restart a suspended statespace with its specific library expansion
         final Map.Entry<StateSpace, Integer> suspendedEntry =
@@ -219,6 +217,19 @@ public class ProBApiService {
       startSynthesisCommand.expandLibrary();
       currentLibraryExpansionProperty.set(startSynthesisCommand.getLibraryExpansion());
     });
+  }
+
+  private void startSynthesisSingleInstance(final StartSynthesisCommand startSynthesisCommand) {
+    logger.info(
+        "Start a single synthesis instance using the library components selected by the user.");
+    final StateSpace stateSpace = idleStateSpaceQueue.poll();
+    if (stateSpace == null) {
+      logger.error("No statespace available when trying to run a single synthesis instance.");
+      return;
+    }
+    final Task<Void> synthesisTask = getSynthesisTask(stateSpace, startSynthesisCommand);
+    synthesisTasksMap.put(synthesisTask, stateSpace);
+    threadPoolExecutor.execute(synthesisTask);
   }
 
   /**
@@ -329,7 +340,7 @@ public class ProBApiService {
    */
   private Task<Void> getSynthesisTask(final StateSpace stateSpace,
                                       final StartSynthesisCommand startSynthesisCommand) {
-    return new Task<Void>() {
+    final Task<Void> synthesisTask = new Task<Void>() {
       @Override
       protected Void call() throws Exception {
         if (synthesisSucceededProperty.get()) {
@@ -346,6 +357,10 @@ public class ProBApiService {
                     stateSpace, startSynthesisCommand.getLibraryExpansion());
               }
             });
+        // use the succeeded property of the command and do not register setOnSucceeded()
+        // of the task since ProB might raise an integer overflow error but in prolog we then
+        // fall back to other constraint solvers like Z3 so that synthesis might succeeds although
+        // the task itself fails due to raising an exception
         startSynthesisCommand.synthesisSucceededProperty().addListener(
             (observable, oldValue, newValue) -> {
               if (newValue && synthesisSucceededProperty.not().get()
@@ -357,35 +372,57 @@ public class ProBApiService {
                 modifiedMachineCodeProperty.set(
                     startSynthesisCommand.modifiedMachineCodeProperty().get());
               }
-              stateSpace.execute(new ResetSynthesisCommand());
+              resetSynthesisContextForStatespace(stateSpace);
             });
         stateSpace.execute(startSynthesisCommand);
         return null;
       }
-
-      @Override
-      protected void cancelled() {
-        final StateSpace stateSpace1 = synthesisTasksMap.get(this);
-        if (stateSpace1 != null) {
-          stateSpace1.sendInterrupt();
-        }
-        synthesisTasksMap.remove(this);
-        addStateSpaceToQueue(stateSpace1);
-        if (synthesisTasksMap.values().isEmpty()) {
-          synthesisRunningProperty.set(false);
-        }
-        stateSpace.execute(new ResetSynthesisCommand());
-      }
-
-      @Override
-      protected void failed() {
-        final StateSpace stateSpace1 = synthesisTasksMap.get(this);
-        synthesisTasksMap.remove(this);
-        addStateSpaceToQueue(stateSpace1);
-        stateSpace.execute(new ResetSynthesisCommand());
-        expandLibraryAndRestartSynthesis(startSynthesisCommand);
-      }
     };
+    setSynthesisTaskListener(synthesisTask, stateSpace, startSynthesisCommand);
+    return synthesisTask;
+  }
+
+  private void setSynthesisTaskListener(final Task<Void> synthesisTask,
+                                        final StateSpace stateSpace,
+                                        final StartSynthesisCommand startSynthesisCommand) {
+    synthesisTask.setOnCancelled(event -> {
+      sendInterruptIfBusy(stateSpace);
+      synthesisTasksMap.remove(synthesisTask);
+      if (synthesisTasksMap.values().isEmpty()) {
+        synthesisRunningProperty.set(false);
+      }
+    });
+    synthesisTask.setOnFailed(event -> {
+      synthesisTasksMap.remove(synthesisTask);
+      if (synthesisTasksMap.values().isEmpty()) {
+        synthesisRunningProperty.set(false);
+      }
+      if (stateSpace == null) {
+        return;
+      }
+      addStateSpaceToQueue(stateSpace);
+      resetSynthesisContextForStatespace(stateSpace);
+      expandLibraryAndRestartSynthesis(startSynthesisCommand);
+    });
+  }
+
+  /**
+   * Interrupt the given {@link StateSpace} if it is busy.
+   */
+  private void sendInterruptIfBusy(final StateSpace stateSpace) {
+    addStateSpaceToQueue(stateSpace);
+    if (stateSpace == null) {
+      return;
+    }
+    if (!stateSpace.isBusy()) {
+      return;
+    }
+    final Thread interruptThread = new Thread(() -> {
+      stateSpace.sendInterrupt();
+      stateSpace.execute(new ResetSynthesisCommand());
+    });
+    interruptThread.setDaemon(true);
+    interruptThread.start();
   }
 
   private void addStateSpaceToQueue(final StateSpace stateSpace) {
@@ -396,22 +433,16 @@ public class ProBApiService {
   }
 
   /**
-   * Cancel all {@link #synthesisTasksMap running tasks} and send interrupts to the
-   * {@link #stateSpacesProperty state spaces}.
+   * Cancel all {@link #synthesisTasksMap running tasks}.
    */
   private void cancelRunningTasks() {
-    new Thread(() -> {
-      synthesisTasksMap.keySet().forEach(voidTask ->
-          Platform.runLater(() -> voidTask.cancel(true)));
-      stateSpacesProperty.forEach(stateSpace -> {
-        stateSpace.sendInterrupt();
-        addStateSpaceToQueue(stateSpace);
-        stateSpace.execute(new ResetSynthesisCommand());
-      });
-      synthesisTasksMap.clear();
-      suspendedStateSpacesMap.clear();
-      synthesisRunningProperty.set(false);
-    }).start();
+    synthesisTasksMap.keySet().forEach(voidTask -> {
+      final Thread cancelRunningTaskThread = new Thread(() -> voidTask.cancel(true));
+      cancelRunningTaskThread.setDaemon(true);
+      cancelRunningTaskThread.start();
+    });
+    suspendedStateSpacesMap.clear();
+    synthesisRunningProperty.set(false);
   }
 
   StringProperty modifiedMachineCodeProperty() {
@@ -427,5 +458,17 @@ public class ProBApiService {
     modifiedMachineCodeProperty.set(null);
     currentLibraryExpansionProperty.set(1);
     suspendedStateSpacesMap.clear();
+    stateSpacesProperty.forEach(this::resetSynthesisContextForStatespace);
+  }
+
+  private void resetSynthesisContextForStatespace(final StateSpace stateSpace) {
+    final Thread resetSynthesisContextThread = new Thread(() ->
+        stateSpace.execute(new ResetSynthesisCommand()));
+    resetSynthesisContextThread.setDaemon(true);
+    resetSynthesisContextThread.start();
+  }
+
+  public void shutdownExecutor() {
+    threadPoolExecutor.shutdown();
   }
 }
