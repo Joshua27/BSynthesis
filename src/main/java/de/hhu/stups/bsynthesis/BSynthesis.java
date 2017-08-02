@@ -4,6 +4,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 import de.hhu.stups.bsynthesis.injector.BSynthesisModule;
+import de.hhu.stups.bsynthesis.services.ApplicationEvent;
+import de.hhu.stups.bsynthesis.services.ApplicationEventType;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.controller.SynthesisMain;
 import de.prob.cli.ProBInstanceProvider;
 
@@ -15,6 +18,7 @@ import javafx.stage.Stage;
 public class BSynthesis extends Application {
 
   private Injector injector;
+  private UiService uiService;
 
   public static void main(final String... args) {
     launch(args);
@@ -26,6 +30,7 @@ public class BSynthesis extends Application {
 
     injector = Guice.createInjector(new BSynthesisModule());
 
+    uiService = injector.getInstance(UiService.class);
     final SynthesisMain root = injector.getInstance(SynthesisMain.class);
     final Scene mainScene = new Scene(root, 1024, 768);
     root.getStylesheets().add("main.css");
@@ -38,9 +43,15 @@ public class BSynthesis extends Application {
     stage.show();
   }
 
+  /**
+   * Shut down all injector instances and send {@link ApplicationEventType#CLOSE_APP} to the
+   * {@link UiService#applicationEventStream} to shut down all executor services etc.
+   */
   @Override
   public void stop() {
     injector.getInstance(ProBInstanceProvider.class).shutdownAll();
+    uiService.applicationEventStream().push(
+        new ApplicationEvent(ApplicationEventType.CLOSE_APP));
     Platform.exit();
   }
 }
