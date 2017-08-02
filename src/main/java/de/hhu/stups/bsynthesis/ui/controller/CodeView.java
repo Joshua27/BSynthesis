@@ -5,13 +5,12 @@ import com.google.inject.Inject;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
+import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 
 import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
@@ -20,6 +19,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import javafx.stage.FileChooser;
+import org.fxmisc.easybind.EasyBind;
+import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.CodeArea;
 import org.fxmisc.richtext.LineNumberFactory;
 import org.fxmisc.richtext.model.StyleSpans;
@@ -53,8 +54,8 @@ public final class CodeView extends VBox {
 
   private static final String[] KEYWORDS = new String[] {
       "MACHINE", "ABSTRACT_VARIABLES", "VARIABLES", "INVARIANT", "INITIALISATION", "BEGIN", "END",
-      "OPERATIONS", "PROPERTIES", "SETS", "LET", "ANY", "VAR", "SEES", "PRE", "THEN", "END;"
-  };
+      "OPERATIONS", "PROPERTIES", "SETS", "LET", "ANY", "VAR", "SEES", "PRE", "THEN", "END;",
+      "CONSTANTS", "DEFINITIONS", "IF", "ELSE"};
   private static final String KEYWORD_PATTERN = "\\b(" + String.join("|", KEYWORDS) + ")\\b";
   private static final String COMMENT_PATTERN = "//[^\n]*" + "|" + "/\\*(.|\\R)*?\\*/";
   private static final Pattern PATTERN = Pattern.compile("(?<KEYWORD>" + KEYWORD_PATTERN + ")"
@@ -63,15 +64,14 @@ public final class CodeView extends VBox {
   private final ExecutorService executorService = Executors.newSingleThreadExecutor();
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final SynthesisContextService synthesisContextService;
-  private final StringProperty cachedMachineCode;
   private final ProBApiService proBApiService;
+  private final UiService uiService;
 
-  @FXML
-  @SuppressWarnings("unused")
-  private CodeArea codeArea;
-  @FXML
-  @SuppressWarnings("unused")
-  private CodeArea codeAreaSynthesized;
+  private final VirtualizedScrollPane scrollPaneCodeArea;
+  private final CodeArea codeArea;
+  private final VirtualizedScrollPane scrollPaneCodeAreaSynthesized;
+  private final CodeArea codeAreaSynthesized;
+
   @FXML
   @SuppressWarnings("unused")
   private SplitPane splitPaneCodeAreas;
@@ -95,7 +95,14 @@ public final class CodeView extends VBox {
                   final ServiceDelegator serviceDelegator) {
     this.synthesisContextService = serviceDelegator.synthesisContextService();
     this.proBApiService = serviceDelegator.proBApiService();
-    cachedMachineCode = new SimpleStringProperty();
+    this.uiService = serviceDelegator.uiService();
+
+    // Unfortunately, VirtualizedScrollPane doesn't support instantiation from fxml..
+    // see https://github.com/TomasMikula/Flowless/issues/25
+    codeArea = new CodeArea();
+    scrollPaneCodeArea = new VirtualizedScrollPane<>(codeArea);
+    codeAreaSynthesized = new CodeArea();
+    scrollPaneCodeAreaSynthesized = new VirtualizedScrollPane<>(codeAreaSynthesized);
 
     Loader.loadFxml(loader, this, "code_view.fxml");
   }
@@ -106,23 +113,35 @@ public final class CodeView extends VBox {
    */
   @FXML
   public final void initialize() {
-    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
+    splitPaneCodeAreas.getItems().add(scrollPaneCodeArea);
 
     initializeCodeArea(codeArea);
     initializeCodeArea(codeAreaSynthesized);
 
-    synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) ->
-        Platform.runLater(this::loadMachineCode));
+    EasyBind.subscribe(synthesisContextService.stateSpaceProperty(),
+        stateSpace -> Platform.runLater(this::loadMachineCode));
     synthesisContextService.contextEventStream().subscribe(this::handleContextEvent);
 
-    synthesisContextService.modifiedMachineCodeProperty().addListener(
-        (observable, oldValue, newValue) -> showModifiedMachineCode(oldValue, newValue));
+    EasyBind.subscribe(synthesisContextService.modifiedMachineCodeProperty(), newValue -> {
+      final Thread showModifiedCodeThread =
+          new Thread(() -> showModifiedMachineCode(newValue));
+      showModifiedCodeThread.setDaemon(true);
+      showModifiedCodeThread.start();
+    });
 
     validateSolutionBox.visibleProperty().bind(
         synthesisContextService.synthesisSucceededProperty());
+
+    uiService.applicationEventStream().subscribe(applicationEvent -> {
+      if (applicationEvent.getApplicationEventType().isCloseApp()) {
+        executorService.shutdown();
+        proBApiService.shutdownExecutor();
+      }
+    });
   }
 
   private void initializeCodeArea(final CodeArea codeArea) {
+    codeArea.setEditable(false);
     codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
     codeArea.richChanges()
         .filter(ch -> !ch.getInserted().equals(ch.getRemoved()))
@@ -177,14 +196,14 @@ public final class CodeView extends VBox {
   /**
    * Show the modified machine code containing the synthesized changes.
    */
-  private void showModifiedMachineCode(final String oldValue, final String newValue) {
+  private void showModifiedMachineCode(final String newValue) {
     if (newValue == null) {
       return;
     }
-    if (!newValue.equals(oldValue) && !newValue.isEmpty()) {
+    if (!newValue.isEmpty()) {
       executorService.execute(() -> Platform.runLater(() -> {
+        splitPaneCodeAreas.getItems().add(1, scrollPaneCodeAreaSynthesized);
         codeAreaSynthesized.clear();
-        splitPaneCodeAreas.getItems().add(1, codeAreaSynthesized);
         codeAreaSynthesized.appendText(newValue);
       }));
     }
@@ -197,8 +216,7 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void applySolution() {
-    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
-    cachedMachineCode.set(codeArea.getText());
+    splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     codeArea.clear();
     codeArea.appendText(codeAreaSynthesized.getText());
     saveMachineCode();
@@ -207,13 +225,13 @@ public final class CodeView extends VBox {
   }
 
   /**
-   * Display the {@link #cachedMachineCode previous machine code} describing the machine without the
-   * synthesized code. The state of the machine has not changed so there is nothing else to do.
+   * Just hide the {@link #scrollPaneCodeAreaSynthesized}. The state of the machine has not changed
+   * so that there is nothing else to do.
    */
   @FXML
   @SuppressWarnings("unused")
   public void discardSolution() {
-    splitPaneCodeAreas.getItems().remove(codeAreaSynthesized);
+    splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     proBApiService.reset();
   }
 
@@ -235,16 +253,12 @@ public final class CodeView extends VBox {
   }
 
   @edu.umd.cs.findbugs.annotations.SuppressWarnings(
-      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "There is no NP!")
+      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "There is no NP")
   private void saveMachineCodeAs() {
     final Path source = synthesisContextService.getStateSpace().getModel().getModelFile().toPath();
     final FileChooser fileChooser = new FileChooser();
-    final String extensionFilterString =
-        synthesisContextService.getSpecificationType().isClassicalB() ? "Machine (*.mch)"
-            : "Machine (*.eventb)";
-    final FileChooser.ExtensionFilter extFilter =
-        new FileChooser.ExtensionFilter(extensionFilterString);
-    fileChooser.getExtensionFilters().add(extFilter);
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch"));
     fileChooser.setInitialFileName(source.getFileName().toString());
     final File file = fileChooser.showSaveDialog(this.getScene().getWindow());
     if (file != null) {
@@ -260,7 +274,7 @@ public final class CodeView extends VBox {
 
   private void loadMachineCode() {
     codeArea.clear();
-    // TODO: use full_b_machine/1 instead of reading from file?
+    // TODO: maybe use full_b_machine/1 instead of reading from file?
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     if (stateSpace == null || stateSpace.getModel().getModelFile() == null) {
       return;
@@ -271,6 +285,5 @@ public final class CodeView extends VBox {
     } catch (final IOException exception) {
       logger.error("Error loading machine code", exception);
     }
-    cachedMachineCode.set(codeArea.getText());
   }
 }

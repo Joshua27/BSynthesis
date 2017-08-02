@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.layout.VBox?>
-<?import org.fxmisc.richtext.CodeArea?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.SplitPane?>
 
 <fx:root type="VBox" xmlns:fx="http://javafx.com/fxml">
-    <SplitPane fx:id="splitPaneCodeAreas">
-        <CodeArea fx:id="codeArea" editable="false" wrapText="true"/>
-        <CodeArea fx:id="codeAreaSynthesized" editable="false" wrapText="true"/>
-    </SplitPane>
+    <SplitPane fx:id="splitPaneCodeAreas"/>
     <HBox fx:id="validateSolutionBox" alignment="CENTER_RIGHT" spacing="10.0" visible="false"
           styleClass="validationSolutionBox">
         <Button fx:id="btApplySolution" text="Approve Solution" onAction="#applySolution"/>
