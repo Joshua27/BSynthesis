@@ -1,4 +1,4 @@
-# BSynthesis
+# Synthesis of Classical B Machines
 
 [![Build Status](https://travis-ci.org/Joshua27/BSynthesis.svg?branch=master)](https://travis-ci.org/Joshua27/BSynthesis)
 [![Dependency Status](https://www.versioneye.com/user/projects/592ac926a8a056006137f3fb/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/592ac926a8a056006137f3fb)
@@ -15,4 +15,4 @@ All this is done using constant user feedback, yielding an interactive assistant
 
 # References
 
-The synthesis technique in use is based on the one by Jha et.al. introduced in ["Oracle-guided component-based program synthesis"](https://people.eecs.berkeley.edu/~sseshia/pubdir/icse10-TR.pdf), Proceedings ICSE, 2010. 
+The synthesis technique in use is based on the one by Jha et.al. introduced in ["Oracle-guided component-based program synthesis"](https://people.eecs.berkeley.edu/~sseshia/pubdir/icse10-TR.pdf), Proceedings ICSE, 2010.
