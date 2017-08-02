@@ -6,7 +6,6 @@ import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeLine;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
-import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -24,7 +23,7 @@ import javax.inject.Singleton;
 @Singleton
 public class UiService {
 
-  private final EventSource<ControllerTab> showTabEventStream;
+  private final EventSource<ApplicationEvent> applicationEventStream;
   private final EventSource<UiZoom> zoomEventStream;
   // TODO: merge some event sources
   private final EventSource<BasicNode> showNodeEventSource;
@@ -51,7 +50,7 @@ public class UiService {
     this.stateNodeFactory = stateNodeFactory;
     this.transitionNodeFactory = transitionNodeFactory;
     currentVarStatesMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
-    showTabEventStream = new EventSource<>();
+    applicationEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
     showNodeEventSource = new EventSource<>();
     removeNodeEventSource = new EventSource<>();
@@ -93,8 +92,8 @@ public class UiService {
     return transitionNodeFactory;
   }
 
-  public EventSource<ControllerTab> showTabEventStream() {
-    return showTabEventStream;
+  public EventSource<ApplicationEvent> applicationEventStream() {
+    return applicationEventStream;
   }
 
   public EventSource<UiZoom> zoomEventStream() {
