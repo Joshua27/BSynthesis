@@ -136,10 +136,17 @@ public class ValidationPane extends Pane implements Initializable {
       basicNode.userValidationProperty().set(getExampleValidation(basicNode));
       updateSynthesisType(basicNode);
     });
-    uiService.checkDuplicateStateNodeEventSource().subscribe(stateNode ->
-        stateNode.equivalentNodeProperty().set(containsStateNode(stateNode)));
+    uiService.checkDuplicateStateNodeEventSource().subscribe(stateNode -> {
+      final StateNode equivalentNode = containsStateNode(stateNode);
+      stateNode.equivalentNodeProperty().set(equivalentNode == null ? stateNode : equivalentNode);
+    });
     uiService.addNodeConnectionEventSource().subscribe(this::addNodeConnection);
     uiService.adjustNodePositionEventSource().subscribe(this::adjustPositionIfNecessary);
+    uiService.applicationEventStream().subscribe(applicationEvent -> {
+      if (applicationEvent.getApplicationEventType().isCloseApp()) {
+        executorService.shutdown();
+      }
+    });
   }
 
   /**
