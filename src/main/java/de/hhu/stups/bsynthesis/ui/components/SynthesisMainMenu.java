@@ -3,6 +3,9 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 
 import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
+import de.hhu.stups.bsynthesis.services.ApplicationEvent;
+import de.hhu.stups.bsynthesis.services.ApplicationEventType;
+import de.hhu.stups.bsynthesis.services.ControllerTab;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
@@ -16,7 +19,6 @@ import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
-import de.hhu.stups.bsynthesis.ui.controller.ControllerTab;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.GetPreferenceCommand;
 import de.prob.animator.command.SetPreferenceCommand;
@@ -232,16 +234,19 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     final FileChooser fileChooser = new FileChooser();
     final FileChooser.ExtensionFilter extFilter =
         new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch");
-    //new FileChooser.ExtensionFilter("Machine (*.mch, *.eventb)", "*.mch", "*.eventb");
     fileChooser.getExtensionFilters().add(extFilter);
     final File file = fileChooser.showOpenDialog(stageProperty.get());
+    if (file == null) {
+      return;
+    }
     final SpecificationType specificationType = proBApiService.loadMachine(file);
     if (specificationType != null) {
       synthesisContextService.setSpecificationType(specificationType);
       synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
     }
     EasyBind.subscribe(proBApiService.mainStateSpaceProperty(), stateSpaces -> {
-      uiService.showTabEventStream().push(ControllerTab.CODEVIEW);
+      uiService.applicationEventStream().push(
+          new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
       // bind one statespace to the synthesis context, the other instances are synchronized within
       // {@link ProBApiService} according to this statespace
       synthesisContextService.setStateSpace(proBApiService.getMainStateSpace());
@@ -262,7 +267,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     synthesisContextService.setSynthesisType(SynthesisType.ACTION);
     synthesisContextService.setCurrentOperation(operationNameOptional.get());
     uiService.resetCurrentVarBindings();
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     validationPane.getNodes().clear();
     synthesisInfoBox.reset();
     synthesisInfoBox.showInfoProperty().set(true);
@@ -274,7 +279,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void modifyInvariants() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
     synthesisContextService.setSynthesisType(SynthesisType.INVARIANT);
   }
@@ -287,10 +292,11 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void showNodesFromTrace() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     synthesisContextService.setSynthesisType(SynthesisType.GUARD);
     validationPane.getNodes().clear();
     validationPane.initializeNodesFromTrace();
+    proBApiService.reset();
   }
 
   /**
@@ -299,10 +305,15 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void visualizeOperation() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     validationPane.getNodes().clear();
     synthesisContextService.setSynthesisType(SynthesisType.ACTION);
     // TODO
+  }
+
+  private void openSynthesisTab() {
+    uiService.applicationEventStream().push(
+        new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.SYNTHESIS));
   }
 
   /**
@@ -312,7 +323,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void runModelChecking() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     validationPane.reset();
     if (stateSpace == null) {
@@ -341,15 +352,18 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void stopModelChecking() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     modelCheckingService.runningProperty().set(false);
     modelCheckingService.indicatorPresentProperty().set(false);
   }
 
+  /**
+   * Save the machine as.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void saveAs() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     synthesisContextService.contextEventStream().push(ContextEvent.SAVE_AS);
   }
 
@@ -375,7 +389,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void zoomIn() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     uiService.zoomEventStream().push(UiService.UiZoom.ZOOM_IN);
   }
 
@@ -385,7 +399,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void zoomOut() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     uiService.zoomEventStream().push(UiService.UiZoom.ZOOM_OUT);
   }
 
@@ -402,9 +416,11 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         && synthesisContextService.getSelectedLibraryComponents().isEmpty()) {
       // cancel if default configuration not selected but also no selected library components
       // are given
-      uiService.showTabEventStream().push(ControllerTab.LIBRARY_CONFIGURATION);
+      uiService.applicationEventStream().push(
+          new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.LIBRARY_CONFIGURATION));
       return;
     }
+    openSynthesisTab();
     final List<BasicNode> invalidNodes = validationPane.getInvalidNodes();
     addPredecessorNodesIfGuard(invalidNodes);
     final List<BasicNode> validNodes = validationPane.getValidNodes();
@@ -416,7 +432,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     final HashMap<String, List<BasicNode>> examples = new HashMap<>();
     examples.put("valid", validNodes);
     examples.put("invalid", invalidNodes);
-    // TODO: do we want to reset the library expansion to 1?
+    // reset the library expansion to 1 but if a synthesis instance has been suspended the
+    // {@link ProBApiService} will restart this instance with the last expansion used on this
+    // statespace
     synthesisContextService.selectedLibraryComponentsProperty().get().setLibraryExpansion(1);
     final StartSynthesisCommand startSynthesisCommand = new StartSynthesisCommand(
         synthesisContextService.selectedLibraryComponentsProperty().get(),
@@ -424,8 +442,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         uiService.getCurrentVarNames(),
         synthesisContextService.synthesisTypeProperty().get(),
         examples, synthesisContextService.solverBackendProperty().get());
-    new Thread(() -> proBApiService.startSynthesisEventSource().push(startSynthesisCommand))
-        .start();
+    proBApiService.startSynthesisEventSource().push(startSynthesisCommand);
   }
 
   /**
@@ -457,7 +474,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void clear() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     synthesisContextService.synthesisTypeProperty().set(SynthesisType.NONE);
     synthesisContextService.currentOperationProperty().set(null);
     validationPane.getNodes().clear();
@@ -476,7 +493,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void configureLibrary() {
-    uiService.showTabEventStream().push(ControllerTab.LIBRARY_CONFIGURATION);
+    uiService.applicationEventStream().push(
+        new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.LIBRARY_CONFIGURATION));
   }
 
   /**
@@ -485,7 +503,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void expandAllNodes() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     validationPane.expandAllNodes();
   }
 
@@ -495,7 +513,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void shrinkAllNodes() {
-    uiService.showTabEventStream().push(ControllerTab.SYNTHESIS);
+    openSynthesisTab();
     validationPane.shrinkAllNodes();
   }
 
@@ -509,6 +527,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   private Optional<String> getOperationNameFromDialog() {
     final TextInputDialog textInputDialog =
         getTextInputDialog("New Operation", "Set a name for the new operation:");
+    textInputDialog.setContentText("");
     final Optional<String> operationNameOptional = textInputDialog.showAndWait();
     if (operationNameOptional.isPresent() && !isValidOperationName(operationNameOptional.get())) {
       return getOperationNameFromDialog();
