@@ -4,9 +4,10 @@ import static de.hhu.stups.bsynthesis.prob.BMachineMisc.getMachineVars;
 
 import com.google.inject.Inject;
 
-import de.hhu.stups.bsynthesis.services.ProBApiService;
+import de.hhu.stups.bsynthesis.services.ApplicationEvent;
+import de.hhu.stups.bsynthesis.services.ApplicationEventType;
+import de.hhu.stups.bsynthesis.services.ControllerTab;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
-import de.hhu.stups.bsynthesis.services.SpecificationType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
@@ -31,7 +32,6 @@ public class SynthesisMain extends VBox implements Initializable {
 
   private final ServiceDelegator serviceDelegator;
   private final SynthesisContextService synthesisContextService;
-  private final ProBApiService proBApiService;
 
   @FXML
   @SuppressWarnings("unused")
@@ -57,7 +57,6 @@ public class SynthesisMain extends VBox implements Initializable {
                        final ServiceDelegator serviceDelegator) {
     this.serviceDelegator = serviceDelegator;
     this.synthesisContextService = serviceDelegator.synthesisContextService();
-    this.proBApiService = serviceDelegator.proBApiService();
     Loader.loadFxml(loader, this, "synthesis_main.fxml");
   }
 
@@ -65,22 +64,15 @@ public class SynthesisMain extends VBox implements Initializable {
   public void initialize(final URL location, final ResourceBundle resources) {
     initializeTabs();
     final UiService uiService = serviceDelegator.uiService();
-    uiService.showTabEventStream().subscribe(this::selectTab);
+    uiService.applicationEventStream().subscribe(this::selectTab);
     EasyBind.subscribe(synthesisContextService.synthesisSucceededProperty(), succeeded ->
-        serviceDelegator.uiService().showTabEventStream().push(ControllerTab.CODEVIEW));
+        serviceDelegator.uiService().applicationEventStream().push(
+            new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW)));
     EasyBind.subscribe(synthesisContextService.stateSpaceProperty(), stateSpace -> {
       if (stateSpace != null) {
         uiService.initializeCurrentVarBindings(getMachineVars(stateSpace));
       }
     });
-  }
-
-  private void setSpecificationType(final String fileName) {
-    if ("eventb".equals(fileName.substring(fileName.lastIndexOf('.') + 1))) {
-      synthesisContextService.setSpecificationType(SpecificationType.EVENT_B);
-      return;
-    }
-    synthesisContextService.setSpecificationType(SpecificationType.CLASSICAL_B);
   }
 
   private void initializeTabs() {
@@ -92,7 +84,11 @@ public class SynthesisMain extends VBox implements Initializable {
         serviceDelegator.synthesisContextService().synthesisSucceededProperty());
   }
 
-  private void selectTab(final ControllerTab controllerTab) {
+  private void selectTab(final ApplicationEvent applicationEvent) {
+    if (!applicationEvent.getApplicationEventType().isOpenTab()) {
+      return;
+    }
+    final ControllerTab controllerTab = applicationEvent.getControllerTab();
     switch (controllerTab) {
       case SYNTHESIS:
         tabPane.getSelectionModel().select(synthesisTab);
