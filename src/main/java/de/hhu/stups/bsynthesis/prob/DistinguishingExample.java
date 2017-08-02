@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
  */
 public final class DistinguishingExample {
 
-  private List<VarValueTuple> inputTuples;
-  private List<VarValueTuple> outputTuples;
+  private final List<VarValueTuple> inputTuples;
+  private final List<VarValueTuple> outputTuples;
 
   DistinguishingExample(final List<VarValueTuple> inputTuples,
                         final List<VarValueTuple> outputTuples) {

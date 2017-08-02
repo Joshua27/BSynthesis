@@ -1,6 +1,7 @@
 package de.hhu.stups.bsynthesis.prob;
 
 public final class VarValueTuple {
+
   private final String var;
   private final String value;
 
@@ -10,7 +11,7 @@ public final class VarValueTuple {
     this.value = value;
   }
 
-  public String getVar() {
+  String getVar() {
     return var;
   }
 
