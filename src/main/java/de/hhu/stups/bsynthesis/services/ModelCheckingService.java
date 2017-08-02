@@ -103,7 +103,7 @@ public class ModelCheckingService implements IModelCheckListener {
                          final IModelCheckingResult result,
                          final StateSpaceStats stats) {
     if (result instanceof ITraceDescription) {
-      // TODO: differ between invariant violation or deadlock (and error in initialization state?)
+      // TODO: differ between invariant violation or deadlock
       // error found
       final StateSpace s = checker.getStateSpace();
       Platform.runLater(() -> {
@@ -115,7 +115,7 @@ public class ModelCheckingService implements IModelCheckListener {
       return;
     }
     if (stats.getNrProcessedNodes() == stats.getNrTotalNodes()) {
-      // the model has been checked completely
+      // the model has been checked completely and no error has been found
       Platform.runLater(() -> {
         errorFoundProperty.set(null);
         resultProperty.set(new ModelCheckingResult(null));
@@ -125,9 +125,7 @@ public class ModelCheckingService implements IModelCheckListener {
   }
 
   private void stopModelChecking() {
-    // TODO: Model Checker seems to be not cancelled properly
     if (checker != null && currentJob != null) {
-      System.out.println("cancel checker");
       checker.cancel();
       currentJob.getStateSpace().sendInterrupt();
     }

@@ -7,6 +7,9 @@ import de.prob.prolog.term.PrologTerm;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 
+/**
+ * A command to retract the asserted synthesis context on a {@link de.prob.statespace.StateSpace}.
+ */
 public class ResetSynthesisCommand extends AbstractCommand {
 
   private static final String PROLOG_COMMAND_NAME = "reset_synthesis_context";
