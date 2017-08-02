@@ -11,7 +11,7 @@ addons:
     - lib32z1
     - lib32ncurses5
     - oracle-java8-installer
-  sonarqube:
+  sonarcloud:
     branches:
       - master
     organization: "joshua27-github"
