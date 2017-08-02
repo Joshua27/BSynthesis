@@ -72,6 +72,7 @@ public class StateNode extends BasicNode implements Initializable {
   private final BooleanProperty stateFromModelCheckingProperty;
   private final UiService uiService;
   private ObjectProperty<StateNode> equivalentNodeProperty;
+
   @FXML
   @SuppressWarnings("unused")
   private GridPane contentGridPane;
@@ -167,8 +168,10 @@ public class StateNode extends BasicNode implements Initializable {
         Platform.runLater(() -> resizeNode(newValue));
       }
     });
+
     equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null) {
+      if (newValue != null && newValue != this) {
+        newValue.highlightNodeEffect();
         uiService.removeNodeEventSource().push(this);
       }
     });
@@ -264,18 +267,18 @@ public class StateNode extends BasicNode implements Initializable {
     if (predecessorNode == null) {
       return;
     }
-    uiService.checkDuplicateStateNodeEventSource().push(predecessorNode);
     // check if node already exists and just set the ancestors
     predecessorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null) {
+      if (newValue != null && newValue != predecessorNode) {
         newValue.successorProperty().add(this);
         predecessorProperty().add(newValue);
       } else {
         predecessorNode.successorProperty().add(this);
-        uiService.showNodeEventSource().push(predecessorNode);
         predecessorProperty().add(predecessorNode);
+        uiService.showNodeEventSource().push(predecessorNode);
       }
     });
+    uiService.checkDuplicateStateNodeEventSource().push(predecessorNode);
   }
 
   public ObjectProperty<StateNode> equivalentNodeProperty() {
@@ -305,18 +308,19 @@ public class StateNode extends BasicNode implements Initializable {
     if (successorNode == null) {
       return;
     }
-    uiService.checkDuplicateStateNodeEventSource().push(successorNode);
     // check if node already exists and just set the ancestors
     successorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null) {
+      if (newValue != null && newValue != successorNode) {
+        uiService.removeNodeEventSource().push(successorNode);
         newValue.predecessorProperty().add(this);
         successorProperty().add(newValue);
       } else {
         successorNode.predecessorProperty().add(this);
-        uiService.showNodeEventSource().push(successorNode);
         successorProperty().add(successorNode);
+        uiService.showNodeEventSource().push(successorNode);
       }
     });
+    uiService.checkDuplicateStateNodeEventSource().push(successorNode);
   }
 
   private void setCompressedWidth() {
@@ -343,7 +347,7 @@ public class StateNode extends BasicNode implements Initializable {
   public void highlightNodeEffect() {
     Platform.runLater(this::toFront);
     if (!isExpanded()) {
-      isExpandedProperty().set(true);
+      Platform.runLater(() -> isExpandedProperty().set(true));
       return;
     }
     final Timeline timeline = new Timeline();
@@ -407,23 +411,27 @@ public class StateNode extends BasicNode implements Initializable {
     // create equality predicate with variable values
     final FindStateCommand findStateCommand =
         new FindStateCommand(stateSpace, getStateEqualityPredicate(), false);
-    stateSpace.execute(findStateCommand);
-
-    final FindStateCommand.ResultType resultType = findStateCommand.getResult();
-    if (resultType.equals(FindStateCommand.ResultType.ERROR)) {
-      return;
-    }
-    if (resultType.equals(FindStateCommand.ResultType.NO_STATE_FOUND)) {
-      nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
-      return;
-    }
-    // check for duplicated state before setting the state property
-    stateProperty.set(stateSpace.getState(findStateCommand.getStateId()));
-    nodeStateProperty().set(stateProperty.get().isInvariantOk()
-        ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
-    if (!synthesisContextService.getSynthesisType().isAction()) {
-      uiService.checkDuplicateStateNodeEventSource().push(this);
-    }
+    final Thread validateStateThread = new Thread(() -> {
+      stateSpace.execute(findStateCommand);
+      final FindStateCommand.ResultType resultType = findStateCommand.getResult();
+      if (resultType.equals(FindStateCommand.ResultType.ERROR)) {
+        return;
+      }
+      if (resultType.equals(FindStateCommand.ResultType.NO_STATE_FOUND)) {
+        nodeStateProperty().set(NodeState.INVARIANT_VIOLATED);
+        return;
+      }
+      Platform.runLater(() -> {
+        stateProperty.set(stateSpace.getState(findStateCommand.getStateId()));
+        nodeStateProperty().set(stateProperty.get().isInvariantOk()
+            ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
+      });
+      if (!synthesisContextService.getSynthesisType().isAction()) {
+        uiService.checkDuplicateStateNodeEventSource().push(this);
+      }
+    });
+    validateStateThread.setDaemon(true);
+    validateStateThread.start();
   }
 
   /**
