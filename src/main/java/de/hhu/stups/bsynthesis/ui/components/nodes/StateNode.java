@@ -435,12 +435,13 @@ public class StateNode extends BasicNode implements Initializable {
   }
 
   /**
-   * Check if all variable values are filled.
+   * Check if all variable values are filled that are not set to be ignored.
    */
   private boolean validateInputValues(final ObservableList<StateTableCell> stateTableCells) {
     // TODO: validate types and well-definedness
     for (final StateTableCell stateTableCell : stateTableCells) {
-      if (stateTableCell.getInputState().replaceAll("\\s+", "").isEmpty()) {
+      if (!stateTableCell.ignoreVarProperty().get()
+          && stateTableCell.getInputState().replaceAll("\\s+", "").isEmpty()) {
         return false;
       }
     }
@@ -476,10 +477,16 @@ public class StateNode extends BasicNode implements Initializable {
     return animationSelector.getCurrentTrace().getCurrentState();
   }
 
+  /**
+   * Create equality nodes of the machine variable values that are not set to be ignored.
+   */
   private IEvalElement getStateEqualityPredicate() {
     final Set<String> predicateStringSet = new HashSet<>(tableViewState.getItems().size());
-    tableViewState.getItems().forEach(stateTableCell ->
-        predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState()));
+    tableViewState.getItems().forEach(stateTableCell -> {
+      if (!stateTableCell.ignoreVarProperty().get()) {
+        predicateStringSet.add(stateTableCell.getVarName() + "=" + stateTableCell.getInputState());
+      }
+    });
     final String predicate = Joiner.on(" & ").join(predicateStringSet);
     return new ClassicalB(predicate);
   }
