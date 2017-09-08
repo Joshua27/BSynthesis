@@ -47,6 +47,7 @@ public class SynthesisContextService {
   private final BooleanProperty synthesisRunningProperty;
   private final BooleanProperty synthesisSuspendedProperty;
   private final BooleanProperty useDefaultLibraryProperty;
+  private final BooleanProperty modifyInvariantsProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -67,6 +68,7 @@ public class SynthesisContextService {
     modifiedMachineCodeProperty = new SimpleStringProperty();
     solverBackendProperty = new SimpleObjectProperty<>(SolverBackend.PROB);
     specificationTypeProperty = new SimpleObjectProperty<>(SpecificationType.CLASSICAL_B);
+    modifyInvariantsProperty = new SimpleBooleanProperty(false);
 
     contextEventStream = new EventSource<>();
 
@@ -105,7 +107,7 @@ public class SynthesisContextService {
   }
 
   public void setSynthesisType(final SynthesisType synthesisType) {
-    synthesisTypeProperty.set(synthesisType);
+    Platform.runLater(() -> synthesisTypeProperty.set(synthesisType));
   }
 
   public ObjectProperty<SynthesisType> synthesisTypeProperty() {
@@ -116,8 +118,8 @@ public class SynthesisContextService {
     return currentOperationProperty.get();
   }
 
-  public void setCurrentOperation(final String currentOperationProperty) {
-    Platform.runLater(() -> this.currentOperationProperty.set(currentOperationProperty));
+  public void setCurrentOperation(final String currentOperation) {
+    Platform.runLater(() -> this.currentOperationProperty.set(currentOperation));
   }
 
   public SpecificationType getSpecificationType() {
@@ -184,11 +186,14 @@ public class SynthesisContextService {
    * Reset the current synthesis specific properties. For example if a synthesized solution is
    * applied to the model.
    */
-  private void reset() {
-    synthesisTypeProperty.set(SynthesisType.NONE);
+  public void reset() {
+    Platform.runLater(() -> {
+      synthesisTypeProperty.set(SynthesisType.NONE);
+      currentOperationProperty.set(null);
+    });
     synthesisSucceededProperty.set(false);
-    currentOperationProperty.set(null);
     invariantViolatedProperty.set(false);
+    modifyInvariantsProperty.set(false);
     selectedLibraryComponentsProperty.get().defaultLibraryExpansionProperty().set(1);
   }
 
@@ -202,5 +207,9 @@ public class SynthesisContextService {
 
   public BLibrary getSelectedLibraryComponents() {
     return selectedLibraryComponentsProperty.get();
+  }
+
+  public BooleanProperty modifyInvariantsProperty() {
+    return modifyInvariantsProperty;
   }
 }
