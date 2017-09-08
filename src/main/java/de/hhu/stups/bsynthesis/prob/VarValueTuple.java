@@ -11,7 +11,7 @@ public final class VarValueTuple {
     this.value = value;
   }
 
-  String getVar() {
+  public String getVar() {
     return var;
   }
 
