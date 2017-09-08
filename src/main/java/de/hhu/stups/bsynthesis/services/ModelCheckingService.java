@@ -3,11 +3,13 @@ package de.hhu.stups.bsynthesis.services;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import de.hhu.stups.bsynthesis.ui.components.DeadlockRepair;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingResult;
 import de.prob.check.ConsistencyChecker;
 import de.prob.check.IModelCheckJob;
 import de.prob.check.IModelCheckListener;
 import de.prob.check.IModelCheckingResult;
+import de.prob.check.ModelCheckErrorUncovered;
 import de.prob.check.ModelChecker;
 import de.prob.check.ModelCheckingOptions;
 import de.prob.check.StateSpaceStats;
@@ -23,6 +25,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
+import org.fxmisc.easybind.EasyBind;
 import org.reactfx.EventSource;
 
 /**
@@ -40,7 +43,8 @@ public class ModelCheckingService implements IModelCheckListener {
   private final IntegerProperty processedNodesProperty;
   private final IntegerProperty totalNodesProperty;
   private final BooleanProperty indicatorPresentProperty;
-  private final ObjectProperty<Trace> errorFoundProperty;
+  private final ObjectProperty<Trace> errorTraceProperty;
+  private final ObjectProperty<DeadlockRepair> deadlockRepairProperty;
 
   private ModelChecker checker;
   private IModelCheckJob currentJob;
@@ -58,11 +62,12 @@ public class ModelCheckingService implements IModelCheckListener {
     indicatorPresentProperty = new SimpleBooleanProperty();
     processedNodesProperty = new SimpleIntegerProperty(0);
     totalNodesProperty = new SimpleIntegerProperty(0);
-    errorFoundProperty = new SimpleObjectProperty<>();
+    errorTraceProperty = new SimpleObjectProperty<>();
     stateSpaceEventStream = new EventSource<>();
+    deadlockRepairProperty = new SimpleObjectProperty<>();
 
-    runningProperty.addListener((observable, oldValue, newValue) -> {
-      if (!newValue) {
+    EasyBind.subscribe(runningProperty, aBoolean -> {
+      if (!aBoolean) {
         stopModelChecking();
       }
     });
@@ -78,13 +83,13 @@ public class ModelCheckingService implements IModelCheckListener {
       }
     });
 
-    stateSpaceStatsProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue == null) {
+    EasyBind.subscribe(stateSpaceStatsProperty, stateSpaceStats -> {
+      if (stateSpaceStats == null) {
         return;
       }
       Platform.runLater(() -> {
-        processedNodesProperty.set(newValue.getNrProcessedNodes());
-        totalNodesProperty.set(newValue.getNrTotalNodes());
+        processedNodesProperty.set(stateSpaceStats.getNrProcessedNodes());
+        totalNodesProperty.set(stateSpaceStats.getNrTotalNodes());
       });
     });
   }
@@ -103,13 +108,14 @@ public class ModelCheckingService implements IModelCheckListener {
                          final IModelCheckingResult result,
                          final StateSpaceStats stats) {
     if (result instanceof ITraceDescription) {
-      // TODO: differ between invariant violation or deadlock
       // error found
+      final ModelCheckErrorUncovered errorUncovered = (ModelCheckErrorUncovered) result;
       final StateSpace s = checker.getStateSpace();
       Platform.runLater(() -> {
         final Trace trace = ((ITraceDescription) result).getTrace(s);
-        resultProperty.set(new ModelCheckingResult(trace));
-        errorFoundProperty.set(trace);
+        errorTraceProperty.set(trace);
+        resultProperty.set(new ModelCheckingResult(trace,
+            UncoveredError.getUncoveredErrorFromMessage(errorUncovered.getMessage())));
         runningProperty.set(false);
       });
       return;
@@ -117,7 +123,7 @@ public class ModelCheckingService implements IModelCheckListener {
     if (stats.getNrProcessedNodes() == stats.getNrTotalNodes()) {
       // the model has been checked completely and no error has been found
       Platform.runLater(() -> {
-        errorFoundProperty.set(null);
+        errorTraceProperty.set(null);
         resultProperty.set(new ModelCheckingResult(null));
         runningProperty.set(false);
       });
@@ -125,8 +131,10 @@ public class ModelCheckingService implements IModelCheckListener {
   }
 
   private void stopModelChecking() {
-    if (checker != null && currentJob != null) {
+    if (checker != null) {
       checker.cancel();
+    }
+    if (currentJob != null) {
       currentJob.getStateSpace().sendInterrupt();
     }
   }
@@ -162,12 +170,17 @@ public class ModelCheckingService implements IModelCheckListener {
     runningProperty.set(false);
     resultProperty.set(null);
     stateSpaceStatsProperty.set(null);
-    errorFoundProperty.set(null);
+    errorTraceProperty.set(null);
     indicatorPresentProperty.set(false);
+    deadlockRepairProperty.set(null);
   }
 
-  public ObjectProperty<Trace> errorFoundProperty() {
-    return errorFoundProperty;
+  public ObjectProperty<Trace> errorTraceProperty() {
+    return errorTraceProperty;
+  }
+
+  public ObjectProperty<DeadlockRepair> deadlockRepairProperty() {
+    return deadlockRepairProperty;
   }
 
   public EventSource<StateSpace> stateSpaceEventStream() {

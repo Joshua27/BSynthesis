@@ -1,38 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 <?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
 
-<fx:root type="VBox" prefWidth="400.0" prefHeight="150.0" styleClass="infoBox"
+<fx:root type="GridPane" prefWidth="400.0" prefHeight="150.0" styleClass="infoBox"
          xmlns:fx="http://javafx.com/fxml">
-    <GridPane>
-        <VBox GridPane.halignment="CENTER" GridPane.columnIndex="0" GridPane.rowIndex="0"
-              GridPane.columnSpan="2">
-            <ProgressIndicator fx:id="progressIndicator" maxWidth="Infinity" maxHeight="Infinity"/>
-        </VBox>
-        <HBox alignment="TOP_RIGHT" spacing="5.0" GridPane.halignment="RIGHT"
-              GridPane.columnIndex="1" GridPane.rowIndex="0">
-            <FontAwesomeIconView fx:id="iconCancelModelChecking" glyphName="CLOSE" glyphSize="15"/>
-        </HBox>
-        <Label fx:id="lbProgress" GridPane.columnIndex="0" GridPane.rowIndex="2"
-               GridPane.columnSpan="2" alignment="CENTER" GridPane.halignment="CENTER"/>
-        <Label fx:id="lbProcessedNodes" GridPane.columnIndex="0" GridPane.rowIndex="3"
-               GridPane.columnSpan="2" alignment="CENTER" GridPane.halignment="CENTER"/>
-        <columnConstraints>
-            <ColumnConstraints percentWidth="95.0"/>
-            <ColumnConstraints percentWidth="5.0"/>
-        </columnConstraints>
-        <rowConstraints>
-            <RowConstraints percentHeight="50.0"/>
-            <RowConstraints percentHeight="10.0"/> <!-- Ghost -->
-            <RowConstraints percentHeight="20.0"/>
-            <RowConstraints percentHeight="20.0"/>
-        </rowConstraints>
-    </GridPane>
+    <VBox GridPane.halignment="CENTER" GridPane.columnIndex="0" GridPane.rowIndex="0"
+          GridPane.columnSpan="2">
+        <ProgressIndicator fx:id="progressIndicator" maxWidth="Infinity" maxHeight="Infinity"/>
+    </VBox>
+    <HBox alignment="TOP_RIGHT" spacing="5.0" GridPane.halignment="RIGHT"
+          GridPane.columnIndex="1" GridPane.rowIndex="0">
+        <FontAwesomeIconView fx:id="iconCancelModelChecking" glyphName="CLOSE" glyphSize="15"/>
+    </HBox>
+    <Label fx:id="lbStatus" GridPane.columnIndex="0" GridPane.rowIndex="1"
+           GridPane.columnSpan="2" alignment="CENTER" GridPane.halignment="CENTER"/>
+    <Label fx:id="lbProcessedNodes" GridPane.columnIndex="0" GridPane.rowIndex="2"
+           GridPane.columnSpan="2" alignment="CENTER" GridPane.halignment="CENTER"/>
+    <HBox fx:id="boxDeadlock" spacing="5.0" GridPane.columnIndex="0" GridPane.rowIndex="3"
+          GridPane.columnSpan="2" alignment="CENTER" GridPane.halignment="CENTER">
+        <Button text="Remove Deadlock" onAction="#removeDeadlockState"/>
+        <Button text="Resolve Deadlock" onAction="#resolveDeadlockState"/>
+    </HBox>
+    <columnConstraints>
+        <ColumnConstraints percentWidth="95.0"/>
+        <ColumnConstraints percentWidth="5.0"/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints percentHeight="40.0"/>
+        <RowConstraints percentHeight="20.0"/>
+        <RowConstraints percentHeight="20.0"/>
+        <RowConstraints percentHeight="20.0"/>
+    </rowConstraints>
 </fx:root>
