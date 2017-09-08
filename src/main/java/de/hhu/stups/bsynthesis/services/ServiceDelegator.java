@@ -1,5 +1,8 @@
 package de.hhu.stups.bsynthesis.services;
 
+import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import org.fxmisc.easybind.EasyBind;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -33,6 +36,18 @@ public class ServiceDelegator {
         .bindBidirectional(proBApiService.synthesisSucceededProperty());
     synthesisContextService.modifiedMachineCodeProperty()
         .bindBidirectional(proBApiService.modifiedMachineCodeProperty());
+    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
+      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+        modelCheckingService.reset();
+      }
+    });
+    EasyBind.subscribe(proBApiService.mainStateSpaceProperty(), stateSpaces -> {
+      uiService.applicationEventStream().push(
+          new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
+      // bind one statespace to the synthesis context, the other instances are synchronized within
+      // {@link ProBApiService} according to this statespace
+      synthesisContextService.setStateSpace(proBApiService.getMainStateSpace());
+    });
   }
 
   public SynthesisContextService synthesisContextService() {
