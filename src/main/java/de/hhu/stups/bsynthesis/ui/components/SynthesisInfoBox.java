@@ -123,7 +123,7 @@ public class SynthesisInfoBox extends VBox implements Initializable {
             + getContextSpecificSynthesisType())));
     EasyBind.subscribe(synthesisContextService.currentOperationProperty(), currentOperation -> {
       if (currentOperation == null) {
-        infoTextProperty.set("");
+        Platform.runLater(() -> infoTextProperty.set(""));
       }
     });
   }
