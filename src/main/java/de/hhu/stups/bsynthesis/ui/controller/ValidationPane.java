@@ -44,6 +44,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import org.fxmisc.easybind.EasyBind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +73,7 @@ public class ValidationPane extends Pane implements Initializable {
 
   private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final ListProperty<BasicNode> nodes;
   private final SimpleDoubleProperty scaleFactorProperty;
   private final StateNodeFactory stateNodeFactory;
@@ -79,7 +81,6 @@ public class ValidationPane extends Pane implements Initializable {
   private final SynthesisContextService synthesisContextService;
   private final ModelCheckingService modelCheckingService;
   private final UiService uiService;
-  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private BasicNode dragNode;
   private double offsetX;
@@ -111,7 +112,7 @@ public class ValidationPane extends Pane implements Initializable {
     this.requestFocus();
     this.setPrefSize(WIDTH, HEIGHT);
 
-    synthesisContextService.stateSpaceProperty().addListener((observable, oldValue, newValue) -> {
+    EasyBind.subscribe(synthesisContextService.stateSpaceProperty(), stateSpace -> {
       getNodes().clear();
       modelCheckingService.indicatorPresentProperty().set(false);
     });
@@ -208,11 +209,14 @@ public class ValidationPane extends Pane implements Initializable {
 
   /**
    * Do not change the {@link SynthesisContextService#synthesisTypeProperty synthesis type } when
-   * synthesis is running or has been suspended by providing a distinguishing example.
+   * synthesis is running, has been suspended by providing a distinguishing example or aims at
+   * repairing a deadlock (the user decides what to do with deadlocks).
    */
   private boolean lockSynthesisType() {
     return synthesisContextService.synthesisSuspendedProperty()
-        .or(synthesisContextService.synthesisRunningProperty()).get();
+        .or(synthesisContextService.synthesisRunningProperty())
+        .or(synthesisContextService.modifyInvariantsProperty())
+        .or(modelCheckingService.deadlockRepairProperty().isNotNull()).get();
   }
 
   /**
@@ -332,7 +336,7 @@ public class ValidationPane extends Pane implements Initializable {
    * defective. Determine the machine operation that leads into the erroneous state.
    */
   public void initializeNodesFromTrace() {
-    final Trace initialMcTrace = modelCheckingService.errorFoundProperty().get();
+    final Trace initialMcTrace = modelCheckingService.errorTraceProperty().get();
     if (initialMcTrace == null) {
       return;
     }
@@ -374,7 +378,10 @@ public class ValidationPane extends Pane implements Initializable {
       nodesFromTraceGenerator.setPreviousTrace(trace);
       synthesisContextService.getAnimationSelector().changeCurrentAnimation(trace.back());
     }
-    Platform.runLater(this::ignoreNonViolatingVars);
+    if (modelCheckingService.deadlockRepairProperty().get() != null
+        && !modelCheckingService.deadlockRepairProperty().get().isRemoveDeadlock()) {
+      Platform.runLater(this::ignoreNonViolatingVars);
+    }
   }
 
   /**
@@ -462,6 +469,7 @@ public class ValidationPane extends Pane implements Initializable {
    */
   public void addNode(final BasicNode node) {
     if (node instanceof StateNode) {
+      // state node
       executorService.execute(new Task<Void>() {
         @Override
         protected Void call() throws Exception {
@@ -471,28 +479,29 @@ public class ValidationPane extends Pane implements Initializable {
           if (equivalentNode != null) {
             equivalentNode.highlightNodeEffect();
             return null;
-          } else {
-            Platform.runLater(() -> nodes.add(node));
-            addStateNodeAncestors(stateNode);
           }
+          Platform.runLater(() -> nodes.add(node));
+          addStateNodeAncestors(stateNode);
           return null;
         }
       });
-    } else {
-      executorService.execute((new Task<Void>() {
-        @Override
-        protected Void call() throws Exception {
-          final TransitionNode transitionNode = (TransitionNode) node;
-          transitionNode.validateTransition();
-          final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
-          if (equivalentNode != null) {
-            //Platform.runLater(equivalentNode::highlightNodeEffect);
-          }
-          Platform.runLater(() -> nodes.add(node));
+      return;
+    }
+    // transition node
+    executorService.execute((new Task<Void>() {
+      @Override
+      protected Void call() throws Exception {
+        final TransitionNode transitionNode = (TransitionNode) node;
+        transitionNode.validateTransition();
+        final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
+        if (equivalentNode != null) {
+          //Platform.runLater(equivalentNode::highlightNodeEffect);
           return null;
         }
-      }));
-    }
+        Platform.runLater(() -> nodes.add(node));
+        return null;
+      }
+    }));
   }
 
   /**
@@ -590,5 +599,24 @@ public class ValidationPane extends Pane implements Initializable {
 
   private boolean getExampleValidation(final BasicNode basicNode) {
     return basicNode.getXPosition() + basicNode.getWidth() / 2 < ValidationPane.WIDTH / 2;
+  }
+
+  /**
+   * The model checker found a deadlock state s and the user decided to synthesize a new operation
+   * or a adapt an existing one to transition from s to another state s' to resolve this deadlock.
+   * Therefore, we add a {@link TransitionNode} having s as its input state. The output state as
+   * well as other transitions need to be provided by the user.
+   */
+  public void initializeDeadlockResolveFromTrace() {
+    final Trace initialMcTrace = modelCheckingService.errorTraceProperty().get();
+    if (initialMcTrace == null) {
+      return;
+    }
+    synthesisContextService.stateSpaceProperty().set(initialMcTrace.getStateSpace());
+    final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
+        .create(initialMcTrace.getCurrentState(), null, new Point2D(100.0, 100.0),
+            NodeState.TENTATIVE);
+    transitionNode.inputStateFromModelChecking();
+    addNode(transitionNode);
   }
 }
