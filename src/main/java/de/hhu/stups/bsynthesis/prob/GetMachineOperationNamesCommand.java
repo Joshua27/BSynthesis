@@ -18,7 +18,8 @@ public class GetMachineOperationNamesCommand extends AbstractCommand {
 
   private final ListProperty<String> machineOperationNamesProperty;
 
-  // TODO: is this command redundant? can we access the machine operations using getMainComponent() on the statespace?
+  // TODO: is this command redundant? can we access the machine operations using getMainComponent()
+  // on the statespace?
 
   public GetMachineOperationNamesCommand() {
     machineOperationNamesProperty = new SimpleListProperty<>(FXCollections.observableArrayList());

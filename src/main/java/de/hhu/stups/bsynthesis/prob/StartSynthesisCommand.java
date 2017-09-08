@@ -100,7 +100,8 @@ public class StartSynthesisCommand extends AbstractCommand {
   private void printLibrary(final IPrologTermOutput pto) {
     if (selectedLibraryComponents.considerIfStatementsProperty().get().isExplicit()) {
       // consider the current var names for if-statements, here it would be possible to let the user
-      // additionally restrict the variables that if statements should be considered for, maybe later
+      // additionally restrict the variables that if statements should be considered for, maybe
+      // later
       pto.openList();
       currentVarNames.forEach(pto::printAtom);
       pto.closeList();

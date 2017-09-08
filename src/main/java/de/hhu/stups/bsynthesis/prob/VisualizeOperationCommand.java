@@ -32,6 +32,9 @@ public class VisualizeOperationCommand extends AbstractCommand {
   private final ListProperty<VarValueTuple> validTransitionEqualitiesProperty;
   private final ListProperty<String> invalidStateEqualitiesProperty;
 
+  /**
+   * Initialize properties and constructor parameters.
+   */
   public VisualizeOperationCommand(final String operationName,
                                    final int validTransitionsAmount,
                                    final int invalidStatesAmount) {

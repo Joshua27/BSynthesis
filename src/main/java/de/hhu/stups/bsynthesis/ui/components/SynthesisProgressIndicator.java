@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
@@ -38,6 +39,9 @@ public class SynthesisProgressIndicator extends GridPane implements Initializabl
   @SuppressWarnings("unused")
   private Label lbStatus;
 
+  /**
+   * Intitialize services and properties and inflate the layout.
+   */
   @Inject
   public SynthesisProgressIndicator(final FXMLLoader loader,
                                     final ServiceDelegator serviceDelegator) {

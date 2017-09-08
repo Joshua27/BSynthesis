@@ -30,6 +30,9 @@ public class VisualizeInvariantsCommand extends AbstractCommand {
   private final ListProperty<String> validStateEqualitiesProperty;
   private final ListProperty<String> invalidStateEqualitiesProperty;
 
+  /**
+   * Initialize properties and instance variables from constructor parameters.
+   */
   public VisualizeInvariantsCommand(final int validStatesAmount,
                                     final int invalidStatesAmount) {
     this.validStatesAmount = validStatesAmount;

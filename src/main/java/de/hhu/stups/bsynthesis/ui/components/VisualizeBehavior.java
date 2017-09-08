@@ -2,9 +2,10 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+
+import de.hhu.stups.bsynthesis.prob.VarValueTuple;
 import de.hhu.stups.bsynthesis.prob.VisualizeInvariantsCommand;
 import de.hhu.stups.bsynthesis.prob.VisualizeOperationCommand;
-import de.hhu.stups.bsynthesis.prob.VarValueTuple;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
@@ -43,6 +44,9 @@ public class VisualizeBehavior {
     this.synthesisContextService = synthesisContextService;
   }
 
+  /**
+   * Visualize the machine invariants by providing valid and invalid states.
+   */
   public Map<String, Set<StateNode>> visualizeInvariants(final StateNodeFactory stateNodeFactory) {
     int validRow = 0;
     int validCol = 0;
@@ -124,6 +128,9 @@ public class VisualizeBehavior {
     return new Point2D(col * StateNode.WIDTH * 3 + offsetX, row * StateNode.HEIGHT + offsetY);
   }
 
+  /**
+   * Visualize an existing operation by providing valid and invalid transitions.
+   */
   public Map<String, Set<TransitionNode>> visualizeOperation(
       final String operationName,
       final TransitionNodeFactory transitionNodeFactory) {
@@ -161,7 +168,8 @@ public class VisualizeBehavior {
     final Map<State, Point2D> invalidTuples =
         getStatePositionTuplesForNegativeEqualities(invalidStateEqualities);
     invalidTuples.forEach((state, pos) ->
-        invalidTransitions.add(transitionNodeFactory.create(state, null, pos, NodeState.TENTATIVE)));
+        invalidTransitions.add(transitionNodeFactory.create(state, null, pos,
+            NodeState.TENTATIVE)));
     return transitionNodes;
   }
 

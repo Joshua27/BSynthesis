@@ -466,7 +466,7 @@ public class ProBApiService {
       return;
     }
     final Thread resetSynthesisContextThread = new Thread(() -> {
-//      stateSpace.sendInterrupt();
+      //stateSpace.sendInterrupt();
       stateSpace.execute(new ResetSynthesisCommand());
     });
     resetSynthesisContextThread.setDaemon(true);
