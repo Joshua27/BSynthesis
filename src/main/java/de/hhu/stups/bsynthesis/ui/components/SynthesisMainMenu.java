@@ -2,10 +2,12 @@ package de.hhu.stups.bsynthesis.ui.components;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.prob.GetMachineOperationNamesCommand;
 import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
 import de.hhu.stups.bsynthesis.services.ApplicationEvent;
 import de.hhu.stups.bsynthesis.services.ApplicationEventType;
 import de.hhu.stups.bsynthesis.services.ControllerTab;
+import de.hhu.stups.bsynthesis.services.MachineVisualization;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
@@ -13,6 +15,8 @@ import de.hhu.stups.bsynthesis.services.SolverBackend;
 import de.hhu.stups.bsynthesis.services.SpecificationType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.UncoveredError;
+import de.hhu.stups.bsynthesis.services.VisualizationType;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
@@ -24,6 +28,7 @@ import de.prob.animator.command.GetPreferenceCommand;
 import de.prob.animator.command.SetPreferenceCommand;
 import de.prob.statespace.StateSpace;
 
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
@@ -33,7 +38,10 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextInputDialog;
@@ -42,8 +50,6 @@ import javafx.stage.Stage;
 
 import org.apache.commons.lang.math.NumberUtils;
 import org.fxmisc.easybind.EasyBind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.URL;
@@ -56,7 +62,6 @@ import java.util.regex.Pattern;
 
 public class SynthesisMainMenu extends MenuBar implements Initializable {
 
-  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final ObjectProperty<Stage> stageProperty;
   private final ValidationPane validationPane;
   private final SynthesisContextService synthesisContextService;
@@ -171,21 +176,18 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
 
   private void initializeMenuItemBindings() {
     final BooleanBinding disableMenu = synthesisContextService.stateSpaceProperty().isNull()
-        .or(synthesisRunningProperty);
+        .or(synthesisRunningProperty).or(modelCheckingService.indicatorPresentProperty());
     final BooleanBinding extendMachineDisabled = disableMenu
         .or(Bindings.when(ignoreModelCheckerProperty).then(false)
-            .otherwise(modelCheckingService.errorFoundProperty().isNotNull()
-                .or(modelCheckingService.indicatorPresentProperty())
+            .otherwise(modelCheckingService.errorTraceProperty().isNotNull()
                 .or(modelCheckingService.resultProperty().isNull())));
     menuItemOpen.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
-    menuItemClear.disableProperty().bind(disableMenu
-        .or(modelCheckingService.indicatorPresentProperty()));
+    menuItemClear.disableProperty().bind(disableMenu);
     menuItemSaveAs.disableProperty().bind(disableMenu);
     menuItemExpandAll.disableProperty().bind(disableMenu);
     menuItemShrinkAll.disableProperty().bind(disableMenu);
     menuItemCheckModel.disableProperty().bind(disableMenu
         .or(modelCheckingService.runningProperty())
-        .or(modelCheckingService.indicatorPresentProperty())
         .or(ignoreModelCheckerProperty)
         .or(modelCheckingService.resultProperty().isNotNull()));
     menuItemStopCheckModel.disableProperty().bind(disableMenu
@@ -195,33 +197,24 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     menuItemModifyInvariants.disableProperty().bind(extendMachineDisabled);
     menuItemNodesFromTrace.disableProperty().bind(disableMenu
         .or(ignoreModelCheckerProperty)
-        .or(modelCheckingService.errorFoundProperty().isNull())
-        .or(modelCheckingService.indicatorPresentProperty()));
+        .or(modelCheckingService.errorTraceProperty().isNull()));
     checkMenuItemInfo.selectedProperty().bindBidirectional(synthesisInfoBox.showInfoProperty());
     checkMenuItemInfo.disableProperty().bind(disableMenu
         .or(synthesisContextService.synthesisTypeProperty().isEqualTo(SynthesisType.NONE)));
     checkMenuItemIgnoreChecker.selectedProperty().bindBidirectional(ignoreModelCheckerProperty);
     checkMenuItemIgnoreChecker.disableProperty().bind(disableMenu
-        .or(modelCheckingService.indicatorPresentProperty())
         .or(modelCheckingService.runningProperty()));
     menuItemVerifyAllNodes.disableProperty().bind(disableMenu
         .or(synthesisRunningProperty)
-        .or(modelCheckingService.indicatorPresentProperty())
         .or(validationPane.getNodes().emptyProperty()));
     menuItemRunSynthesis.disableProperty().bind(disableMenu
         .or(validationPane.getNodes().emptyProperty())
-        .or(modelCheckingService.indicatorPresentProperty())
         .or(synthesisRunningProperty));
     menuItemStopSynthesis.disableProperty().bind(synthesisRunningProperty.not());
     menuItemConfigureLibrary.disableProperty()
         .bind(synthesisContextService.synthesisSucceededProperty());
     menuItemZoomIn.disableProperty().bind(uiService.zoomInEnabledProperty().not());
     menuItemZoomOut.disableProperty().bind(uiService.zoomOutEnabledProperty().not());
-    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
-      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
-        modelCheckingService.reset();
-      }
-    });
     menuItemSetTimeout.disableProperty().bind(disableMenu);
   }
 
@@ -239,18 +232,18 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     if (file == null) {
       return;
     }
-    final SpecificationType specificationType = proBApiService.loadMachine(file);
-    if (specificationType != null) {
-      synthesisContextService.setSpecificationType(specificationType);
-      synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
-    }
-    EasyBind.subscribe(proBApiService.mainStateSpaceProperty(), stateSpaces -> {
-      uiService.applicationEventStream().push(
-          new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
-      // bind one statespace to the synthesis context, the other instances are synchronized within
-      // {@link ProBApiService} according to this statespace
-      synthesisContextService.setStateSpace(proBApiService.getMainStateSpace());
+    final Thread loadMachineThread = new Thread(() -> {
+      uiService.resetCurrentVarBindings();
+      synthesisContextService.reset();
+      proBApiService.reset();
+      final SpecificationType specificationType = proBApiService.loadMachine(file);
+      if (specificationType != null) {
+        synthesisContextService.setSpecificationType(specificationType);
+        synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
+      }
     });
+    loadMachineThread.setDaemon(true);
+    loadMachineThread.start();
   }
 
   /**
@@ -264,12 +257,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     if (!operationNameOptional.isPresent()) {
       return;
     }
+    openSynthesisTab();
+    synthesisInfoBox.reset();
+    synthesisContextService.reset();
+    validationPane.getNodes().clear();
     synthesisContextService.setSynthesisType(SynthesisType.ACTION);
     synthesisContextService.setCurrentOperation(operationNameOptional.get());
     uiService.resetCurrentVarBindings();
-    openSynthesisTab();
-    validationPane.getNodes().clear();
-    synthesisInfoBox.reset();
     synthesisInfoBox.showInfoProperty().set(true);
   }
 
@@ -280,23 +274,39 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void modifyInvariants() {
     openSynthesisTab();
+    uiService.resetCurrentVarBindings();
+    synthesisContextService.reset();
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
-    synthesisContextService.setSynthesisType(SynthesisType.INVARIANT);
+    synthesisContextService.modifyInvariantsProperty().set(true);
+    Platform.runLater(() -> synthesisContextService.setSynthesisType(SynthesisType.INVARIANT));
+    uiService.visualizeBehaviorEventSource().push(new MachineVisualization());
   }
 
   /**
    * Clear the {@link ValidationPane} and show the nodes from the trace found by the model checker.
    * Only enabled if the model checker found an error {@link
-   * ModelCheckingService#errorFoundProperty()}.
+   * ModelCheckingService#errorTraceProperty()}.
    */
   @FXML
   @SuppressWarnings("unused")
   public void showNodesFromTrace() {
     openSynthesisTab();
-    synthesisContextService.setSynthesisType(SynthesisType.GUARD);
-    validationPane.getNodes().clear();
-    validationPane.initializeNodesFromTrace();
     proBApiService.reset();
+    validationPane.getNodes().clear();
+    final UncoveredError uncoveredError =
+        modelCheckingService.resultProperty().get().getUncoveredError();
+    if (uncoveredError.isInvariantViolation() || (uncoveredError.isDeadlock()
+        && modelCheckingService.deadlockRepairProperty().get().isRemoveDeadlock())) {
+      // invariant violation or deadlock where the user decided to remove the deadlock state from
+      // the model, i.e., the precondition of the affected operation needs to be strengthened
+      synthesisContextService.setSynthesisType(SynthesisType.GUARD);
+      validationPane.initializeNodesFromTrace();
+      return;
+    }
+    // the user decided to resolve the deadlock state s by synthesizing a new operation to
+    // transition from s to another state s'
+    synthesisContextService.setSynthesisType(SynthesisType.ACTION);
+    validationPane.initializeDeadlockResolveFromTrace();
   }
 
   /**
@@ -306,9 +316,14 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void visualizeOperation() {
     openSynthesisTab();
+    synthesisContextService.reset();
+    uiService.resetCurrentVarBindings();
     validationPane.getNodes().clear();
-    synthesisContextService.setSynthesisType(SynthesisType.ACTION);
-    // TODO
+    final Optional<String> operationName = getExistingOperationName();
+    if (operationName != null && operationName.isPresent()) {
+      uiService.visualizeBehaviorEventSource().push(
+          new MachineVisualization(VisualizationType.OPERATION, operationName.get()));
+    }
   }
 
   private void openSynthesisTab() {
@@ -323,12 +338,14 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void runModelChecking() {
-    openSynthesisTab();
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
-    validationPane.reset();
     if (stateSpace == null) {
       return;
     }
+    openSynthesisTab();
+    uiService.resetCurrentVarBindings();
+    validationPane.reset();
+    synthesisContextService.reset();
     modelCheckingService.stateSpaceEventStream().push(stateSpace);
   }
 
@@ -373,14 +390,15 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void verifyAllNodes() {
-    validationPane.getNodes().forEach(basicNode -> {
-      if (basicNode instanceof TransitionNode) {
-        final TransitionNode transitionNode = (TransitionNode) basicNode;
-        transitionNode.validateTransition();
-        return;
-      }
-      ((StateNode) basicNode).validateState();
-    });
+    validationPane.getNodes().forEach(basicNode ->
+        new Thread(() -> {
+          if (basicNode instanceof TransitionNode) {
+            final TransitionNode transitionNode = (TransitionNode) basicNode;
+            transitionNode.validateTransition();
+            return;
+          }
+          ((StateNode) basicNode).validateState();
+        }).start());
   }
 
   /**
@@ -424,11 +442,6 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     final List<BasicNode> invalidNodes = validationPane.getInvalidNodes();
     addPredecessorNodesIfGuard(invalidNodes);
     final List<BasicNode> validNodes = validationPane.getValidNodes();
-    if (validNodes.isEmpty() && invalidNodes.isEmpty()) {
-      logger.error(
-          "Positive and negative examples are empty, running synthesis should not be enabled.");
-      return;
-    }
     final HashMap<String, List<BasicNode>> examples = new HashMap<>();
     examples.put("valid", validNodes);
     examples.put("invalid", invalidNodes);
@@ -469,16 +482,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   }
 
   /**
-   * Clear the {@link ValidationPane}, i.e., delete all available nodes.
+   * Clear the {@link ValidationPane} by deleting all available nodes.
    */
   @FXML
   @SuppressWarnings("unused")
   public void clear() {
     openSynthesisTab();
-    synthesisContextService.synthesisTypeProperty().set(SynthesisType.NONE);
-    synthesisContextService.currentOperationProperty().set(null);
     validationPane.getNodes().clear();
-    synthesisInfoBox.isMinimizedProperty().set(true);
   }
 
   @FXML
@@ -527,7 +537,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   private Optional<String> getOperationNameFromDialog() {
     final TextInputDialog textInputDialog =
         getTextInputDialog("New Operation", "Set a name for the new operation:");
-    textInputDialog.setContentText("");
+    textInputDialog.getEditor().clear();
     final Optional<String> operationNameOptional = textInputDialog.showAndWait();
     if (operationNameOptional.isPresent() && !isValidOperationName(operationNameOptional.get())) {
       return getOperationNameFromDialog();
@@ -563,14 +573,45 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   }
 
   /**
+   * Show a {@link ChoiceDialog} to choose an operation to be visualized.
+   */
+  private Optional<String> getExistingOperationName() {
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    final GetMachineOperationNamesCommand getMachineOperationNamesCommand =
+        new GetMachineOperationNamesCommand();
+    stateSpace.execute(getMachineOperationNamesCommand);
+    final List<String> operationNames = getMachineOperationNamesCommand.getMachineOperationNames();
+    if (operationNames.isEmpty()) {
+      final Alert alert = new Alert(Alert.AlertType.ERROR,
+          "The machine currently has no operations.", ButtonType.OK);
+      alert.showAndWait();
+      return null;
+    }
+    final ChoiceDialog<String> choiceDialog =
+        new ChoiceDialog<>(operationNames.get(0), operationNames);
+    choiceDialog.setTitle("Visualize Operation");
+    choiceDialog.setHeaderText(null);
+    choiceDialog.setContentText("Choose an operation to be visualized");
+    return choiceDialog.showAndWait();
+  }
+
+  /**
    * An operation name is valid if it doesn't already exist and does not contain any special
    * character except of underscore '_'.
    */
   private boolean isValidOperationName(final String operationName) {
-    // TODO: check if operation with this name already exists
+    if (operationName.isEmpty()) {
+      return false;
+    }
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    final GetMachineOperationNamesCommand getMachineOperationNamesCommand =
+        new GetMachineOperationNamesCommand();
+    stateSpace.execute(getMachineOperationNamesCommand);
+    if (getMachineOperationNamesCommand.getMachineOperationNames().contains(operationName)) {
+      return false;
+    }
     final Pattern p = Pattern.compile("[^a-z0-9_ ]", Pattern.CASE_INSENSITIVE);
     return operationName.split(" ").length == 1
         && !p.matcher(operationName).find();
   }
-
 }
