@@ -8,9 +8,10 @@
 
 # Background
 
-Writing a formal model is a complicated and time-consuming task. Usually, one successively refines a model with the help of provers or model checkers. In case an invariant violation is found or if a proof fails, the model has to be adapted. However, in general,
+Writing a formal model is a complicated and time-consuming task. Usually, one successively refines a model with the help of provers or model checkers. In case an error is found or if a proof fails, the model has to be adapted. However, in general,
 finding the appropriate set of changes is non-trivial.
 We propose partially automating the process using software synthesis: Guided by examples of positive and negative behavior we strengthen preconditions or relax invariants appropriately. Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
+Relating to model repair we are hereby able to resolve invariant violations as well as deadlock states for a defective machine.
 All this is done using constant user feedback, yielding an interactive assistant.
 
 # References
