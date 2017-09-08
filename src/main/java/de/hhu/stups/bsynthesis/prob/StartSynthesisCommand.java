@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 public class StartSynthesisCommand extends AbstractCommand {
 
-  private static final String PROLOG_COMMAND_NAME = "start_synthesis";
+  private static final String PROLOG_COMMAND_NAME = "start_synthesis_from_ui";
   private static final String DISTINGUISHING_EXAMPLE = "Distinguishing";
   private static final String MODIFIED_MACHINE = "NewMachine";
 
@@ -50,6 +50,7 @@ public class StartSynthesisCommand extends AbstractCommand {
   private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty =
       new SimpleObjectProperty<>();
   private final SolverBackend solverBackend;
+  private final Set<String> currentVarNames;
 
   /**
    * Start the synthesis workflow by calling the prolog backend.
@@ -66,10 +67,11 @@ public class StartSynthesisCommand extends AbstractCommand {
     this.negativeExamples = getInputOutputExamples(examples.get("invalid"), currentVarNames);
     this.selectedLibraryComponents = selectedLibraryComponents;
     this.solverBackend = solverBackend;
+    this.currentVarNames = currentVarNames;
   }
 
   /**
-   * Copy constructor for {@link StartSynthesisCommand} with deep copy of {@link BLibrary}.
+   * Copy constructor for {@link StartSynthesisCommand} with a deep copy of {@link BLibrary}.
    */
   public StartSynthesisCommand(final StartSynthesisCommand startSynthesisCommand) {
     currentOperation = startSynthesisCommand.getCurrentOperation();
@@ -78,21 +80,37 @@ public class StartSynthesisCommand extends AbstractCommand {
     negativeExamples = new HashSet<>(startSynthesisCommand.getNegativeExamples());
     selectedLibraryComponents = new BLibrary(startSynthesisCommand.getSelectedLibraryComponents());
     solverBackend = startSynthesisCommand.getSolverBackend();
+    currentVarNames = startSynthesisCommand.getCurrentVarNames();
   }
 
   @Override
   public void writeCommand(final IPrologTermOutput pto) {
     pto.openTerm(PROLOG_COMMAND_NAME);
     selectedLibraryComponents.printToPrologTerm(pto);
-    pto.printAtom(solverBackend.toString())
-        .printAtom(selectedLibraryComponents.considerIfStatementsProperty().get()
-            ? "yes" : "no")
-        .printAtom(currentOperation)
+    pto.printAtom(solverBackend.toString());
+    printLibrary(pto);
+    pto.printAtom(currentOperation)
         .printAtom(synthesisType.toEventBString().toLowerCase());
     printList(pto, positiveExamples);
     printList(pto, negativeExamples);
     pto.printVariable(MODIFIED_MACHINE).printVariable(DISTINGUISHING_EXAMPLE).closeTerm();
     logger.info("Start synthesis prolog backend by calling prob2_interface: {}", pto);
+  }
+
+  private void printLibrary(final IPrologTermOutput pto) {
+    if (selectedLibraryComponents.considerIfStatementsProperty().get().isExplicit()) {
+      // consider the current var names for if-statements, here it would be possible to let the user
+      // additionally restrict the variables that if statements should be considered for, maybe later
+      pto.openList();
+      currentVarNames.forEach(pto::printAtom);
+      pto.closeList();
+    } else if (selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit()) {
+      // implicit if-statements as described in the thesis
+      pto.printAtom("implicit");
+    } else {
+      // do not consider if-statements
+      pto.openList().closeList();
+    }
   }
 
   @Override
@@ -199,5 +217,9 @@ public class StartSynthesisCommand extends AbstractCommand {
 
   private SolverBackend getSolverBackend() {
     return solverBackend;
+  }
+
+  private Set<String> getCurrentVarNames() {
+    return currentVarNames;
   }
 }
