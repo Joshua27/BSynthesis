@@ -3,8 +3,9 @@
 <?import javafx.scene.Group?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.control.ScrollPane?>
-<?import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox?>
 <?import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator?>
+<?import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox?>
+<?import de.hhu.stups.bsynthesis.ui.components.SynthesisProgressIndicator?>
 <?import de.hhu.stups.bsynthesis.ui.controller.ValidationPane?>
 
 <fx:root type="ScrollPane" xmlns:fx="http://javafx.com/fxml">
@@ -14,6 +15,7 @@
                 <ValidationPane fx:id="validationPane"/>
             </Group>
             <ModelCheckingProgressIndicator fx:id="modelCheckingIndicator"/>
+            <SynthesisProgressIndicator fx:id="synthesisProgressIndicator"/>
             <SynthesisInfoBox fx:id="synthesisInfoBox"/>
         </AnchorPane>
     </Group>
