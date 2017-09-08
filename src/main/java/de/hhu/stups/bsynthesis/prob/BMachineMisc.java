@@ -1,9 +1,11 @@
 package de.hhu.stups.bsynthesis.prob;
 
+import de.prob.model.classicalb.Operation;
 import de.prob.model.representation.AbstractElement;
 import de.prob.model.representation.Variable;
 import de.prob.statespace.StateSpace;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 
 public interface BMachineMisc {
