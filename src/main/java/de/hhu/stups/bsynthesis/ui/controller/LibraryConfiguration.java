@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
+import de.hhu.stups.bsynthesis.ui.components.library.ConsiderIfType;
 import de.hhu.stups.bsynthesis.ui.components.library.LibraryComponent;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
@@ -26,6 +27,7 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeTableColumn;
 import javafx.scene.control.TreeTableView;
 import javafx.scene.layout.GridPane;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -104,7 +106,10 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   private CheckBox cbDefaultConfiguration;
   @FXML
   @SuppressWarnings("unused")
-  private CheckBox cbConsiderIf;
+  private CheckBox cbConsiderExplicitIf;
+  @FXML
+  @SuppressWarnings("unused")
+  private CheckBox cbConsiderImplicitIf;
   @FXML
   @SuppressWarnings("unused")
   private Button btIncreaseSelectedComponentAmount;
@@ -134,8 +139,26 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
     staticBLibrary.initializeLibrary();
-    selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
-        .bindBidirectional(cbConsiderIf.selectedProperty());
+    EasyBind.subscribe(cbConsiderExplicitIf.selectedProperty(), explicitIf -> {
+      if (explicitIf) {
+        cbConsiderImplicitIf.setSelected(false);
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.EXPLICIT);
+      } else {
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.NONE);
+      }
+    });
+    EasyBind.subscribe(cbConsiderImplicitIf.selectedProperty(), implicitIf -> {
+      if (implicitIf) {
+        cbConsiderExplicitIf.setSelected(false);
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.IMPLICIT);
+      } else {
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.NONE);
+      }
+    });
 
     synthesisContextService.useDefaultLibraryProperty()
         .bind(selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());

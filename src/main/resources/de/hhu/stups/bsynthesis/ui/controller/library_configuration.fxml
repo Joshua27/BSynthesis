@@ -14,7 +14,8 @@
 <fx:root type="GridPane" xmlns:fx="http://javafx.com/fxml" styleClass="windowPadding" vgap="5.0">
     <HBox spacing="10.0" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2">
         <CheckBox fx:id="cbDefaultConfiguration" text="Use default configuration" selected="true"/>
-        <CheckBox fx:id="cbConsiderIf" text="Consider If-statements"/>
+        <CheckBox fx:id="cbConsiderExplicitIf" text="Consider Explicit If-statements"/>
+        <CheckBox fx:id="cbConsiderImplicitIf" text="Consider Implicit If-statements"/>
     </HBox>
     <TreeTableView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="1"
                    showRoot="false">

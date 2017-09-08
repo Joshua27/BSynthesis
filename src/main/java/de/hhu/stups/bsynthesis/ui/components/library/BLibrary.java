@@ -3,9 +3,11 @@ package de.hhu.stups.bsynthesis.ui.components.library;
 import de.prob.prolog.output.IPrologTermOutput;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
@@ -30,7 +32,7 @@ import java.util.stream.Stream;
  */
 public class BLibrary {
 
-  private static final int MAXIMUM_LIBRARY_EXPANSION = 5;
+  private static final int MAXIMUM_LIBRARY_EXPANSION = 10;
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final SetProperty<LibraryComponent> predicatesProperty =
@@ -45,7 +47,7 @@ public class BLibrary {
       new SimpleSetProperty<>(FXCollections.observableSet());
   private final SetProperty<LibraryComponent> substitutionsProperty =
       new SimpleSetProperty<>(FXCollections.observableSet());
-  private final BooleanProperty considerIfStatementsProperty;
+  private final ObjectProperty<ConsiderIfType> considerIfStatementsProperty;
   private final BooleanProperty useDefaultLibraryProperty;
   private final IntegerProperty defaultLibraryExpansionProperty;
 
@@ -53,7 +55,7 @@ public class BLibrary {
    * Initialize library settings properties.
    */
   public BLibrary() {
-    considerIfStatementsProperty = new SimpleBooleanProperty(false);
+    considerIfStatementsProperty = new SimpleObjectProperty<>(ConsiderIfType.NONE);
     useDefaultLibraryProperty = new SimpleBooleanProperty(true);
     defaultLibraryExpansionProperty = new SimpleIntegerProperty(1);
   }
@@ -68,7 +70,7 @@ public class BLibrary {
     relationsProperty.addAll(library.getRelations());
     sequencesProperty.addAll(library.getSequences());
     substitutionsProperty.addAll(library.getSubstitutions());
-    considerIfStatementsProperty = new SimpleBooleanProperty(
+    considerIfStatementsProperty = new SimpleObjectProperty<>(
         library.considerIfStatementsProperty.get());
     useDefaultLibraryProperty = new SimpleBooleanProperty(
         library.useDefaultLibraryProperty.get());
@@ -76,7 +78,7 @@ public class BLibrary {
         library.getLibraryExpansion());
   }
 
-  public BooleanProperty considerIfStatementsProperty() {
+  public ObjectProperty<ConsiderIfType> considerIfStatementsProperty() {
     return considerIfStatementsProperty;
   }
 
