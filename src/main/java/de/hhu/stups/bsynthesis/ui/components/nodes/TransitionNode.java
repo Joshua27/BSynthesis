@@ -16,6 +16,7 @@ import javafx.fxml.JavaFXBuilderFactory;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -75,6 +76,12 @@ public class TransitionNode extends BasicNode implements Initializable {
 
     StackPane.setAlignment(inputStateNode, Pos.CENTER_LEFT);
     StackPane.setAlignment(outputStateNode, Pos.CENTER_RIGHT);
+
+    EasyBind.subscribe(isExpandedProperty() , isExpanded -> {
+      if (isExpanded) {
+        uiService.adjustNodePositionEventSource().push(this);
+      }
+    });
   }
 
   private void setUserValidationHighlighting(final boolean positive) {

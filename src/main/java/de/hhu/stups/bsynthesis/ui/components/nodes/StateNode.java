@@ -48,6 +48,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.util.Duration;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.HashSet;
@@ -60,8 +61,8 @@ public class StateNode extends BasicNode implements Initializable {
 
   public static final double WIDTH = 100;
   public static final double HEIGHT = 100;
-  private static final double EXPANDED_WIDTH = 400;
-  private static final double EXPANDED_HEIGHT = 300;
+  public static final double EXPANDED_WIDTH = 400;
+  public static final double EXPANDED_HEIGHT = 300;
 
   private final ObjectProperty<State> stateProperty;
   private final MapProperty<String, String> tableViewStateMapProperty;
@@ -329,6 +330,7 @@ public class StateNode extends BasicNode implements Initializable {
   }
 
   private void resizeNode(final boolean expand) {
+    toFront();
     final Timeline timeline = new Timeline();
     final double targetWidth = expand ? EXPANDED_WIDTH : WIDTH;
     final double targetHeight = expand ? EXPANDED_HEIGHT : HEIGHT;
@@ -337,8 +339,8 @@ public class StateNode extends BasicNode implements Initializable {
         new KeyValue(nodeHeightProperty(), targetHeight));
     timeline.getKeyFrames().add(expandAnimation);
     timeline.play();
-    uiService.adjustNodePositionEventSource().push(this);
-    toFront();
+    EasyBind.subscribe(timeline.onFinishedProperty(), actionEventEventHandler ->
+        uiService.adjustNodePositionEventSource().push(this));
   }
 
   /**

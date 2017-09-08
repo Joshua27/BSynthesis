@@ -24,6 +24,8 @@ import org.reactfx.util.Timer;
 
 public class BasicNode extends StackPane {
 
+  public final UiService uiService;
+
   private final DoubleProperty positionXProperty;
   private final DoubleProperty positionYProperty;
   private final BooleanProperty isExpandedProperty;
@@ -36,7 +38,6 @@ public class BasicNode extends StackPane {
   private final BooleanProperty transparentBackgroundProperty;
   private final BooleanProperty userValidationProperty;
   private final Timer updateUserValidationTimer;
-  private final UiService uiService;
 
   BasicNode(final Point2D position,
             final NodeState nodeState,

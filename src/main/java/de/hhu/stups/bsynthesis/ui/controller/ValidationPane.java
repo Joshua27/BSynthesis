@@ -154,20 +154,27 @@ public class ValidationPane extends Pane implements Initializable {
    * Prevent {@link BasicNode} to leave the validation pane.
    */
   private void adjustPositionIfNecessary(final BasicNode basicNode) {
-    final double currentWidth = basicNode.getWidth();
-    final double currentHeight = basicNode.getHeight();
+    final boolean isExpanded = basicNode.isExpandedProperty().get();
+    final double currentWidth;
+    final double currentHeight;
+    if (basicNode instanceof StateNode) {
+      currentWidth = isExpanded ? StateNode.EXPANDED_WIDTH : StateNode.WIDTH;
+    } else {
+      currentWidth = (isExpanded ? StateNode.EXPANDED_WIDTH : StateNode.WIDTH) * 2 + 100;
+    }
+    currentHeight = isExpanded ? StateNode.EXPANDED_HEIGHT : StateNode.HEIGHT;
     if (!isValidXPosition(basicNode.getXPosition(), currentWidth)) {
       if (basicNode.getXPosition() < 0) {
         basicNode.setXPosition(5.0);
       } else if (basicNode.getXPosition() + currentWidth > ValidationPane.WIDTH) {
-        basicNode.setXPosition(ValidationPane.WIDTH - currentWidth - 5.0);
+        basicNode.setXPosition(ValidationPane.WIDTH - currentWidth - 20.0);
       }
     }
     if (!isValidYPosition(basicNode.getYPosition(), currentHeight)) {
       if (basicNode.getYPosition() < 0) {
         basicNode.setYPosition(5.0);
       } else if (basicNode.getYPosition() + currentHeight > ValidationPane.HEIGHT) {
-        basicNode.setYPosition(ValidationPane.HEIGHT - currentHeight - 5.0);
+        basicNode.setYPosition(ValidationPane.HEIGHT - currentHeight - 20.0);
       }
     }
   }
