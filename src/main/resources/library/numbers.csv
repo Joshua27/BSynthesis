@@ -16,3 +16,4 @@ Less,less,m<n
 Greater Equal,greater_equal,m>=n
 Less Equal,less_equal,m<=n
 Interval,interval,m .. n
+Power Of,power_of,m**n
