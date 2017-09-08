@@ -465,10 +465,8 @@ public class ProBApiService {
     if (stateSpace == null) {
       return;
     }
-    final Thread resetSynthesisContextThread = new Thread(() -> {
-      //stateSpace.sendInterrupt();
-      stateSpace.execute(new ResetSynthesisCommand());
-    });
+    final Thread resetSynthesisContextThread = new Thread(() ->
+        stateSpace.execute(new ResetSynthesisCommand()));
     resetSynthesisContextThread.setDaemon(true);
     resetSynthesisContextThread.start();
   }

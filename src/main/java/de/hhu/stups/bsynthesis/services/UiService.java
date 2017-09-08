@@ -101,7 +101,6 @@ public class UiService {
 
   private void pushAndValidateNode(final BasicNode basicNode) {
     showNodeEventSource.push(basicNode);
-    //transitionNode.validateTransition();
   }
 
   /**
