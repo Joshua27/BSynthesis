@@ -1,19 +1,24 @@
 package de.hhu.stups.bsynthesis.services;
 
+import de.hhu.stups.bsynthesis.ui.components.VisualizeBehavior;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.NodeLine;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
+import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.MapProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleMapProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableSet;
+import org.fxmisc.easybind.EasyBind;
 import org.reactfx.EventSource;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -25,19 +30,24 @@ public class UiService {
 
   private final EventSource<ApplicationEvent> applicationEventStream;
   private final EventSource<UiZoom> zoomEventStream;
-  // TODO: merge some event sources
+  // TODO: maybe merge some event sources
   private final EventSource<BasicNode> showNodeEventSource;
   private final EventSource<BasicNode> removeNodeEventSource;
+  private final EventSource<BasicNode> userValidationEventSource;
+  private final EventSource<BasicNode> adjustNodePositionEventSource;
   private final EventSource<StateNode> checkDuplicateStateNodeEventSource;
   private final EventSource<NodeLine> addNodeConnectionEventSource;
+  private final EventSource<MachineVisualization> visualizeBehaviorEventSource;
+
   private final NodeContextMenuFactory nodeContextMenuFactory;
   private final StateNodeFactory stateNodeFactory;
   private final TransitionNodeFactory transitionNodeFactory;
+
   private final BooleanProperty zoomInEnabledProperty;
   private final BooleanProperty zoomOutEnabledProperty;
   private final MapProperty<String, BooleanProperty> currentVarStatesMapProperty;
-  private final EventSource<BasicNode> userValidationEventSource;
-  private final EventSource<BasicNode> adjustNodePositionEventSource;
+
+  private final VisualizeBehavior visualizeBehavior;
 
   /**
    * Initialize node factories and event sources.
@@ -45,10 +55,13 @@ public class UiService {
   @Inject
   public UiService(final NodeContextMenuFactory nodeContextMenuFactory,
                    final StateNodeFactory stateNodeFactory,
-                   final TransitionNodeFactory transitionNodeFactory) {
+                   final TransitionNodeFactory transitionNodeFactory,
+                   final VisualizeBehavior visualizeBehavior) {
     this.nodeContextMenuFactory = nodeContextMenuFactory;
     this.stateNodeFactory = stateNodeFactory;
     this.transitionNodeFactory = transitionNodeFactory;
+    this.visualizeBehavior = visualizeBehavior;
+
     currentVarStatesMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
     applicationEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
@@ -60,6 +73,35 @@ public class UiService {
     zoomOutEnabledProperty = new SimpleBooleanProperty();
     addNodeConnectionEventSource = new EventSource<>();
     adjustNodePositionEventSource = new EventSource<>();
+    visualizeBehaviorEventSource = new EventSource<>();
+    visualizeBehaviorEventSource.subscribe(this::handleMachineVisualization);
+  }
+
+  private void handleMachineVisualization(final MachineVisualization machineVisualization) {
+    final Thread visualizationThread;
+    if (machineVisualization.getVisualizationType().isInvariant()) {
+      visualizationThread = new Thread(() -> {
+        final Map<String, Set<StateNode>> stateNodes =
+            visualizeBehavior.visualizeInvariants(stateNodeFactory);
+        stateNodes.get("valid").forEach(this::pushAndValidateNode);
+        stateNodes.get("invalid").forEach(this::pushAndValidateNode);
+      });
+    } else {
+      visualizationThread = new Thread(() -> {
+        final Map<String, Set<TransitionNode>> transitionNodes =
+            visualizeBehavior.visualizeOperation(machineVisualization.getOperationName(),
+                transitionNodeFactory);
+        transitionNodes.get("valid").forEach(this::pushAndValidateNode);
+        transitionNodes.get("invalid").forEach(this::pushAndValidateNode);
+      });
+    }
+    visualizationThread.setDaemon(true);
+    visualizationThread.start();
+  }
+
+  private void pushAndValidateNode(final BasicNode basicNode) {
+    showNodeEventSource.push(basicNode);
+    //transitionNode.validateTransition();
   }
 
   /**
@@ -70,6 +112,24 @@ public class UiService {
     currentVarStatesMapProperty.clear();
     machineVarNames.forEach(machineVarName ->
         currentVarStatesMapProperty.put(machineVarName, new SimpleBooleanProperty(false)));
+    currentVarStatesMapProperty.values().forEach(booleanProperty ->
+        EasyBind.subscribe(booleanProperty, aBoolean -> {
+          if (aBoolean) {
+            doNotIgnoreVarIfAllIgnored(booleanProperty);
+          }
+        }));
+  }
+
+  /**
+   * If a machine variable is set to be ignored check if at least one machine variable is
+   * considered. Otherwise, do not allow to ignore this variable.
+   */
+  private void doNotIgnoreVarIfAllIgnored(final BooleanProperty ignoreVarProperty) {
+    final Optional<BooleanProperty> optionalConsideredVar = currentVarStatesMapProperty.values()
+        .stream().filter(booleanProperty -> !booleanProperty.get()).findAny();
+    if (!optionalConsideredVar.isPresent()) {
+      ignoreVarProperty.set(false);
+    }
   }
 
   public BooleanProperty zoomInEnabledProperty() {
@@ -144,6 +204,10 @@ public class UiService {
 
   public EventSource<BasicNode> adjustNodePositionEventSource() {
     return adjustNodePositionEventSource;
+  }
+
+  public EventSource<MachineVisualization> visualizeBehaviorEventSource() {
+    return visualizeBehaviorEventSource;
   }
 
   public enum UiZoom {
