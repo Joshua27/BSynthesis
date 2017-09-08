@@ -148,4 +148,12 @@ public class TransitionNode extends BasicNode implements Initializable {
   private void validateOutputState() {
     outputStateNode.validateState();
   }
+
+  /**
+   * Set the {@link #inputStateNode} to be non-editable if it has been provided by the model
+   * checker when synthesizing a new operation to repair a deadlock.
+   */
+  public void inputStateFromModelChecking() {
+    inputStateNode.stateFromModelCheckingProperty().set(true);
+  }
 }
