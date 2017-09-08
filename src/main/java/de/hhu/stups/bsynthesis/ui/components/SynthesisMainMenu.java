@@ -320,10 +320,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     uiService.resetCurrentVarBindings();
     validationPane.getNodes().clear();
     final Optional<String> operationName = getExistingOperationName();
-    if (operationName != null && operationName.isPresent()) {
-      uiService.visualizeBehaviorEventSource().push(
-          new MachineVisualization(VisualizationType.OPERATION, operationName.get()));
-    }
+    operationName.ifPresent(s -> uiService.visualizeBehaviorEventSource().push(
+        new MachineVisualization(VisualizationType.OPERATION, s)));
   }
 
   private void openSynthesisTab() {
@@ -585,7 +583,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
       final Alert alert = new Alert(Alert.AlertType.ERROR,
           "The machine currently has no operations.", ButtonType.OK);
       alert.showAndWait();
-      return null;
+      return Optional.empty();
     }
     final ChoiceDialog<String> choiceDialog =
         new ChoiceDialog<>(operationNames.get(0), operationNames);
