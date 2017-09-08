@@ -1,6 +1,6 @@
 /* ScrollBar */
 .scroll-bar {
-    -fx-background-color: transparent;
+    -fx-background-color: #FAFAFA;
 }
 
 .scroll-bar > .thumb {
