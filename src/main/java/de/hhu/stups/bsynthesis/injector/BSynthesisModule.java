@@ -15,6 +15,7 @@ import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisMainMenu;
+import de.hhu.stups.bsynthesis.ui.components.SynthesisProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.factories.NodeContextMenuFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.StateNodeFactory;
 import de.hhu.stups.bsynthesis.ui.components.factories.TransitionNodeFactory;
@@ -53,6 +54,7 @@ public class BSynthesisModule extends AbstractModule {
     bind(ModelCheckingService.class);
     bind(ServiceDelegator.class);
     bind(ModelCheckingProgressIndicator.class);
+    bind(SynthesisProgressIndicator.class);
     bind(SynthesisMainMenu.class);
     bind(NodeHeader.class);
     bind(ValidationPane.class);
