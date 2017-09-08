@@ -6,9 +6,13 @@ import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
+import de.hhu.stups.bsynthesis.ui.components.DeadlockRepair;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
+import de.hhu.stups.bsynthesis.ui.components.ModelCheckingResult;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
+import de.hhu.stups.bsynthesis.ui.components.SynthesisProgressIndicator;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,6 +21,8 @@ import javafx.scene.Group;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
+import org.fxmisc.easybind.EasyBind;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -58,6 +64,9 @@ public class SynthesisView extends ScrollPane implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   private ModelCheckingProgressIndicator modelCheckingIndicator;
+  @FXML
+  @SuppressWarnings("unused")
+  private SynthesisProgressIndicator synthesisProgressIndicator;
 
   /**
    * Initialize scale property and services.
@@ -76,26 +85,30 @@ public class SynthesisView extends ScrollPane implements Initializable {
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
     contentAnchorPane.getChildren().remove(modelCheckingIndicator);
+    contentAnchorPane.getChildren().remove(synthesisProgressIndicator);
     synthesisInfoBox.setTranslateZ(1);
     updateInfoBoxPosition();
 
-    hvalueProperty().addListener((observable, oldValue, newValue) -> {
+    EasyBind.subscribe(hvalueProperty(), number -> {
       updateInfoBoxPosition();
-      updateProgressIndicatorPosition();
+      updateProgressIndicatorPosition(modelCheckingIndicator);
+      updateProgressIndicatorPosition(synthesisProgressIndicator);
     });
-    vvalueProperty().addListener((observable, oldValue, newValue) -> {
+    EasyBind.subscribe(vvalueProperty(), number -> {
       updateInfoBoxPosition();
-      updateProgressIndicatorPosition();
+      updateProgressIndicatorPosition(modelCheckingIndicator);
+      updateProgressIndicatorPosition(synthesisProgressIndicator);
     });
-
-    viewportBoundsProperty().addListener((observable, oldValue, newValue) -> {
-      contentAnchorPane.setMinSize(newValue.getWidth(), newValue.getHeight());
+    EasyBind.subscribe(viewportBoundsProperty(), bounds -> {
+      contentAnchorPane.setMinSize(bounds.getWidth(), bounds.getHeight());
       updateInfoBoxPosition();
-      updateProgressIndicatorPosition();
+      updateProgressIndicatorPosition(modelCheckingIndicator);
+      updateProgressIndicatorPosition(synthesisProgressIndicator);
     });
 
     initializeUiListener();
     initializeModelCheckingIndicator();
+    initializeSynthesisIndicator();
     initializeScaleEvents();
   }
 
@@ -113,36 +126,72 @@ public class SynthesisView extends ScrollPane implements Initializable {
     uiService.zoomOutEnabledProperty().bind(scaleFactorProperty.greaterThan(MAX_ZOOM_OUT));
   }
 
+  private void initializeSynthesisIndicator() {
+    updateProgressIndicatorPosition(synthesisProgressIndicator);
+    synthesisProgressIndicator.setTranslateZ(1);
+    setIndicatorListener(synthesisProgressIndicator,
+        synthesisProgressIndicator.indicatorPresentProperty());
+  }
+
   private void initializeModelCheckingIndicator() {
     modelCheckingIndicator.setTranslateZ(1);
-    updateProgressIndicatorPosition();
+    updateProgressIndicatorPosition(modelCheckingIndicator);
 
-    modelCheckingIndicator.indicatorPresentProperty().addListener(
-        (observable, oldValue, newValue) -> {
-          if (newValue
-              && !contentAnchorPane.getChildren().contains(modelCheckingIndicator)) {
-            Platform.runLater(() ->
-                contentAnchorPane.getChildren().add(modelCheckingIndicator));
-          }
-          if (!newValue) {
-            removeModelCheckingIndicator();
-          }
-        });
-    modelCheckingService.resultProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue == null) {
-        return;
+    EasyBind.subscribe(modelCheckingIndicator.indicatorPresentProperty(), aBoolean -> {
+      if (aBoolean
+          && !contentAnchorPane.getChildren().contains(modelCheckingIndicator)) {
+        Platform.runLater(() ->
+            contentAnchorPane.getChildren().add(modelCheckingIndicator));
       }
-      if (newValue.getTrace() == null) {
-        synthesisInfoBox.infoTextProperty().set("No invariant violation found.");
-      } else {
-        synthesisContextService.getAnimationSelector().addNewAnimation(newValue.getTrace());
-        synthesisContextService.setSynthesisType(SynthesisType.GUARD);
-        synthesisInfoBox.infoTextProperty().set("Invariant violation found.");
-        synthesisInfoBox.isMinimizedProperty().set(false);
-        synthesisInfoBox.showInfoProperty().set(true);
-        Platform.runLater(() -> validationPane.initializeNodesFromTrace());
+      if (!aBoolean) {
+        removeProgressIndicator(modelCheckingIndicator);
       }
     });
+    EasyBind.subscribe(modelCheckingService.resultProperty(), modelCheckingResult -> {
+      if (modelCheckingResult == null) {
+        return;
+      }
+      if (modelCheckingResult.getTrace() == null) {
+        synthesisInfoBox.infoTextProperty().set("The model has been checked. No error found.");
+        return;
+      }
+      handleUncoveredError(modelCheckingResult);
+    });
+    EasyBind.subscribe(modelCheckingService.deadlockRepairProperty(), this::handleDeadlockRepair);
+  }
+
+  private void handleUncoveredError(final ModelCheckingResult modelCheckingResult) {
+    synthesisContextService.getAnimationSelector().addNewAnimation(modelCheckingResult.getTrace());
+    synthesisInfoBox.isMinimizedProperty().set(false);
+    synthesisInfoBox.showInfoProperty().set(true);
+    if (modelCheckingResult.getUncoveredError().isInvariantViolation()) {
+      synthesisContextService.setSynthesisType(SynthesisType.GUARD);
+      synthesisInfoBox.infoTextProperty().set("Invariant violation found.");
+      Platform.runLater(() -> validationPane.initializeNodesFromTrace());
+      return;
+    }
+    synthesisInfoBox.infoTextProperty().set("Deadlock found.");
+  }
+
+  /**
+   * Two possibilities to repair a deadlock state s.
+   * - strengthen the precondition to exclude s from the model
+   * - synthesize a new operation or adapt an existing one to transition from s to another state s'
+   */
+  private void handleDeadlockRepair(
+      final DeadlockRepair deadlockRepair) {
+    if (deadlockRepair == null) {
+      return;
+    }
+    if (deadlockRepair.isRemoveDeadlock()) {
+      synthesisContextService.setSynthesisType(SynthesisType.GUARD);
+      Platform.runLater(() -> validationPane.initializeNodesFromTrace());
+      return;
+    }
+    synthesisContextService.setSynthesisType(SynthesisType.ACTION);
+    // TODO: set a unique name for this new operation
+    synthesisContextService.currentOperationProperty().set("repair_deadlock");
+    validationPane.initializeDeadlockResolveFromTrace();
   }
 
   private void initializeScaleEvents() {
@@ -185,21 +234,21 @@ public class SynthesisView extends ScrollPane implements Initializable {
   /**
    * Update the position of {@link #modelCheckingIndicator} according to the scroll offset.
    */
-  private void updateProgressIndicatorPosition() {
+  private void updateProgressIndicatorPosition(final GridPane progressIndicator) {
     final double hmin = getHmin();
     final double viewportWidth = getViewportBounds().getWidth();
-    modelCheckingIndicator.setTranslateX(Math.max(0, ValidationPane.WIDTH - viewportWidth)
+    progressIndicator.setTranslateX(Math.max(0, ValidationPane.WIDTH - viewportWidth)
         * (getHvalue() - hmin) / (getHmax() - hmin)
-        + (viewportWidth / 2) - (modelCheckingIndicator.getPrefWidth() / 2));
+        + (viewportWidth / 2) - (progressIndicator.getPrefWidth() / 2));
     final double vmin = getVmin();
     final double viewportHeight = getViewportBounds().getHeight();
-    modelCheckingIndicator.setTranslateY(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
+    progressIndicator.setTranslateY(Math.max(0, ValidationPane.HEIGHT - viewportHeight)
         * (getVvalue() - vmin) / (getVmax() - vmin)
-        + (viewportHeight / 2) - (modelCheckingIndicator.getPrefHeight() / 2));
+        + (viewportHeight / 2) - (progressIndicator.getPrefHeight() / 2));
   }
 
-  private void removeModelCheckingIndicator() {
-    Platform.runLater(() -> contentAnchorPane.getChildren().remove(modelCheckingIndicator));
+  private void removeProgressIndicator(final GridPane progressIndicator) {
+    Platform.runLater(() -> contentAnchorPane.getChildren().remove(progressIndicator));
   }
 
   private boolean isValidZoom(final double scaleFactor) {
@@ -212,5 +261,19 @@ public class SynthesisView extends ScrollPane implements Initializable {
     if (isValidZoom(scaleFactor)) {
       Platform.runLater(() -> scaleFactorProperty.set(scaleFactor));
     }
+  }
+
+  private void setIndicatorListener(final GridPane indicator,
+                                    final BooleanProperty presentProperty) {
+    EasyBind.subscribe(presentProperty, present -> {
+      if (present
+          && !contentAnchorPane.getChildren().contains(indicator)) {
+        Platform.runLater(() ->
+            contentAnchorPane.getChildren().add(indicator));
+      }
+      if (!present) {
+        removeProgressIndicator(indicator);
+      }
+    });
   }
 }
