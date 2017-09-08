@@ -385,6 +385,10 @@ public class ValidationPane extends Pane implements Initializable {
       nodesFromTraceGenerator.setPreviousTrace(trace);
       synthesisContextService.getAnimationSelector().changeCurrentAnimation(trace.back());
     }
+    ignoreNonViolatingVarsIfDeadlock();
+  }
+
+  private void ignoreNonViolatingVarsIfDeadlock() {
     if (modelCheckingService.deadlockRepairProperty().get() != null
         && !modelCheckingService.deadlockRepairProperty().get().isRemoveDeadlock()) {
       Platform.runLater(this::ignoreNonViolatingVars);
@@ -477,36 +481,36 @@ public class ValidationPane extends Pane implements Initializable {
   public void addNode(final BasicNode node) {
     if (node instanceof StateNode) {
       // state node
-      executorService.execute(new Task<Void>() {
+      executorService.execute(new Task<Boolean>() {
         @Override
-        protected Void call() throws Exception {
+        protected Boolean call() throws Exception {
           final StateNode stateNode = (StateNode) node;
           stateNode.validateState();
           final StateNode equivalentNode = containsStateNode(stateNode);
           if (equivalentNode != null) {
             equivalentNode.highlightNodeEffect();
-            return null;
+            return false;
           }
           Platform.runLater(() -> nodes.add(node));
           addStateNodeAncestors(stateNode);
-          return null;
+          return true;
         }
       });
       return;
     }
     // transition node
-    executorService.execute((new Task<Void>() {
+    executorService.execute((new Task<Boolean>() {
       @Override
-      protected Void call() throws Exception {
+      protected Boolean call() throws Exception {
         final TransitionNode transitionNode = (TransitionNode) node;
         transitionNode.validateTransition();
         final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
         if (equivalentNode != null) {
           //Platform.runLater(equivalentNode::highlightNodeEffect);
-          return null;
+          return false;
         }
         Platform.runLater(() -> nodes.add(node));
-        return null;
+        return true;
       }
     }));
   }
