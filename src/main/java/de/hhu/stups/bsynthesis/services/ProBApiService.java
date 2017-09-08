@@ -145,7 +145,7 @@ public class ProBApiService {
     return ".mch".equals(file.getName().substring(file.getName().lastIndexOf('.')));
   }
 
-  public ObjectProperty<StateSpace> mainStateSpaceProperty() {
+  ObjectProperty<StateSpace> mainStateSpaceProperty() {
     return mainStateSpaceProperty;
   }
 
@@ -159,7 +159,7 @@ public class ProBApiService {
     logger.info("Synchronized statespaces in the ProBApiService used for synthesis.");
   }
 
-  public StateSpace getMainStateSpace() {
+  StateSpace getMainStateSpace() {
     return mainStateSpaceProperty.get();
   }
 
@@ -365,8 +365,8 @@ public class ProBApiService {
             (observable, oldValue, newValue) -> {
               if (newValue && synthesisSucceededProperty.not().get()
                   && modifiedMachineCodeProperty.get() == null) {
-                synthesisRunningProperty.set(false);
                 synthesisSucceededProperty.set(true);
+                synthesisRunningProperty.set(false);
                 synthesisTasksMap.remove(this);
                 cancelRunningTasks();
                 modifiedMachineCodeProperty.set(
@@ -453,17 +453,22 @@ public class ProBApiService {
    * Reset properties.
    */
   public void reset() {
-    cancelRunningTasks();
     synthesisSucceededProperty.set(false);
     modifiedMachineCodeProperty.set(null);
     currentLibraryExpansionProperty.set(1);
     suspendedStateSpacesMap.clear();
     stateSpacesProperty.forEach(this::resetSynthesisContextForStatespace);
+    cancelRunningTasks();
   }
 
   private void resetSynthesisContextForStatespace(final StateSpace stateSpace) {
-    final Thread resetSynthesisContextThread = new Thread(() ->
-        stateSpace.execute(new ResetSynthesisCommand()));
+    if (stateSpace == null) {
+      return;
+    }
+    final Thread resetSynthesisContextThread = new Thread(() -> {
+//      stateSpace.sendInterrupt();
+      stateSpace.execute(new ResetSynthesisCommand());
+    });
     resetSynthesisContextThread.setDaemon(true);
     resetSynthesisContextThread.start();
   }
