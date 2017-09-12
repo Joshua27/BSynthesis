@@ -35,8 +35,8 @@
     </columnConstraints>
     <rowConstraints>
         <RowConstraints percentHeight="40.0"/>
-        <RowConstraints percentHeight="20.0"/>
-        <RowConstraints percentHeight="20.0"/>
+        <RowConstraints percentHeight="30.0"/>
+        <RowConstraints percentHeight="10.0"/>
         <RowConstraints percentHeight="20.0"/>
     </rowConstraints>
 </fx:root>

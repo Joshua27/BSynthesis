@@ -164,7 +164,10 @@ public class SynthesisView extends ScrollPane implements Initializable {
     synthesisContextService.getAnimationSelector().addNewAnimation(modelCheckingResult.getTrace());
     synthesisInfoBox.isMinimizedProperty().set(false);
     synthesisInfoBox.showInfoProperty().set(true);
-    if (modelCheckingResult.getUncoveredError().isInvariantViolation()) {
+    if (modelCheckingResult.getUncoveredError().isInvariantViolation()
+        && !modelCheckingService.invariantViolationInitialState().get()) {
+      // invariant violation, but not in the initial state of the machine which we do not support
+      // to resolve using synthesis
       synthesisContextService.setSynthesisType(SynthesisType.GUARD);
       synthesisInfoBox.infoTextProperty().set("Invariant violation found.");
       Platform.runLater(() -> validationPane.initializeNodesFromTrace());

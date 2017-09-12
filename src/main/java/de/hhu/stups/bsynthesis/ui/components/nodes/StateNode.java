@@ -41,6 +41,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
+import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -141,41 +142,47 @@ public class StateNode extends BasicNode implements Initializable {
 
     refreshBackgroundColor();
 
-    nodeStateProperty().addListener((observable, oldValue, newValue) -> initializeTableColumn());
+    EasyBind.subscribe(nodeStateProperty(), nodeState -> initializeTableColumn());
 
     contentGridPane.getChildren().remove(tableViewState);
 
-    isExpandedProperty().addListener((observable, oldValue, newValue) ->
-        Platform.runLater(() -> {
-          contentGridPane.getChildren().remove(newValue ? lbTitle : tableViewState);
-          contentGridPane.getChildren().add(newValue ? tableViewState : lbTitle);
-        }));
+    EasyBind.subscribe(isExpandedProperty(), isExpanded -> Platform.runLater(() -> {
+      if (isExpanded) {
+        contentGridPane.getChildren().remove(lbTitle);
+        addToContentGridPane(tableViewState);
+      } else {
+        contentGridPane.getChildren().remove(tableViewState);
+        addToContentGridPane(lbTitle);
+      }
+      resizeNode(isExpanded);
+    }));
 
     synthesisContextService.machineVarNamesProperty().addListener(
         (observable, oldValue, newValue) -> initializeTableView());
 
     lbTitle.textProperty().bind(titleProperty());
 
-    stateProperty.addListener((observable, oldValue, newValue) -> {
-      setTitle(newValue);
+    EasyBind.subscribe(stateProperty, state -> {
+      setTitle(state);
       initializeTableView();
     });
 
     nodeHeader.setBasicNode(this);
 
     setCompressedWidth();
-    isExpandedProperty().addListener((observable, oldValue, newValue) -> {
-      if (newValue != oldValue) {
-        Platform.runLater(() -> resizeNode(newValue));
-      }
-    });
 
-    equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null && newValue != this) {
-        newValue.highlightNodeEffect();
+    EasyBind.subscribe(equivalentNodeProperty, equivalentNode -> {
+      if (equivalentNode != null && equivalentNode != this) {
+        equivalentNode.highlightNodeEffect();
         uiService.removeNodeEventSource().push(this);
       }
     });
+  }
+
+  private void addToContentGridPane(final Node node) {
+    if (!contentGridPane.getChildren().contains(node)) {
+      contentGridPane.getChildren().add(node);
+    }
   }
 
   /**
@@ -222,8 +229,7 @@ public class StateNode extends BasicNode implements Initializable {
   private void initializeTableView() {
     tableViewState.disableProperty().bind(disableProperty());
     tableViewState.setStyle("-fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
-    tableViewState.onMouseClickedProperty().addListener((observable, oldValue, newValue) ->
-        toFront());
+    EasyBind.subscribe(tableViewState.onMouseClickedProperty(), eventHandler -> toFront());
     tableViewState.getItems().clear();
     final ObservableSet<String> machineVarNames = synthesisContextService.getMachineVarNames();
     if (machineVarNames != null) {
@@ -310,11 +316,11 @@ public class StateNode extends BasicNode implements Initializable {
       return;
     }
     // check if node already exists and just set the ancestors
-    successorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null && newValue != successorNode) {
+    EasyBind.subscribe(successorNode.equivalentNodeProperty, equivalentNode -> {
+      if (equivalentNode != null && equivalentNode != successorNode) {
         uiService.removeNodeEventSource().push(successorNode);
-        newValue.predecessorProperty().add(this);
-        successorProperty().add(newValue);
+        equivalentNode.predecessorProperty().add(this);
+        successorProperty().add(equivalentNode);
       } else {
         successorNode.predecessorProperty().add(this);
         successorProperty().add(successorNode);
@@ -471,7 +477,7 @@ public class StateNode extends BasicNode implements Initializable {
       return predecessorStateNode.getState();
     }
     final Trace currentTrace = traceProperty().get();
-    if (!currentTrace.canGoBack()) {
+    if (currentTrace == null || !currentTrace.canGoBack()) {
       return null;
     }
     final AnimationSelector animationSelector = synthesisContextService.getAnimationSelector();

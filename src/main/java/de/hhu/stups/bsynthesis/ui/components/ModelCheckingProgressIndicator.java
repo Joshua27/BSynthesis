@@ -88,6 +88,7 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
     lbProcessedNodes.textProperty().bind(processedNodesBinding);
     lbProcessedNodes.visibleProperty().bind(modelCheckingService.runningProperty()
         .or(modelCheckingService.stateSpaceStatsProperty().isNotNull()));
+    progressIndicator.visibleProperty().bind(modelCheckingService.runningProperty());
   }
 
   private void initializeServiceBindings() {
@@ -100,7 +101,6 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
     });
     modelCheckingService.stateSpaceEventStream().subscribe(stateSpace -> {
       if (stateSpace != null) {
-        progressIndicator.setVisible(true);
         indicatorPresentProperty.set(true);
       }
     });
@@ -108,7 +108,6 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
       if (modelCheckingResult == null) {
         return;
       }
-      progressIndicator.setVisible(false);
       if (modelCheckingResult.getTrace() != null) {
         handleUncoveredError(modelCheckingResult);
       } else {
@@ -122,9 +121,17 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
   private void handleUncoveredError(final ModelCheckingResult modelCheckingResult) {
     final String affectedOperation =
         modelCheckingResult.getTrace().getCurrentTransition().getName();
-    if (modelCheckingResult.getUncoveredError().isInvariantViolation()) {
+    if (modelCheckingResult.getUncoveredError().isInvariantViolation()
+        && !"$initialise_machine".equals(affectedOperation)) {
       synthesisContextService.setCurrentOperation(affectedOperation);
       statusTextProperty.set("Invariant violation found.");
+      return;
+    }
+    if (modelCheckingResult.getUncoveredError().isInvariantViolation()
+        && "$initialise_machine".equals(affectedOperation)) {
+      statusTextProperty.set("Invariant violation in initial state.\n"
+          + "This needs to be resolved manually.");
+      modelCheckingService.invariantViolationInitialState().set(true);
       return;
     }
     if ("$initialise_machine".equals(affectedOperation)) {
@@ -136,7 +143,6 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
     }
     synthesisContextService.setCurrentOperation(affectedOperation);
     statusTextProperty.set("Deadlock found.");
-    iconCancelModelChecking.setVisible(false);
     getChildren().add(boxDeadlock);
   }
 

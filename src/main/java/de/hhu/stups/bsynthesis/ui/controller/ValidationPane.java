@@ -575,7 +575,8 @@ public class ValidationPane extends Pane implements Initializable {
       return null;
     }
     final Optional<BasicNode> optionalNode = nodes.stream()
-        .filter(basicNode -> !stateNode.equals(basicNode)
+        .filter(basicNode -> ((StateNode) basicNode).getState() != null
+            && !stateNode.equals(basicNode)
             && stateNode.getState().getId().equals(((StateNode) basicNode).getState().getId()))
         .findFirst();
     return (StateNode) optionalNode.orElse(null);

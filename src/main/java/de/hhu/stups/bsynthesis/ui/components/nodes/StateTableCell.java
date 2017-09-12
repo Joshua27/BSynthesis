@@ -9,7 +9,7 @@ import javafx.beans.property.StringProperty;
 /**
  * State table cell.
  */
-public class StateTableCell {
+class StateTableCell {
   private final StringProperty varName;
   private final StringProperty inputState;
   private final BooleanProperty ignoreVar;
@@ -20,18 +20,16 @@ public class StateTableCell {
     this.varName = new SimpleStringProperty(this, "varName", varName);
     this.inputState = new SimpleStringProperty(this, "inputState", inputState);
     this.ignoreVar = new SimpleBooleanProperty();
-    this.ignoreVar.bindBidirectional(ignoreVar);
+    if (ignoreVar != null) {
+      this.ignoreVar.bindBidirectional(ignoreVar);
+    }
   }
 
   String getVarName() {
     return varName.get();
   }
 
-  public void setVarName(final String varName) {
-    this.varName.set(varName);
-  }
-
-  public ReadOnlyStringProperty varNameProperty() {
+  ReadOnlyStringProperty varNameProperty() {
     return varName;
   }
 
@@ -43,11 +41,11 @@ public class StateTableCell {
     this.inputState.set(inputState);
   }
 
-  public ReadOnlyStringProperty inputStateProperty() {
+  ReadOnlyStringProperty inputStateProperty() {
     return inputState;
   }
 
-  public BooleanProperty ignoreVarProperty() {
+  BooleanProperty ignoreVarProperty() {
     return ignoreVar;
   }
 }

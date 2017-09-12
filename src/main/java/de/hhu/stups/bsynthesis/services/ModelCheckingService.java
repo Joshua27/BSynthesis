@@ -43,9 +43,10 @@ public class ModelCheckingService implements IModelCheckListener {
   private final IntegerProperty processedNodesProperty;
   private final IntegerProperty totalNodesProperty;
   private final BooleanProperty indicatorPresentProperty;
+  private BooleanProperty invariantViolationInitialState;
   private final ObjectProperty<Trace> errorTraceProperty;
-  private final ObjectProperty<DeadlockRepair> deadlockRepairProperty;
 
+  private final ObjectProperty<DeadlockRepair> deadlockRepairProperty;
   private ModelChecker checker;
   private IModelCheckJob currentJob;
 
@@ -65,6 +66,7 @@ public class ModelCheckingService implements IModelCheckListener {
     errorTraceProperty = new SimpleObjectProperty<>();
     stateSpaceEventStream = new EventSource<>();
     deadlockRepairProperty = new SimpleObjectProperty<>();
+    invariantViolationInitialState = new SimpleBooleanProperty(false);
 
     EasyBind.subscribe(runningProperty, aBoolean -> {
       if (!aBoolean) {
@@ -172,6 +174,7 @@ public class ModelCheckingService implements IModelCheckListener {
     stateSpaceStatsProperty.set(null);
     errorTraceProperty.set(null);
     indicatorPresentProperty.set(false);
+    invariantViolationInitialState.set(false);
     deadlockRepairProperty.set(null);
   }
 
@@ -185,5 +188,9 @@ public class ModelCheckingService implements IModelCheckListener {
 
   public EventSource<StateSpace> stateSpaceEventStream() {
     return stateSpaceEventStream;
+  }
+
+  public BooleanProperty invariantViolationInitialState() {
+    return invariantViolationInitialState;
   }
 }

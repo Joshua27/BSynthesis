@@ -180,7 +180,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     final BooleanBinding extendMachineDisabled = disableMenu
         .or(Bindings.when(ignoreModelCheckerProperty).then(false)
             .otherwise(modelCheckingService.errorTraceProperty().isNotNull()
-                .or(modelCheckingService.resultProperty().isNull())));
+                .or(modelCheckingService.resultProperty().isNull())
+                .or(modelCheckingService.invariantViolationInitialState())));
     menuItemOpen.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
     menuItemClear.disableProperty().bind(disableMenu);
     menuItemSaveAs.disableProperty().bind(disableMenu);
@@ -197,6 +198,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     menuItemModifyInvariants.disableProperty().bind(extendMachineDisabled);
     menuItemNodesFromTrace.disableProperty().bind(disableMenu
         .or(ignoreModelCheckerProperty)
+        .or(modelCheckingService.invariantViolationInitialState())
         .or(modelCheckingService.errorTraceProperty().isNull()));
     checkMenuItemInfo.selectedProperty().bindBidirectional(synthesisInfoBox.showInfoProperty());
     checkMenuItemInfo.disableProperty().bind(disableMenu
