@@ -48,6 +48,7 @@ public class SynthesisContextService {
   private final BooleanProperty synthesisSuspendedProperty;
   private final BooleanProperty useDefaultLibraryProperty;
   private final BooleanProperty modifyInvariantsProperty;
+  private StringProperty behaviorSatisfiedProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -66,6 +67,7 @@ public class SynthesisContextService {
     synthesisSuspendedProperty = new SimpleBooleanProperty(false);
     synthesisRunningProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
+    behaviorSatisfiedProperty = new SimpleStringProperty();
     solverBackendProperty = new SimpleObjectProperty<>(SolverBackend.PROB);
     specificationTypeProperty = new SimpleObjectProperty<>(SpecificationType.CLASSICAL_B);
     modifyInvariantsProperty = new SimpleBooleanProperty(false);
@@ -211,5 +213,9 @@ public class SynthesisContextService {
 
   public BooleanProperty modifyInvariantsProperty() {
     return modifyInvariantsProperty;
+  }
+
+  public StringProperty behaviorSatisfiedProperty() {
+    return behaviorSatisfiedProperty;
   }
 }

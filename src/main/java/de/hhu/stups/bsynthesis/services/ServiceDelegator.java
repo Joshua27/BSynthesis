@@ -31,11 +31,15 @@ public class ServiceDelegator {
 
   private void setBindings() {
     synthesisContextService.synthesisRunningProperty()
-        .bind(proBApiService.synthesisRunningProperty());
+        .bindBidirectional(proBApiService.synthesisRunningProperty());
+    synthesisContextService.synthesisSuspendedProperty()
+        .bindBidirectional(proBApiService.synthesisSuspendedProperty());
     synthesisContextService.synthesisSucceededProperty()
         .bindBidirectional(proBApiService.synthesisSucceededProperty());
     synthesisContextService.modifiedMachineCodeProperty()
         .bindBidirectional(proBApiService.modifiedMachineCodeProperty());
+    synthesisContextService.behaviorSatisfiedProperty()
+        .bindBidirectional(proBApiService.behaviorSatisfiedProperty());
     synthesisContextService.contextEventStream().subscribe(contextEvent -> {
       if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
         modelCheckingService.reset();
