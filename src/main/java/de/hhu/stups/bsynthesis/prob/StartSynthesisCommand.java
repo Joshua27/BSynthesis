@@ -47,6 +47,8 @@ public class StartSynthesisCommand extends AbstractCommand {
       new SimpleBooleanProperty(false);
   private final StringProperty modifiedMachineCodeProperty =
       new SimpleStringProperty();
+  private final StringProperty behaviorSatisfiedProperty =
+      new SimpleStringProperty();
   private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty =
       new SimpleObjectProperty<>();
   private final SolverBackend solverBackend;
@@ -87,7 +89,9 @@ public class StartSynthesisCommand extends AbstractCommand {
   public void writeCommand(final IPrologTermOutput pto) {
     pto.openTerm(PROLOG_COMMAND_NAME);
     selectedLibraryComponents.printToPrologTerm(pto);
-    pto.printAtom(solverBackend.toString());
+    pto.printAtom(selectedLibraryComponents.doNotUseConstantsProperty().get()
+        ? "yes" : "no")
+        .printAtom(solverBackend.toString());
     printLibrary(pto);
     pto.printAtom(currentOperation)
         .printAtom(synthesisType.toEventBString().toLowerCase());
@@ -122,11 +126,14 @@ public class StartSynthesisCommand extends AbstractCommand {
         // distinguishing example
         logger.info("Distinguishing example: {}", bindings.get(DISTINGUISHING_EXAMPLE));
         setDistinguishingExample(bindings.get(DISTINGUISHING_EXAMPLE));
+        modifiedMachineCodeProperty.set("none");
         break;
       case "operation_satisfied":
         // synthesizing an operation: an operation executes the provided behavior, and thus,
         // there is nothing to do for synthesis
         final String operationName = bindings.get(MODIFIED_MACHINE).getArgument(1).getFunctor();
+        modifiedMachineCodeProperty.set("none");
+        behaviorSatisfiedProperty.set(operationName);
         logger.info("Operation {} already satisfies the desired behavior.", operationName);
         synthesisSucceededProperty.set(true);
         break;
@@ -194,6 +201,10 @@ public class StartSynthesisCommand extends AbstractCommand {
 
   public StringProperty modifiedMachineCodeProperty() {
     return modifiedMachineCodeProperty;
+  }
+
+  public StringProperty behaviorSatisfiedProperty() {
+    return behaviorSatisfiedProperty;
   }
 
   public boolean expandLibrary() {
