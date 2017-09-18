@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import de.hhu.stups.bsynthesis.services.DaemonThread;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
@@ -274,18 +275,7 @@ public class StateNode extends BasicNode implements Initializable {
     if (predecessorNode == null) {
       return;
     }
-    // check if node already exists and just set the ancestors
-    predecessorNode.equivalentNodeProperty.addListener((observable, oldValue, newValue) -> {
-      if (newValue != null && newValue != predecessorNode) {
-        newValue.successorProperty().add(this);
-        predecessorProperty().add(newValue);
-      } else {
-        predecessorNode.successorProperty().add(this);
-        predecessorProperty().add(predecessorNode);
-        uiService.showNodeEventSource().push(predecessorNode);
-      }
-    });
-    uiService.checkDuplicateStateNodeEventSource().push(predecessorNode);
+    uiService.showNodeEventSource().push(predecessorNode);
   }
 
   public ObjectProperty<StateNode> equivalentNodeProperty() {
@@ -315,19 +305,7 @@ public class StateNode extends BasicNode implements Initializable {
     if (successorNode == null) {
       return;
     }
-    // check if node already exists and just set the ancestors
-    EasyBind.subscribe(successorNode.equivalentNodeProperty, equivalentNode -> {
-      if (equivalentNode != null && equivalentNode != successorNode) {
-        uiService.removeNodeEventSource().push(successorNode);
-        equivalentNode.predecessorProperty().add(this);
-        successorProperty().add(equivalentNode);
-      } else {
-        successorNode.predecessorProperty().add(this);
-        successorProperty().add(successorNode);
-        uiService.showNodeEventSource().push(successorNode);
-      }
-    });
-    uiService.checkDuplicateStateNodeEventSource().push(successorNode);
+    uiService.showNodeEventSource().push(successorNode);
   }
 
   private void setCompressedWidth() {
@@ -419,7 +397,7 @@ public class StateNode extends BasicNode implements Initializable {
     // create equality predicate with variable values
     final FindStateCommand findStateCommand =
         new FindStateCommand(stateSpace, getStateEqualityPredicate(), false);
-    final Thread validateStateThread = new Thread(() -> {
+    DaemonThread.getDaemonThread(() -> {
       stateSpace.execute(findStateCommand);
       final FindStateCommand.ResultType resultType = findStateCommand.getResult();
       if (resultType.equals(FindStateCommand.ResultType.ERROR)) {
@@ -434,12 +412,11 @@ public class StateNode extends BasicNode implements Initializable {
         nodeStateProperty().set(stateProperty.get().isInvariantOk()
             ? NodeState.VALID : NodeState.INVARIANT_VIOLATED);
       });
+
       if (!synthesisContextService.getSynthesisType().isAction()) {
         uiService.checkDuplicateStateNodeEventSource().push(this);
       }
-    });
-    validateStateThread.setDaemon(true);
-    validateStateThread.start();
+    }).start();
   }
 
   /**
