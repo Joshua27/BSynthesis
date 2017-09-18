@@ -13,3 +13,4 @@ Prepend Element,insert_front,E → s
 Append Element,insert_tail,s ← E
 Take,restrict_front,s /|\ n
 Drop,restrict_tail,s \|/ n
+Right Overriding,overwrite,r1 <+ r2

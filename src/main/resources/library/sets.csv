@@ -3,7 +3,7 @@ Not Element of,not_member,E/:S
 Union,union,S\/T
 Intersection,intersection,S/\T
 Difference,set_subtraction,S-T
-Cartesian,cartesian,S*T
+Cartesian,cartesian_product,S*T
 Cardinality,card,card(S)
 Subset Of,subset,S<:T
 Not Subset Of,not_subset,S/<:T
