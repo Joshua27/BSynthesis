@@ -33,6 +33,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableSet;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -385,14 +386,14 @@ public class ValidationPane extends Pane implements Initializable {
       nodesFromTraceGenerator.setPreviousTrace(trace);
       synthesisContextService.getAnimationSelector().changeCurrentAnimation(trace.back());
     }
-    ignoreNonViolatingVarsIfDeadlock();
+    Platform.runLater(this::ignoreNonViolatingVarsIfNotDeadlock);
   }
 
-  private void ignoreNonViolatingVarsIfDeadlock() {
-    if (modelCheckingService.deadlockRepairProperty().get() != null
-        && !modelCheckingService.deadlockRepairProperty().get().isRemoveDeadlock()) {
-      Platform.runLater(this::ignoreNonViolatingVars);
+  private void ignoreNonViolatingVarsIfNotDeadlock() {
+    if (modelCheckingService.deadlockRepairProperty().get() != null) {
+      return;
     }
+    Platform.runLater(this::ignoreNonViolatingVars);
   }
 
   /**
@@ -406,14 +407,16 @@ public class ValidationPane extends Pane implements Initializable {
         new GetViolatingVarsFromExamplesCommand(getValidNodes(), getInvalidNodes(),
             synthesisContextService.machineVarNamesProperty().get());
     stateSpace.execute(getViolatingVarsFromExamplesCommand);
-    // set all states to true, i.e., ignore all variables
-    uiService.currentVarStatesMapProperty().values()
-        .forEach(booleanProperty -> booleanProperty.set(true));
-    // then, only consider the violating vars
-    logger.info("Invariant violating vars: "
-        + getViolatingVarsFromExamplesCommand.getViolatingVarNames());
-    getViolatingVarsFromExamplesCommand.getViolatingVarNames().forEach(violatingVarName ->
-        uiService.currentVarStatesMapProperty().get(violatingVarName).set(false));
+    final ObservableSet<String> violatingVarNames =
+        getViolatingVarsFromExamplesCommand.getViolatingVarNames();
+    logger.info("Invariant violating vars: " + violatingVarNames);
+    uiService.currentVarStatesMapProperty().forEach((varName, booleanProperty) -> {
+      if (violatingVarNames.contains(varName)) {
+        booleanProperty.set(false);
+      } else {
+        booleanProperty.set(true);
+      }
+    });
   }
 
   /**
@@ -485,7 +488,9 @@ public class ValidationPane extends Pane implements Initializable {
         @Override
         protected Boolean call() throws Exception {
           final StateNode stateNode = (StateNode) node;
-          stateNode.validateState();
+          if (stateNode.isTentative()) {
+            stateNode.validateState();
+          }
           final StateNode equivalentNode = containsStateNode(stateNode);
           if (equivalentNode != null) {
             equivalentNode.highlightNodeEffect();
@@ -575,7 +580,8 @@ public class ValidationPane extends Pane implements Initializable {
       return null;
     }
     final Optional<BasicNode> optionalNode = nodes.stream()
-        .filter(basicNode -> ((StateNode) basicNode).getState() != null
+        .filter(basicNode -> basicNode instanceof StateNode
+            && ((StateNode) basicNode).getState() != null
             && !stateNode.equals(basicNode)
             && stateNode.getState().getId().equals(((StateNode) basicNode).getState().getId()))
         .findFirst();
