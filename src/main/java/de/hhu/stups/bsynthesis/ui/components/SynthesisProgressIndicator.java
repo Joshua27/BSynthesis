@@ -65,7 +65,8 @@ public class SynthesisProgressIndicator extends GridPane implements Initializabl
         Platform.runLater(() -> lbStatus.setText("Synthesis running."));
       } else {
         Platform.runLater(() -> {
-          if (synthesisContextService.synthesisSucceededProperty().get()) {
+          if (synthesisContextService.synthesisSucceededProperty().get()
+              || synthesisContextService.synthesisSuspendedProperty().get()) {
             indicatorPresentProperty.set(false);
           } else {
             progressIndicator.setVisible(false);

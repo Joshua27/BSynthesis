@@ -78,10 +78,9 @@ public class SynthesisMain extends VBox implements Initializable {
   private void initializeTabs() {
     tabPane.getTabs().remove(libraryConfigurationTab);
     libraryConfigurationTab.disableProperty()
-        .bind(serviceDelegator.synthesisContextService().synthesisSucceededProperty());
+        .bind(synthesisContextService.synthesisSucceededProperty());
     libraryConfigurationTab.setOnClosed(event -> tabPane.getSelectionModel().selectFirst());
-    synthesisTab.disableProperty().bind(
-        serviceDelegator.synthesisContextService().synthesisSucceededProperty());
+    synthesisTab.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
   }
 
   private void selectTab(final ApplicationEvent applicationEvent) {

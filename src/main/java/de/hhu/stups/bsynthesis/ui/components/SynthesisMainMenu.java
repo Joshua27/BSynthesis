@@ -7,6 +7,7 @@ import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
 import de.hhu.stups.bsynthesis.services.ApplicationEvent;
 import de.hhu.stups.bsynthesis.services.ApplicationEventType;
 import de.hhu.stups.bsynthesis.services.ControllerTab;
+import de.hhu.stups.bsynthesis.services.DaemonThread;
 import de.hhu.stups.bsynthesis.services.MachineVisualization;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
@@ -15,6 +16,7 @@ import de.hhu.stups.bsynthesis.services.SolverBackend;
 import de.hhu.stups.bsynthesis.services.SpecificationType;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.UiZoom;
 import de.hhu.stups.bsynthesis.services.UncoveredError;
 import de.hhu.stups.bsynthesis.services.VisualizationType;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
@@ -234,7 +236,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     if (file == null) {
       return;
     }
-    final Thread loadMachineThread = new Thread(() -> {
+    DaemonThread.getDaemonThread(() -> {
       uiService.resetCurrentVarBindings();
       synthesisContextService.reset();
       proBApiService.reset();
@@ -243,9 +245,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         synthesisContextService.setSpecificationType(specificationType);
         synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
       }
-    });
-    loadMachineThread.setDaemon(true);
-    loadMachineThread.start();
+    }).start();
   }
 
   /**
@@ -318,12 +318,14 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void visualizeOperation() {
     openSynthesisTab();
-    synthesisContextService.reset();
-    uiService.resetCurrentVarBindings();
-    validationPane.getNodes().clear();
     final Optional<String> operationName = getExistingOperationName();
-    operationName.ifPresent(s -> uiService.visualizeBehaviorEventSource().push(
-        new MachineVisualization(VisualizationType.OPERATION, s)));
+    operationName.ifPresent(s -> {
+      uiService.visualizeBehaviorEventSource().push(
+          new MachineVisualization(VisualizationType.OPERATION, s));
+      synthesisContextService.reset();
+      uiService.resetCurrentVarBindings();
+      validationPane.getNodes().clear();
+    });
   }
 
   private void openSynthesisTab() {
@@ -408,7 +410,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void zoomIn() {
     openSynthesisTab();
-    uiService.zoomEventStream().push(UiService.UiZoom.ZOOM_IN);
+    uiService.zoomEventStream().push(UiZoom.ZOOM_IN);
   }
 
   /**
@@ -418,7 +420,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void zoomOut() {
     openSynthesisTab();
-    uiService.zoomEventStream().push(UiService.UiZoom.ZOOM_OUT);
+    uiService.zoomEventStream().push(UiZoom.ZOOM_OUT);
   }
 
   /**
