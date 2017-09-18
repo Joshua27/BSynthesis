@@ -18,6 +18,9 @@ import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.collections.FXCollections;
 import javafx.geometry.Point2D;
 
 import java.util.HashMap;
@@ -39,9 +42,12 @@ public class VisualizeBehavior {
   private final int maxPerRow =
       (int) Math.floor((ValidationPane.WIDTH / 2) / (StateNode.WIDTH * 3));
 
+  private final ListProperty<String> ignoredIDsProperty;
+
   @Inject
   public VisualizeBehavior(final SynthesisContextService synthesisContextService) {
     this.synthesisContextService = synthesisContextService;
+    ignoredIDsProperty = new SimpleListProperty<>(FXCollections.observableArrayList());
   }
 
   /**
@@ -50,6 +56,8 @@ public class VisualizeBehavior {
   public Map<String, Set<StateNode>> visualizeInvariants(final StateNodeFactory stateNodeFactory) {
     int validRow = 0;
     int validCol = 0;
+
+    ignoredIDsProperty.clear();
 
     final VisualizeInvariantsCommand visualizeInvariantsCommand =
         new VisualizeInvariantsCommand(5, 5);
@@ -145,6 +153,9 @@ public class VisualizeBehavior {
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     stateSpace.execute(visualizeOperationCommand);
 
+    ignoredIDsProperty.clear();
+    ignoredIDsProperty.addAll(visualizeOperationCommand.ignoredIDsProperty().get());
+
     final List<VarValueTuple> validTransitionEqualities =
         visualizeOperationCommand.validTransitionEqualitiesProperty().get();
     final List<String> invalidStateEqualities =
@@ -191,5 +202,9 @@ public class VisualizeBehavior {
         validRow * StateNode.HEIGHT + offsetY);
     final State outputState = stateSpace.getState(findOutputStateCommand.getStateId());
     return transitionNodeFactory.create(inputState, outputState, pos, NodeState.TENTATIVE);
+  }
+
+  public ListProperty<String> ignoredIDsProperty() {
+    return ignoredIDsProperty;
   }
 }
