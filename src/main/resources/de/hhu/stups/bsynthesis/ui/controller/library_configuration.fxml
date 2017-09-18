@@ -16,6 +16,7 @@
         <CheckBox fx:id="cbDefaultConfiguration" text="Use default configuration" selected="true"/>
         <CheckBox fx:id="cbConsiderExplicitIf" text="Consider Explicit If-statements"/>
         <CheckBox fx:id="cbConsiderImplicitIf" text="Consider Implicit If-statements"/>
+        <CheckBox fx:id="cbNoConstants" text="Do not use constants"/>
     </HBox>
     <TreeTableView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="1"
                    showRoot="false">

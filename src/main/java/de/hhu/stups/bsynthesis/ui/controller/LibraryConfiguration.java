@@ -112,6 +112,9 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   private CheckBox cbConsiderImplicitIf;
   @FXML
   @SuppressWarnings("unused")
+  private CheckBox cbNoConstants;
+  @FXML
+  @SuppressWarnings("unused")
   private Button btIncreaseSelectedComponentAmount;
   @FXML
   @SuppressWarnings("unused")
@@ -168,6 +171,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         .bind(selectedLibraryComponentsProperty);
     synthesisContextService.useDefaultLibraryProperty()
         .bind(cbDefaultConfiguration.selectedProperty());
+    selectedLibraryComponentsProperty.get().doNotUseConstantsProperty()
+        .bind(cbNoConstants.selectedProperty());
 
     initializeButtons();
     initializeTreeViews();
