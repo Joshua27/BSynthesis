@@ -75,28 +75,32 @@ public class UiService {
     adjustNodePositionEventSource = new EventSource<>();
     visualizeBehaviorEventSource = new EventSource<>();
     visualizeBehaviorEventSource.subscribe(this::handleMachineVisualization);
+
+    EasyBind.subscribe(visualizeBehavior.ignoredIDsProperty(), ignoredIDs ->
+        new Thread(() -> {
+          final Map<String, BooleanProperty> currentVarStatesMap =
+              currentVarStatesMapProperty.get();
+          ignoredIDs.forEach(ignoredID -> currentVarStatesMap.get(ignoredID).set(true));
+        }).start());
   }
 
   private void handleMachineVisualization(final MachineVisualization machineVisualization) {
-    final Thread visualizationThread;
     if (machineVisualization.getVisualizationType().isInvariant()) {
-      visualizationThread = new Thread(() -> {
+      DaemonThread.getDaemonThread(() -> {
         final Map<String, Set<StateNode>> stateNodes =
             visualizeBehavior.visualizeInvariants(stateNodeFactory);
         stateNodes.get("valid").forEach(this::pushAndValidateNode);
         stateNodes.get("invalid").forEach(this::pushAndValidateNode);
-      });
+      }).start();
     } else {
-      visualizationThread = new Thread(() -> {
+      DaemonThread.getDaemonThread(() -> {
         final Map<String, Set<TransitionNode>> transitionNodes =
             visualizeBehavior.visualizeOperation(machineVisualization.getOperationName(),
                 transitionNodeFactory);
         transitionNodes.get("valid").forEach(this::pushAndValidateNode);
         transitionNodes.get("invalid").forEach(this::pushAndValidateNode);
-      });
+      }).start();
     }
-    visualizationThread.setDaemon(true);
-    visualizationThread.start();
   }
 
   private void pushAndValidateNode(final BasicNode basicNode) {
@@ -207,13 +211,5 @@ public class UiService {
 
   public EventSource<MachineVisualization> visualizeBehaviorEventSource() {
     return visualizeBehaviorEventSource;
-  }
-
-  public enum UiZoom {
-    ZOOM_IN, ZOOM_OUT;
-
-    public boolean isZoomIn() {
-      return this.equals(ZOOM_IN);
-    }
   }
 }
