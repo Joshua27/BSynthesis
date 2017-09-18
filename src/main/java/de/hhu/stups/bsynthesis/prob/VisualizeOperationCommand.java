@@ -10,7 +10,6 @@ import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.collections.FXCollections;
 
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +23,7 @@ public class VisualizeOperationCommand extends AbstractCommand {
       "get_valid_and_invalid_equality_predicates_for_operation";
   private static final String VALID_TRANSITIONS_EQS = "ValidPrettyEqualityTuples";
   private static final String INVALID_STATES_EQS = "InvalidPrettyEqualities";
+  private static final String IGNORED_IDS = "IgnoredIDs";
 
   private final String operationName;
   private final int validTransitionsAmount;
@@ -31,6 +31,7 @@ public class VisualizeOperationCommand extends AbstractCommand {
 
   private final ListProperty<VarValueTuple> validTransitionEqualitiesProperty;
   private final ListProperty<String> invalidStateEqualitiesProperty;
+  private final ListProperty<String> ignoredIDsProperty;
 
   /**
    * Initialize properties and constructor parameters.
@@ -44,6 +45,7 @@ public class VisualizeOperationCommand extends AbstractCommand {
     validTransitionEqualitiesProperty =
         new SimpleListProperty<>(FXCollections.observableArrayList());
     invalidStateEqualitiesProperty = new SimpleListProperty<>(FXCollections.observableArrayList());
+    ignoredIDsProperty = new SimpleListProperty<>(FXCollections.observableArrayList());
   }
 
   @Override
@@ -54,20 +56,23 @@ public class VisualizeOperationCommand extends AbstractCommand {
         .printNumber(invalidStatesAmount)
         .printVariable(VALID_TRANSITIONS_EQS)
         .printVariable(INVALID_STATES_EQS)
+        .printVariable(IGNORED_IDS)
         .closeTerm();
   }
 
   @Override
   public void processResult(final ISimplifiedROMap<String, PrologTerm> bindings) {
-    final List<VarValueTuple> validTransitionEqualities =
-        BindingGenerator.getList(bindings.get(VALID_TRANSITIONS_EQS)).stream()
-            .map(this::getVarValueTupleFromProlog).collect(Collectors.toList());
-    final List<String> invalidStateEqualities =
-        BindingGenerator.getList(bindings.get(INVALID_STATES_EQS)).stream()
-            .map(prologTerm -> prologTerm.getFunctor().replace("'", ""))
-            .collect(Collectors.toList());
-    validTransitionEqualitiesProperty.addAll(validTransitionEqualities);
-    invalidStateEqualitiesProperty.addAll(invalidStateEqualities);
+    validTransitionEqualitiesProperty.addAll(BindingGenerator.getList(
+        bindings.get(VALID_TRANSITIONS_EQS)).stream()
+        .map(this::getVarValueTupleFromProlog).collect(Collectors.toList()));
+    invalidStateEqualitiesProperty.addAll(BindingGenerator.getList(
+        bindings.get(INVALID_STATES_EQS)).stream()
+        .map(prologTerm -> prologTerm.getFunctor().replace("'", ""))
+        .collect(Collectors.toList()));
+    ignoredIDsProperty.addAll(BindingGenerator.getList(
+        bindings.get(IGNORED_IDS)).stream()
+        .map(prologTerm -> prologTerm.getFunctor().replace("'", ""))
+        .collect(Collectors.toList()));
   }
 
   private VarValueTuple getVarValueTupleFromProlog(final PrologTerm prologTerm) {
@@ -82,5 +87,9 @@ public class VisualizeOperationCommand extends AbstractCommand {
 
   public ListProperty<String> invalidStateEqualitiesProperty() {
     return invalidStateEqualitiesProperty;
+  }
+
+  public ListProperty<String> ignoredIDsProperty() {
+    return ignoredIDsProperty;
   }
 }
