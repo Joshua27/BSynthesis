@@ -14,6 +14,7 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
+import de.prob.exception.ProBError;
 import de.prob.scripting.Api;
 import de.prob.scripting.ModelTranslationError;
 import de.prob.statespace.State;
@@ -34,6 +35,7 @@ import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.geometry.Point2D;
+import javafx.scene.control.Alert;
 import javafx.stage.FileChooser;
 import org.reactfx.EventSource;
 import org.slf4j.Logger;
@@ -70,7 +72,9 @@ public class ProBApiService {
   private final MapProperty<StateSpace, Integer> suspendedStateSpacesMap;
   private final BooleanProperty synthesisSucceededProperty;
   private final BooleanProperty synthesisRunningProperty;
+  private final BooleanProperty synthesisSuspendedProperty;
   private final StringProperty modifiedMachineCodeProperty;
+  private final StringProperty behaviorSatisfiedProperty;
   private final Api proBApi;
   private final UiService uiService;
   private final Queue<StateSpace> idleStateSpaceQueue;
@@ -91,10 +95,12 @@ public class ProBApiService {
     synthesisSucceededProperty = new SimpleBooleanProperty(false);
     synthesisRunningProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
+    behaviorSatisfiedProperty = new SimpleStringProperty();
     synthesisTasksMap = new SimpleMapProperty<>(FXCollections.observableHashMap());
     idleStateSpaceQueue = new LinkedBlockingQueue<>();
     currentLibraryExpansionProperty = new SimpleIntegerProperty();
     suspendedStateSpacesMap = new SimpleMapProperty<>(FXCollections.observableHashMap());
+    synthesisSuspendedProperty = new SimpleBooleanProperty();
   }
 
   /**
@@ -112,16 +118,14 @@ public class ProBApiService {
     stateSpacesProperty.clear();
     idleStateSpaceQueue.clear();
     // load the same model to several instances in a background thread
-    final Thread loadInstancesThread = new Thread(() ->
+    DaemonThread.getDaemonThread(() ->
         IntStream.range(0, INSTANCES).forEach(value -> {
           final StateSpace newStateSpace = loadStateSpace(file);
           if (newStateSpace != null) {
             stateSpacesProperty.add(newStateSpace);
             idleStateSpaceQueue.add(newStateSpace);
           }
-        }));
-    loadInstancesThread.setDaemon(true);
-    loadInstancesThread.start();
+        })).start();
     return hasClassicalBExtension(file) ? SpecificationType.CLASSICAL_B : SpecificationType.EVENT_B;
   }
 
@@ -132,13 +136,28 @@ public class ProBApiService {
       } else {
         return proBApi.eventb_load(file.getPath());
       }
+    } catch (final ProBError proBError) {
+      logger.error("ProBError while loading " + file.getPath(), proBError);
+      failedLoadingModel();
     } catch (final IOException exception) {
       logger.error("IOException while loading " + file.getPath(), exception);
+      failedLoadingModel();
     } catch (final ModelTranslationError modelTranslationError) {
       logger.error("Translation error while loading " + file.getPath(),
           modelTranslationError);
+      failedLoadingModel();
     }
     return null;
+  }
+
+  private void failedLoadingModel() {
+    Platform.runLater(() -> {
+      final Alert alert = new Alert(Alert.AlertType.ERROR);
+      alert.setTitle("Machine could not be loaded");
+      alert.setHeaderText("");
+      alert.setContentText("The machine file is possibly not well-defined.");
+      alert.showAndWait();
+    });
   }
 
   private boolean hasClassicalBExtension(final File file) {
@@ -178,6 +197,7 @@ public class ProBApiService {
   private void startSynthesis(final StartSynthesisCommand startSynthesisCommand) {
     currentLibraryExpansionProperty.set(startSynthesisCommand.getLibraryExpansion());
     synthesisRunningProperty.set(true);
+    synthesisSuspendedProperty.set(false);
     // the user selected the library components, and thus, we just start one instance using
     // this configuration
     if (!startSynthesisCommand.isDefaultLibraryConfiguration()) {
@@ -224,7 +244,9 @@ public class ProBApiService {
         "Start a single synthesis instance using the library components selected by the user.");
     final StateSpace stateSpace = idleStateSpaceQueue.poll();
     if (stateSpace == null) {
-      logger.error("No statespace available when trying to run a single synthesis instance.");
+      logger.info("No statespace available when trying to run a single synthesis instance.");
+      synchronizeStateSpaces();
+
       return;
     }
     final Task<Void> synthesisTask = getSynthesisTask(stateSpace, startSynthesisCommand);
@@ -349,6 +371,7 @@ public class ProBApiService {
         startSynthesisCommand.distinguishingExampleProperty()
             .addListener((observable, oldValue, newValue) -> {
               if (newValue != null && !newValue.equals(oldValue)) {
+                synthesisSuspendedProperty.set(true);
                 handleDistinguishingExample(
                     startSynthesisCommand.getSynthesisType(), stateSpace, newValue);
                 // suspend this statespace when finding a distinguishing example to revisit the same
@@ -363,16 +386,18 @@ public class ProBApiService {
         // the task itself fails due to raising an exception
         startSynthesisCommand.synthesisSucceededProperty().addListener(
             (observable, oldValue, newValue) -> {
-              if (newValue && synthesisSucceededProperty.not().get()
-                  && modifiedMachineCodeProperty.get() == null) {
+              if (newValue && synthesisSucceededProperty.not().get()) {
                 synthesisSucceededProperty.set(true);
                 synthesisRunningProperty.set(false);
                 synthesisTasksMap.remove(this);
                 cancelRunningTasks();
                 modifiedMachineCodeProperty.set(
                     startSynthesisCommand.modifiedMachineCodeProperty().get());
+                behaviorSatisfiedProperty.set(
+                    startSynthesisCommand.behaviorSatisfiedProperty().get());
               }
               resetSynthesisContextForStatespace(stateSpace);
+              addStateSpaceToQueue(stateSpace);
             });
         stateSpace.execute(startSynthesisCommand);
         return null;
@@ -410,19 +435,17 @@ public class ProBApiService {
    * Interrupt the given {@link StateSpace} if it is busy.
    */
   private void sendInterruptIfBusy(final StateSpace stateSpace) {
-    addStateSpaceToQueue(stateSpace);
     if (stateSpace == null) {
       return;
     }
+    addStateSpaceToQueue(stateSpace);
     if (!stateSpace.isBusy()) {
       return;
     }
-    final Thread interruptThread = new Thread(() -> {
+    DaemonThread.getDaemonThread(() -> {
       stateSpace.sendInterrupt();
       stateSpace.execute(new ResetSynthesisCommand());
-    });
-    interruptThread.setDaemon(true);
-    interruptThread.start();
+    }).start();
   }
 
   private void addStateSpaceToQueue(final StateSpace stateSpace) {
@@ -436,17 +459,24 @@ public class ProBApiService {
    * Cancel all {@link #synthesisTasksMap running tasks}.
    */
   private void cancelRunningTasks() {
-    synthesisTasksMap.keySet().forEach(voidTask -> {
-      final Thread cancelRunningTaskThread = new Thread(() -> voidTask.cancel(true));
-      cancelRunningTaskThread.setDaemon(true);
-      cancelRunningTaskThread.start();
-    });
+    synchronized (synthesisTasksMap) {
+      synthesisTasksMap.forEach((key, value) ->
+          DaemonThread.getDaemonThread(() -> {
+            synchronized (key) {
+              key.cancel(true);
+            }
+          }).start());
+    }
     suspendedStateSpacesMap.clear();
     synthesisRunningProperty.set(false);
   }
 
   StringProperty modifiedMachineCodeProperty() {
     return modifiedMachineCodeProperty;
+  }
+
+  StringProperty behaviorSatisfiedProperty() {
+    return behaviorSatisfiedProperty;
   }
 
   /**
@@ -457,6 +487,7 @@ public class ProBApiService {
     modifiedMachineCodeProperty.set(null);
     currentLibraryExpansionProperty.set(1);
     suspendedStateSpacesMap.clear();
+    synthesisSuspendedProperty.set(false);
     stateSpacesProperty.forEach(this::resetSynthesisContextForStatespace);
     cancelRunningTasks();
   }
@@ -465,13 +496,14 @@ public class ProBApiService {
     if (stateSpace == null) {
       return;
     }
-    final Thread resetSynthesisContextThread = new Thread(() ->
-        stateSpace.execute(new ResetSynthesisCommand()));
-    resetSynthesisContextThread.setDaemon(true);
-    resetSynthesisContextThread.start();
+    DaemonThread.getDaemonThread(() -> stateSpace.execute(new ResetSynthesisCommand())).start();
   }
 
   public void shutdownExecutor() {
     threadPoolExecutor.shutdown();
+  }
+
+  BooleanProperty synthesisSuspendedProperty() {
+    return synthesisSuspendedProperty;
   }
 }
