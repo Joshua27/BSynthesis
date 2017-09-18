@@ -49,6 +49,7 @@ public class BLibrary {
       new SimpleSetProperty<>(FXCollections.observableSet());
   private final ObjectProperty<ConsiderIfType> considerIfStatementsProperty;
   private final BooleanProperty useDefaultLibraryProperty;
+  private final BooleanProperty doNotUseConstantsProperty;
   private final IntegerProperty defaultLibraryExpansionProperty;
 
   /**
@@ -58,6 +59,7 @@ public class BLibrary {
     considerIfStatementsProperty = new SimpleObjectProperty<>(ConsiderIfType.NONE);
     useDefaultLibraryProperty = new SimpleBooleanProperty(true);
     defaultLibraryExpansionProperty = new SimpleIntegerProperty(1);
+    doNotUseConstantsProperty = new SimpleBooleanProperty(false);
   }
 
   /**
@@ -76,6 +78,7 @@ public class BLibrary {
         library.useDefaultLibraryProperty.get());
     defaultLibraryExpansionProperty = new SimpleIntegerProperty(
         library.getLibraryExpansion());
+    doNotUseConstantsProperty = new SimpleBooleanProperty(library.doNotUseConstantsProperty.get());
   }
 
   public ObjectProperty<ConsiderIfType> considerIfStatementsProperty() {
@@ -229,6 +232,10 @@ public class BLibrary {
 
   public BooleanProperty useDefaultLibraryProperty() {
     return useDefaultLibraryProperty;
+  }
+
+  public BooleanProperty doNotUseConstantsProperty() {
+    return doNotUseConstantsProperty;
   }
 
   /**
