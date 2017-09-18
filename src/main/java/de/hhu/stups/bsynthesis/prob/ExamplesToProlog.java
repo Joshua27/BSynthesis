@@ -68,27 +68,12 @@ public interface ExamplesToProlog {
                            final Set<String> currentVarNames,
                            final StateNode stateNode) {
     final State state = stateNode.getState();
-    if (stateNode.isValidatedPositive()) {
-      // set the positive state to be an input examples and compute the corresponding output state
-      final StateNode successorState = stateNode.getSuccessorFromTrace();
-      if (successorState != null) {
-        inputOutputExamples.add(new InputOutputExample(
-            new ExampleState(state, currentVarNames),
-            new ExampleState(successorState.getState(), currentVarNames)));
-      } else {
-        // no successor, just add the same node since we synthesize guard/invariant and
-        // split transitions
-        inputOutputExamples.add(
-            new InputOutputExample(new ExampleState(state, currentVarNames),
-                new ExampleState(state, currentVarNames)));
-      }
+    if ("root".equals(state.getId())) {
+      // skip the root node of a trace which does not contain explicit values
       return;
     }
-    // otherwise, set the violating state to be an output and set its predecessor to be the input
-    // if available (synthesizing a precondition/guard we need to exclude the violating state's
-    // predecessor)
-    inputOutputExamples.add(new InputOutputExample(
-        new ExampleState(stateNode.getPredecessor(), currentVarNames),
-        new ExampleState(state, currentVarNames)));
+    // same input and output since the output is replaced with either true or false anyways
+    final ExampleState exampleState = new ExampleState(state, currentVarNames);
+    inputOutputExamples.add(new InputOutputExample(exampleState, exampleState));
   }
 }
