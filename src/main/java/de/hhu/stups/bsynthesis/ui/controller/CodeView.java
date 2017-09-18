@@ -2,6 +2,7 @@ package de.hhu.stups.bsynthesis.ui.controller;
 
 import com.google.inject.Inject;
 
+import de.hhu.stups.bsynthesis.services.DaemonThread;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
@@ -13,6 +14,7 @@ import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.layout.HBox;
@@ -123,14 +125,28 @@ public final class CodeView extends VBox {
     synthesisContextService.contextEventStream().subscribe(this::handleContextEvent);
 
     EasyBind.subscribe(synthesisContextService.modifiedMachineCodeProperty(), newValue -> {
-      final Thread showModifiedCodeThread =
-          new Thread(() -> showModifiedMachineCode(newValue));
-      showModifiedCodeThread.setDaemon(true);
-      showModifiedCodeThread.start();
+      if (newValue == null || newValue.equals("none")) {
+        return;
+      }
+      DaemonThread.getDaemonThread(() -> showModifiedMachineCode(newValue)).start();
     });
 
-    validateSolutionBox.visibleProperty().bind(
-        synthesisContextService.synthesisSucceededProperty());
+    EasyBind.subscribe(synthesisContextService.behaviorSatisfiedProperty(), operationName -> {
+      if (operationName == null) {
+        return;
+      }
+      Platform.runLater(() -> {
+        final Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Behavior already satisfied");
+        alert.setHeaderText("");
+        alert.setContentText("The provided behavior is already satisfied by "
+            + operationName + ".");
+        alert.showAndWait();
+        synthesisContextService.synthesisSucceededProperty().set(false);
+        synthesisContextService.behaviorSatisfiedProperty().set(null);
+        synthesisContextService.modifiedMachineCodeProperty().set(null);
+      });
+    });
 
     uiService.applicationEventStream().subscribe(applicationEvent -> {
       if (applicationEvent.getApplicationEventType().isCloseApp()) {
@@ -200,6 +216,7 @@ public final class CodeView extends VBox {
     if (newValue == null) {
       return;
     }
+    validateSolutionBox.setVisible(true);
     if (!newValue.isEmpty()) {
       executorService.execute(() -> Platform.runLater(() -> {
         splitPaneCodeAreas.getItems().add(1, scrollPaneCodeAreaSynthesized);
@@ -218,10 +235,13 @@ public final class CodeView extends VBox {
   public void applySolution() {
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     codeArea.clear();
-    codeArea.appendText(codeAreaSynthesized.getText());
-    saveMachineCode();
+    Platform.runLater(() -> {
+      codeArea.appendText(codeAreaSynthesized.getText());
+      saveMachineCode();
+    });
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
     proBApiService.reset();
+    validateSolutionBox.setVisible(false);
   }
 
   /**
@@ -233,6 +253,7 @@ public final class CodeView extends VBox {
   public void discardSolution() {
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     proBApiService.reset();
+    validateSolutionBox.setVisible(false);
   }
 
   /**
