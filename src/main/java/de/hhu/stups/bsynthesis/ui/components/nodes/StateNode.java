@@ -9,11 +9,9 @@ import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.Loader;
-import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
 import de.prob.animator.domainobjects.IEvalElement;
-import de.prob.statespace.AnimationSelector;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 import de.prob.statespace.Trace;
@@ -359,13 +357,6 @@ public class StateNode extends BasicNode implements Initializable {
     };
   }
 
-  /**
-   * Return true if the state is validated to be valid by the user otherwise false.
-   */
-  public boolean isValidatedPositive() {
-    return getXPosition() < ValidationPane.WIDTH / 2;
-  }
-
   public State getState() {
     return stateProperty.get();
   }
@@ -443,23 +434,6 @@ public class StateNode extends BasicNode implements Initializable {
 
   public SetProperty<BasicNode> predecessorProperty() {
     return predecessorProperty;
-  }
-
-  /**
-   * Compute and return the {@link this state node}'s predecessor state if possible otherwise null.
-   */
-  public State getPredecessor() {
-    final StateNode predecessorStateNode = getPredecessorFromTrace();
-    if (predecessorStateNode != null) {
-      return predecessorStateNode.getState();
-    }
-    final Trace currentTrace = traceProperty().get();
-    if (currentTrace == null || !currentTrace.canGoBack()) {
-      return null;
-    }
-    final AnimationSelector animationSelector = synthesisContextService.getAnimationSelector();
-    animationSelector.addNewAnimation(currentTrace.back());
-    return animationSelector.getCurrentTrace().getCurrentState();
   }
 
   /**
