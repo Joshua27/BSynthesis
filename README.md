@@ -8,11 +8,30 @@
 
 # Background
 
-Writing a formal model is a complicated and time-consuming task. Usually, one successively refines a model with the help of provers or model checkers. In case an error is found or if a proof fails, the model has to be adapted. However, in general,
-finding the appropriate set of changes is non-trivial.
-We propose partially automating the process using software synthesis: Guided by examples of positive and negative behavior we strengthen preconditions or relax invariants appropriately. Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
-Relating to model repair we are hereby able to resolve invariant violations as well as deadlock states for a defective machine.
+For safety or business critical systems a software bug can lead to extensive safety, security or financial problems.
+To overcome these issues, one can use a rigorous, formal development method.
+In particular, one might use a model driven approach, centering around thorough specification of the software to be developed.
+This involves describing the system at various refinement levels and specifying system properties, for instance, in the form of invariants or preconditions for operations.
+However, writing a formal model is a complicated and time-consuming task.
+Usually, one successively refines a model with the help of provers or model checkers.
+In case an error is found or if a proof fails, the model has to be adapted.
+In general, finding the appropriate set of changes is non-trivial.
+Relating to the formal specification language B it is conventional to think in terms of states describing explicit values of the machine variables at a time.
+These states can straightforwardly be used for synthesis.
+
+Hence, we propose partially automating the development process of formal models using software synthesis:
+Guided by examples of positive and negative behavior we strengthen preconditions or relax invariants appropriately.
+Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
 All this is done using constant user feedback, yielding an interactive assistant.
+
+# Requirements
+
+- Java 8 Oracle JDK
+- Gradle 3.2.1 (or newer)
+
+# Start the Application
+
+From the root folder: `gradle run`
 
 # References
 
