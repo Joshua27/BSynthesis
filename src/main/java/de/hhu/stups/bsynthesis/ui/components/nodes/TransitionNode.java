@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.prob.statespace.State;
 
@@ -77,9 +79,10 @@ public class TransitionNode extends BasicNode implements Initializable {
     StackPane.setAlignment(inputStateNode, Pos.CENTER_LEFT);
     StackPane.setAlignment(outputStateNode, Pos.CENTER_RIGHT);
 
-    EasyBind.subscribe(isExpandedProperty() , isExpanded -> {
+    EasyBind.subscribe(isExpandedProperty(), isExpanded -> {
       if (isExpanded) {
-        uiService.adjustNodePositionEventSource().push(this);
+        uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.ADJUST_NODE_POSITION, this));
       }
     });
   }

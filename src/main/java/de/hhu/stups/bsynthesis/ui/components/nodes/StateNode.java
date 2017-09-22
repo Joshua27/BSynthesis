@@ -8,6 +8,8 @@ import de.hhu.stups.bsynthesis.services.DaemonThread;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
@@ -72,7 +74,7 @@ public class StateNode extends BasicNode implements Initializable {
   private final SetProperty<BasicNode> predecessorProperty;
   private final BooleanProperty stateFromModelCheckingProperty;
   private final UiService uiService;
-  private ObjectProperty<StateNode> equivalentNodeProperty;
+  private final ObjectProperty<StateNode> equivalentNodeProperty;
 
   @FXML
   @SuppressWarnings("unused")
@@ -126,7 +128,8 @@ public class StateNode extends BasicNode implements Initializable {
 
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
-    uiService.adjustNodePositionEventSource().push(this);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.ADJUST_NODE_POSITION, this));
     nodeWidthProperty().set(WIDTH);
     nodeHeightProperty().set(HEIGHT);
 
@@ -173,7 +176,7 @@ public class StateNode extends BasicNode implements Initializable {
     EasyBind.subscribe(equivalentNodeProperty, equivalentNode -> {
       if (equivalentNode != null && equivalentNode != this) {
         equivalentNode.highlightNodeEffect();
-        uiService.removeNodeEventSource().push(this);
+        remove();
       }
     });
   }
@@ -273,7 +276,8 @@ public class StateNode extends BasicNode implements Initializable {
     if (predecessorNode == null) {
       return;
     }
-    uiService.showNodeEventSource().push(predecessorNode);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, predecessorNode));
   }
 
   public ObjectProperty<StateNode> equivalentNodeProperty() {
@@ -303,7 +307,8 @@ public class StateNode extends BasicNode implements Initializable {
     if (successorNode == null) {
       return;
     }
-    uiService.showNodeEventSource().push(successorNode);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, successorNode));
   }
 
   private void setCompressedWidth() {
@@ -322,7 +327,8 @@ public class StateNode extends BasicNode implements Initializable {
     timeline.getKeyFrames().add(expandAnimation);
     timeline.play();
     EasyBind.subscribe(timeline.onFinishedProperty(), actionEventEventHandler ->
-        uiService.adjustNodePositionEventSource().push(this));
+        uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.ADJUST_NODE_POSITION, this)));
   }
 
   /**
@@ -372,7 +378,8 @@ public class StateNode extends BasicNode implements Initializable {
 
   @Override
   public void remove() {
-    uiService.removeNodeEventSource().push(this);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.REMOVE_NODE, this));
   }
 
   /**
@@ -405,7 +412,8 @@ public class StateNode extends BasicNode implements Initializable {
       });
 
       if (!synthesisContextService.getSynthesisType().isAction()) {
-        uiService.checkDuplicateStateNodeEventSource().push(this);
+        uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.CHECK_DUPLICATE_NODE, this));
       }
     }).start();
   }

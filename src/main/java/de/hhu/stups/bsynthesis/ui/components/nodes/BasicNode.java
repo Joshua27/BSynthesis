@@ -1,6 +1,8 @@
 package de.hhu.stups.bsynthesis.ui.components.nodes;
 
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.prob.statespace.Trace;
 
 import javafx.beans.property.BooleanProperty;
@@ -61,14 +63,16 @@ public class BasicNode extends StackPane {
     moveIsEnabledProperty = new SimpleBooleanProperty(true);
 
     userValidationProperty = new SimpleBooleanProperty();
-    uiService.userValidationEventSource().push(this);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.NODE_USER_VALIDATION, this));
 
     contextMenu = uiService.getNodeContextMenuFactory().create(this);
 
     // update the user validation state of the node on move but add a small delay to prevent
     // performance issues
     updateUserValidationTimer = FxTimer.create(java.time.Duration.ofMillis(250), () ->
-        uiService.userValidationEventSource().push(this));
+        uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.NODE_USER_VALIDATION, this)));
 
     setLayoutX(position.getX());
     setLayoutY(position.getY());
@@ -137,7 +141,8 @@ public class BasicNode extends StackPane {
   }
 
   public void remove() {
-    uiService.removeNodeEventSource().push(this);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.REMOVE_NODE, this));
   }
 
   public Double getXPosition() {

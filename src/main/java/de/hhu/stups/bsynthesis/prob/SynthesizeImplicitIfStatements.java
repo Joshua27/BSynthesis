@@ -54,8 +54,10 @@ public class SynthesizeImplicitIfStatements {
         uiService.validationPaneEventSource()
             .push(new ValidationPaneEvent(ValidationPaneEventType.CLEAR));
         // reset the initialValidExamples if synthesis failed
-        initialValidExamples.forEach(basicNode -> uiService.showNodeEventSource().push(basicNode));
-        processedExamples.forEach(basicNode -> uiService.showNodeEventSource().push(basicNode));
+        initialValidExamples.forEach(basicNode -> uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, basicNode)));
+        processedExamples.forEach(basicNode -> uiService.validationPaneEventSource().push(
+            new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, basicNode)));
         initialValidExamples.clear();
         synthesizedOperations.clear();
         processedExamples.clear();
@@ -81,7 +83,8 @@ public class SynthesizeImplicitIfStatements {
       synthesisContextService.synthesisSucceededProperty().set(true);
       uiService.validationPaneEventSource()
           .push(new ValidationPaneEvent(ValidationPaneEventType.CLEAR));
-      processedExamples.forEach(basicNode -> uiService.showNodeEventSource().push(basicNode));
+      processedExamples.forEach(basicNode -> uiService.validationPaneEventSource().push(
+          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, basicNode)));
       final AdaptMachineCodeForOperationsCommand adaptMachineCodeForOperationsCommand =
           new AdaptMachineCodeForOperationsCommand(synthesizedOperations);
       final StateSpace stateSpace = synthesisContextService.getStateSpace();
@@ -103,7 +106,8 @@ public class SynthesizeImplicitIfStatements {
       initialValidExamples.remove(0);
       uiService.validationPaneEventSource()
           .push(new ValidationPaneEvent(ValidationPaneEventType.CLEAR));
-      uiService.showNodeEventSource().push(example);
+      uiService.validationPaneEventSource().push(
+          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, example));
       final ArrayList<BasicNode> invalidExamples = new ArrayList<>();
       invalidExamples.addAll(processedExamples);
       currentExamples.put("valid", Collections.singletonList(example));

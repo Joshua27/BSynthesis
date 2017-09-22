@@ -133,18 +133,7 @@ public class ValidationPane extends Pane implements Initializable {
   }
 
   private void subscribeToUiEvents() {
-    uiService.showNodeEventSource().subscribe(this::addNode);
-    uiService.removeNodeEventSource().subscribe(nodes::remove);
-    uiService.userValidationEventSource().subscribe(basicNode -> {
-      basicNode.userValidationProperty().set(getExampleValidation(basicNode));
-      updateSynthesisType(basicNode);
-    });
-    uiService.checkDuplicateStateNodeEventSource().subscribe(stateNode -> {
-      final StateNode equivalentNode = containsStateNode(stateNode);
-      stateNode.equivalentNodeProperty().set(equivalentNode == null ? stateNode : equivalentNode);
-    });
     uiService.addNodeConnectionEventSource().subscribe(this::addNodeConnection);
-    uiService.adjustNodePositionEventSource().subscribe(this::adjustPositionIfNecessary);
     uiService.applicationEventStream().subscribe(applicationEvent -> {
       if (applicationEvent.getApplicationEventType().isCloseApp()) {
         executorService.shutdown();
@@ -154,11 +143,34 @@ public class ValidationPane extends Pane implements Initializable {
   }
 
   private void handleValidationPaneEvent(final ValidationPaneEvent validationPaneEvent) {
+    final BasicNode node = validationPaneEvent.getNode();
     switch (validationPaneEvent.getValidationPaneEventType()) {
       case CLEAR:
         nodes.clear();
         break;
-      // TODO
+      case SHOW_NODE:
+        addNode(node);
+        break;
+      case REMOVE_NODE:
+        nodes.remove(node);
+        break;
+      case ADJUST_NODE_POSITION:
+        adjustPositionIfNecessary(node);
+        break;
+      case NODE_USER_VALIDATION:
+        node.userValidationProperty().set(getExampleValidation(node));
+        updateSynthesisType(node);
+        break;
+      case CHECK_DUPLICATE_NODE:
+        if (node instanceof StateNode) {
+          Platform.runLater(() -> {
+            final StateNode stateNode = (StateNode) node;
+            final StateNode equivalentNode = containsStateNode(stateNode);
+            stateNode.equivalentNodeProperty().set(equivalentNode == null
+                ? stateNode : equivalentNode);
+          });
+        }
+        break;
       default:
         break;
     }

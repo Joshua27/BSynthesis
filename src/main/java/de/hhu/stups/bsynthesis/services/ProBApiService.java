@@ -323,7 +323,8 @@ public class ProBApiService {
         .create(inputState, stateSpace.getTrace(inputState.getId()), distinguishingNodePosition,
             NodeState.TENTATIVE);
     initializeDistNode(stateNode);
-    uiService.showNodeEventSource().push(stateNode);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, stateNode));
   }
 
   private boolean handleDistinguishingTransition(final SynthesisType synthesisType,
@@ -343,7 +344,8 @@ public class ProBApiService {
       final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
           .create(inputState, outputState, distinguishingNodePosition, NodeState.TENTATIVE);
       initializeDistNode(transitionNode);
-      uiService.showNodeEventSource().push(transitionNode);
+      uiService.validationPaneEventSource().push(
+          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, transitionNode));
       return true;
     }
     if (synthesisType.isAction()) {
@@ -353,7 +355,8 @@ public class ProBApiService {
       // the output anyway
       final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
           .create(inputState, inputState, distinguishingNodePosition, NodeState.TENTATIVE);
-      uiService.showNodeEventSource().push(transitionNode);
+      uiService.validationPaneEventSource().push(
+          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, transitionNode));
       initializeDistNode(transitionNode);
       return true;
     }

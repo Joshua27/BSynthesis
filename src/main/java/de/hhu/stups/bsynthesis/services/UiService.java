@@ -30,13 +30,7 @@ public class UiService {
 
   private final EventSource<ApplicationEvent> applicationEventStream;
   private final EventSource<UiZoom> zoomEventStream;
-  // TODO: maybe merge some event sources
   private final EventSource<ValidationPaneEvent> validationPaneEventSource;
-  private final EventSource<BasicNode> showNodeEventSource;
-  private final EventSource<BasicNode> removeNodeEventSource;
-  private final EventSource<BasicNode> userValidationEventSource;
-  private final EventSource<BasicNode> adjustNodePositionEventSource;
-  private final EventSource<StateNode> checkDuplicateStateNodeEventSource;
   private final EventSource<NodeLine> addNodeConnectionEventSource;
   private final EventSource<MachineVisualization> visualizeBehaviorEventSource;
 
@@ -67,14 +61,9 @@ public class UiService {
     validationPaneEventSource = new EventSource<>();
     applicationEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
-    showNodeEventSource = new EventSource<>();
-    removeNodeEventSource = new EventSource<>();
-    checkDuplicateStateNodeEventSource = new EventSource<>();
-    userValidationEventSource = new EventSource<>();
     zoomInEnabledProperty = new SimpleBooleanProperty();
     zoomOutEnabledProperty = new SimpleBooleanProperty();
     addNodeConnectionEventSource = new EventSource<>();
-    adjustNodePositionEventSource = new EventSource<>();
     visualizeBehaviorEventSource = new EventSource<>();
     visualizeBehaviorEventSource.subscribe(this::handleMachineVisualization);
 
@@ -91,22 +80,23 @@ public class UiService {
       DaemonThread.getDaemonThread(() -> {
         final Map<String, Set<StateNode>> stateNodes =
             visualizeBehavior.visualizeInvariants(stateNodeFactory);
-        stateNodes.get("valid").forEach(this::pushAndValidateNode);
-        stateNodes.get("invalid").forEach(this::pushAndValidateNode);
+        stateNodes.get("valid").forEach(this::showNode);
+        stateNodes.get("invalid").forEach(this::showNode);
       }).start();
     } else {
       DaemonThread.getDaemonThread(() -> {
         final Map<String, Set<TransitionNode>> transitionNodes =
             visualizeBehavior.visualizeOperation(machineVisualization.getOperationName(),
                 transitionNodeFactory);
-        transitionNodes.get("valid").forEach(this::pushAndValidateNode);
-        transitionNodes.get("invalid").forEach(this::pushAndValidateNode);
+        transitionNodes.get("valid").forEach(this::showNode);
+        transitionNodes.get("invalid").forEach(this::showNode);
       }).start();
     }
   }
 
-  private void pushAndValidateNode(final BasicNode basicNode) {
-    showNodeEventSource.push(basicNode);
+  private void showNode(final BasicNode basicNode) {
+    validationPaneEventSource.push(
+        new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, basicNode));
   }
 
   /**
@@ -187,32 +177,12 @@ public class UiService {
         currentVarStatesMapProperty.get(machineVarname).set(false));
   }
 
-  public EventSource<BasicNode> removeNodeEventSource() {
-    return removeNodeEventSource;
-  }
-
-  public EventSource<StateNode> checkDuplicateStateNodeEventSource() {
-    return checkDuplicateStateNodeEventSource;
-  }
-
-  public EventSource<BasicNode> showNodeEventSource() {
-    return showNodeEventSource;
-  }
-
   public EventSource<ValidationPaneEvent> validationPaneEventSource() {
     return validationPaneEventSource;
   }
 
-  public EventSource<BasicNode> userValidationEventSource() {
-    return userValidationEventSource;
-  }
-
   public EventSource<NodeLine> addNodeConnectionEventSource() {
     return addNodeConnectionEventSource;
-  }
-
-  public EventSource<BasicNode> adjustNodePositionEventSource() {
-    return adjustNodePositionEventSource;
   }
 
   public EventSource<MachineVisualization> visualizeBehaviorEventSource() {
