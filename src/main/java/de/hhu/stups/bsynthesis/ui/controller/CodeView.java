@@ -132,7 +132,8 @@ public final class CodeView extends VBox {
     });
 
     EasyBind.subscribe(synthesisContextService.behaviorSatisfiedProperty(), operationName -> {
-      if (operationName == null) {
+      if (operationName == null || synthesisContextService.selectedLibraryComponentsProperty()
+          .get().considerIfStatementsProperty().get().isImplicit()) {
         return;
       }
       Platform.runLater(() -> {

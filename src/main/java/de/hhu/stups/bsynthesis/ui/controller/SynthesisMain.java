@@ -65,9 +65,12 @@ public class SynthesisMain extends VBox implements Initializable {
     initializeTabs();
     final UiService uiService = serviceDelegator.uiService();
     uiService.applicationEventStream().subscribe(this::selectTab);
-    EasyBind.subscribe(synthesisContextService.synthesisSucceededProperty(), succeeded ->
+    EasyBind.subscribe(synthesisContextService.modifiedMachineCodeProperty(), machineCode -> {
+      if (machineCode != null && !"none".equals(machineCode)) {
         serviceDelegator.uiService().applicationEventStream().push(
-            new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW)));
+            new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
+      }
+    });
     EasyBind.subscribe(synthesisContextService.stateSpaceProperty(), stateSpace -> {
       if (stateSpace != null) {
         uiService.initializeCurrentVarBindings(getMachineVars(stateSpace));
