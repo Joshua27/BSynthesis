@@ -3,7 +3,9 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 
 import de.hhu.stups.bsynthesis.prob.GetMachineOperationNamesCommand;
+import de.hhu.stups.bsynthesis.prob.SetSolverTimeoutCommand;
 import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
+import de.hhu.stups.bsynthesis.prob.SynthesizeImplicitIfStatements;
 import de.hhu.stups.bsynthesis.services.ApplicationEvent;
 import de.hhu.stups.bsynthesis.services.ApplicationEventType;
 import de.hhu.stups.bsynthesis.services.ControllerTab;
@@ -22,6 +24,7 @@ import de.hhu.stups.bsynthesis.services.VisualizationType;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
+import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
@@ -57,6 +60,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -73,6 +77,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   private final BooleanProperty ignoreModelCheckerProperty;
   private final UiService uiService;
   private final ProBApiService proBApiService;
+  private final SynthesizeImplicitIfStatements synthesizeImplicitIfStatements;
 
   @FXML
   @SuppressWarnings("unused")
@@ -148,11 +153,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   public SynthesisMainMenu(final FXMLLoader loader,
                            final ValidationPane validationPane,
                            final SynthesisInfoBox synthesisInfoBox,
-                           final ServiceDelegator serviceDelegator) {
+                           final ServiceDelegator serviceDelegator,
+                           final SynthesizeImplicitIfStatements synthesizeImplicitIfStatements) {
     this.validationPane = validationPane;
     this.synthesisInfoBox = synthesisInfoBox;
     this.synthesisContextService = serviceDelegator.synthesisContextService();
     this.modelCheckingService = serviceDelegator.modelCheckingService();
+    this.synthesizeImplicitIfStatements = synthesizeImplicitIfStatements;
     this.uiService = serviceDelegator.uiService();
     this.proBApiService = serviceDelegator.proBApiService();
     stageProperty = new SimpleObjectProperty<>();
@@ -359,9 +366,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   public void setTimeout() {
     final Optional<String> timeoutOptional = getTimeoutFromDialog();
     timeoutOptional.ifPresent(timeout -> {
-      final SetPreferenceCommand setPreferenceCommand =
-          new SetPreferenceCommand("TIME_OUT", timeout);
-      synthesisContextService.getStateSpace().execute(setPreferenceCommand);
+      final SetSolverTimeoutCommand setSolverTimeoutCommand = new SetSolverTimeoutCommand(timeout);
+      synthesisContextService.getStateSpace().execute(setSolverTimeoutCommand);
+      proBApiService.synchronizeStateSpaces();
     });
   }
 
@@ -450,13 +457,20 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     // reset the library expansion to 1 but if a synthesis instance has been suspended the
     // {@link ProBApiService} will restart this instance with the last expansion used on this
     // statespace
-    synthesisContextService.selectedLibraryComponentsProperty().get().setLibraryExpansion(1);
+    final BLibrary selectedLibrary =
+        synthesisContextService.selectedLibraryComponentsProperty().get();
+    selectedLibrary.setLibraryExpansion(1);
+    if (selectedLibrary.considerIfStatementsProperty().get().isImplicit()) {
+      synthesizeImplicitIfStatements.startSynthesis(examples);
+      return;
+    }
     final StartSynthesisCommand startSynthesisCommand = new StartSynthesisCommand(
-        synthesisContextService.selectedLibraryComponentsProperty().get(),
+        selectedLibrary,
         synthesisContextService.getCurrentOperation(),
         uiService.getCurrentVarNames(),
-        synthesisContextService.synthesisTypeProperty().get(),
-        examples, synthesisContextService.solverBackendProperty().get());
+        new HashSet<>(),
+        synthesisContextService.getSynthesisType(),
+        examples, synthesisContextService.getSolverBackend());
     proBApiService.startSynthesisEventSource().push(startSynthesisCommand);
   }
 
