@@ -242,8 +242,7 @@ public class ProBApiService {
   }
 
   private void startSynthesisSingleInstance(final StartSynthesisCommand startSynthesisCommand) {
-    logger.info(
-        "Start a single synthesis instance using the library components selected by the user.");
+    logger.info("Start a single synthesis instance.");
     final StateSpace stateSpace;
     if (!suspendedStateSpacesMap.isEmpty()) {
       // restart synthesis on suspended statespace
@@ -343,9 +342,9 @@ public class ProBApiService {
       final State outputState = stateSpace.getState(outputStateCommand.getStateId());
       final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
           .create(inputState, outputState, distinguishingNodePosition, NodeState.TENTATIVE);
+      Platform.runLater(() -> uiService.validationPaneEventSource().push(
+          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, transitionNode)));
       initializeDistNode(transitionNode);
-      uiService.validationPaneEventSource().push(
-          new ValidationPaneEvent(ValidationPaneEventType.SHOW_NODE, transitionNode));
       return true;
     }
     if (synthesisType.isAction()) {

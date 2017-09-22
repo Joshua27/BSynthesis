@@ -136,13 +136,13 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
     }
     if ("$initialise_machine".equals(affectedOperation)) {
       // deadlock in initialization state: the only thing we can do is to synthesize a new operation
-      synthesisContextService.setCurrentOperation(null);
       statusTextProperty.set("Deadlock found in initialization state.");
       modelCheckingService.deadlockRepairProperty().set(DeadlockRepair.RESOLVE_DEADLOCK);
       return;
     }
     synthesisContextService.setCurrentOperation(affectedOperation);
     statusTextProperty.set("Deadlock found.");
+    iconCancelModelChecking.setVisible(false);
     getChildren().add(boxDeadlock);
   }
 
