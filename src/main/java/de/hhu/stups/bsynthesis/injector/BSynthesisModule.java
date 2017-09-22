@@ -7,6 +7,7 @@ import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.util.Providers;
 
 import de.codecentric.centerdevice.MenuToolkit;
+import de.hhu.stups.bsynthesis.prob.SynthesizeImplicitIfStatements;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ProBApiService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
@@ -55,6 +56,7 @@ public class BSynthesisModule extends AbstractModule {
     bind(ServiceDelegator.class);
     bind(ModelCheckingProgressIndicator.class);
     bind(SynthesisProgressIndicator.class);
+    bind(SynthesizeImplicitIfStatements.class);
     bind(SynthesisMainMenu.class);
     bind(NodeHeader.class);
     bind(ValidationPane.class);
