@@ -47,11 +47,13 @@ public class BSynthesis extends Application {
    * Shut down all injector instances and send {@link ApplicationEventType#CLOSE_APP} to the
    * {@link UiService#applicationEventStream} to shut down all executor services etc.
    */
+  @edu.umd.cs.findbugs.annotations.SuppressWarnings
   @Override
   public void stop() {
     injector.getInstance(ProBInstanceProvider.class).shutdownAll();
     uiService.applicationEventStream().push(
         new ApplicationEvent(ApplicationEventType.CLOSE_APP));
     Platform.exit();
+    System.exit(0);
   }
 }
