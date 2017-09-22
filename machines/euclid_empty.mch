@@ -1,0 +1,7 @@
+MACHINE euclidean
+VARIABLES x, y
+INVARIANT x : NATURAL & y : NATURAL
+INITIALISATION x := 132 || y := 14
+OPERATIONS
+  empty = BEGIN skip END
+END
