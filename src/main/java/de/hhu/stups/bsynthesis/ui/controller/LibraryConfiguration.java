@@ -37,6 +37,9 @@ import java.util.stream.Collectors;
  * Provides an user interface to configure the used {@link BLibrary} for synthesizing programs or
  * deciding to use the default library configuration, i.e., starting from a small library and
  * successively considering new components if necessary.
+ * Moreover, the user is able to determine whether constants should be considered during synthesis
+ * and set the type of if-statements, i.e., either explicit in the form of B expressions or
+ * implicit by synthesizing several operations splitting the different semantics.
  */
 @Singleton
 public class LibraryConfiguration extends GridPane implements Initializable {
@@ -174,6 +177,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
     selectedLibraryComponentsProperty.get().doNotUseConstantsProperty()
         .bind(cbNoConstants.selectedProperty());
 
+    initializeCheckBoxes();
     initializeButtons();
     initializeTreeViews();
     initializeTreeViewLibrary();
@@ -325,6 +329,16 @@ public class LibraryConfiguration extends GridPane implements Initializable {
             disableComponentsButtonsProperty.set(newValue == null
                 || newValue.getValue() == null
                 || newValue.getValue().getLibraryComponentType() == null));
+  }
+
+  /**
+   * Disable the check boxes determining the type of if-statements if synthesis has been suspended.
+   */
+  private void initializeCheckBoxes() {
+    cbConsiderExplicitIf.disableProperty().bind(
+        synthesisContextService.synthesisSuspendedProperty());
+    cbConsiderImplicitIf.disableProperty().bind(
+        synthesisContextService.synthesisSuspendedProperty());
   }
 
   /**
