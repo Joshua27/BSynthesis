@@ -10,6 +10,7 @@ import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
@@ -59,13 +60,13 @@ import java.util.stream.Collectors;
 
 /**
  * The validation pane which is graphically split in two areas where the left side contains valid
- * nodes and the right side invalid ones.
+ * example nodes (positive) and the right side invalid ones (negative).
  */
 @Singleton
 public class ValidationPane extends Pane implements Initializable {
 
-  public static final double WIDTH = 2700.0;
-  public static final double HEIGHT = 1600.0;
+  public static final double WIDTH = 3200.0;
+  public static final double HEIGHT = 1800.0;
 
   private static final int MODEL_CHECKING_STATE_AMOUNT = 5;
 
@@ -149,6 +150,18 @@ public class ValidationPane extends Pane implements Initializable {
         executorService.shutdown();
       }
     });
+    uiService.validationPaneEventSource().subscribe(this::handleValidationPaneEvent);
+  }
+
+  private void handleValidationPaneEvent(final ValidationPaneEvent validationPaneEvent) {
+    switch (validationPaneEvent.getValidationPaneEventType()) {
+      case CLEAR:
+        nodes.clear();
+        break;
+      // TODO
+      default:
+        break;
+    }
   }
 
   /**
@@ -450,7 +463,7 @@ public class ValidationPane extends Pane implements Initializable {
 
   /**
    * Return all validated nodes whose center is on the green side of the pane, i.e. in the left
-   * half. Tentative nodes are ignored.
+   * half.
    */
   @SuppressWarnings("unused")
   public List<BasicNode> getValidNodes() {
@@ -459,7 +472,6 @@ public class ValidationPane extends Pane implements Initializable {
 
   /**
    * Return all validated nodes whose center is on the red side of the pane, i.e. in the right half.
-   * Tentative nodes are ignored.
    */
   @SuppressWarnings("unused")
   public List<BasicNode> getInvalidNodes() {
@@ -509,12 +521,12 @@ public class ValidationPane extends Pane implements Initializable {
       protected Boolean call() throws Exception {
         final TransitionNode transitionNode = (TransitionNode) node;
         transitionNode.validateTransition();
-        final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
-        if (equivalentNode != null) {
-          //Platform.runLater(equivalentNode::highlightNodeEffect);
-          return false;
-        }
-        Platform.runLater(() -> nodes.add(node));
+        Platform.runLater(() -> {
+          final TransitionNode equivalentNode = containsTransitionNode(transitionNode);
+          if (equivalentNode == null) {
+            nodes.add(node);
+          }
+        });
         return true;
       }
     }));
