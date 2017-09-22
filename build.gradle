@@ -8,8 +8,6 @@ plugins {
     id 'edu.sc.seis.launch4j' version '1.6.1'
 }
 
-boolean IS_MAC = System.getProperty("os.name", "").toLowerCase().contains("mac")
-
 checkstyle {
     toolVersion = "7.5.1"
 }
@@ -27,12 +25,6 @@ repositories {
     }
 }
 
-if (IS_MAC) {
-    plugins {
-        id "edu.sc.seis.macAppBundle" version "2.1.6"
-    }
-}
-
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -40,7 +32,7 @@ repositories {
     mavenCentral()
 }
 
-mainClassName = "de.hhu.stups.bsynthesis.ui.BSynthesis"
+mainClassName = "de.hhu.stups.bsynthesis.BSynthesis"
 
 sourceSets.main.java.srcDirs = ["src/main/java"]
 
