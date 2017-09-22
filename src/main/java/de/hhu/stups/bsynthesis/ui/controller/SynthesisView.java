@@ -170,7 +170,8 @@ public class SynthesisView extends ScrollPane implements Initializable {
     if (modelCheckingResult.getUncoveredError().isInvariantViolation()
         && !modelCheckingService.invariantViolationInitialState().get()) {
       // invariant violation, but not in the initial state of the machine which we do not support
-      // to resolve using synthesis
+      // to resolve using synthesis since in this case only one state is given and the
+      // initialization of a machine mostly consists of simple assignments
       synthesisContextService.setSynthesisType(SynthesisType.GUARD);
       synthesisInfoBox.infoTextProperty().set("Invariant violation found.");
       Platform.runLater(() -> validationPane.initializeNodesFromTrace());
@@ -203,7 +204,7 @@ public class SynthesisView extends ScrollPane implements Initializable {
    * Get a unique operation name for resolving a deadlock state, like "repair_deadlock0".
    */
   private String getUniqueDeadlockOpName(final int deadlockOpCount) {
-    final String operationName = "repair_deadlock";
+    final String operationName = "repair_deadlock" + String.valueOf(deadlockOpCount);
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     final GetMachineOperationNamesCommand getMachineOperationNamesCommand =
         new GetMachineOperationNamesCommand();
@@ -212,7 +213,6 @@ public class SynthesisView extends ScrollPane implements Initializable {
       return getUniqueDeadlockOpName(deadlockOpCount + 1);
     }
     return operationName;
-
   }
 
   private void initializeScaleEvents() {
