@@ -45,7 +45,7 @@ public class ServiceDelegator {
         modelCheckingService.reset();
       }
     });
-    EasyBind.subscribe(proBApiService.mainStateSpaceProperty(), stateSpaces -> {
+    EasyBind.subscribe(proBApiService.mainStateSpaceProperty(), stateSpace -> {
       uiService.applicationEventStream().push(
           new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
       // bind one statespace to the synthesis context, the other instances are synchronized within

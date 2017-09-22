@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -67,7 +68,7 @@ public class ProBApiService {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final EventSource<StartSynthesisCommand> startSynthesisEventSource;
   private final ObjectProperty<StateSpace> mainStateSpaceProperty;
-  private final MapProperty<Task<Void>, StateSpace> synthesisTasksMap;
+  private final ConcurrentHashMap<Task<Void>, StateSpace> synthesisTasksMap;
   private final SetProperty<StateSpace> stateSpacesProperty;
   private final MapProperty<StateSpace, Integer> suspendedStateSpacesMap;
   private final BooleanProperty synthesisSucceededProperty;
@@ -96,7 +97,7 @@ public class ProBApiService {
     synthesisRunningProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
     behaviorSatisfiedProperty = new SimpleStringProperty();
-    synthesisTasksMap = new SimpleMapProperty<>(FXCollections.observableHashMap());
+    synthesisTasksMap = new ConcurrentHashMap<>();
     idleStateSpaceQueue = new LinkedBlockingQueue<>();
     currentLibraryExpansionProperty = new SimpleIntegerProperty();
     suspendedStateSpacesMap = new SimpleMapProperty<>(FXCollections.observableHashMap());
@@ -200,7 +201,8 @@ public class ProBApiService {
     synthesisSuspendedProperty.set(false);
     // the user selected the library components, and thus, we just start one instance using
     // this configuration
-    if (!startSynthesisCommand.isDefaultLibraryConfiguration()) {
+    if (!startSynthesisCommand.isDefaultLibraryConfiguration()
+        || startSynthesisCommand.isImplicitIf()) {
       startSynthesisSingleInstance(startSynthesisCommand);
       return;
     }
@@ -242,11 +244,20 @@ public class ProBApiService {
   private void startSynthesisSingleInstance(final StartSynthesisCommand startSynthesisCommand) {
     logger.info(
         "Start a single synthesis instance using the library components selected by the user.");
-    final StateSpace stateSpace = idleStateSpaceQueue.poll();
+    final StateSpace stateSpace;
+    if (!suspendedStateSpacesMap.isEmpty()) {
+      // restart synthesis on suspended statespace
+      final Map.Entry<StateSpace, Integer> suspendedStateSpaceEntry =
+          suspendedStateSpacesMap.get().entrySet().iterator().next();
+      stateSpace = suspendedStateSpaceEntry.getKey();
+      startSynthesisCommand.setLibraryExpansion(suspendedStateSpaceEntry.getValue());
+    } else {
+      // or start synthesis on a new statespace
+      stateSpace = idleStateSpaceQueue.poll();
+    }
     if (stateSpace == null) {
-      logger.info("No statespace available when trying to run a single synthesis instance.");
+      logger.error("No statespace available when trying to run a single synthesis instance.");
       synchronizeStateSpaces();
-
       return;
     }
     final Task<Void> synthesisTask = getSynthesisTask(stateSpace, startSynthesisCommand);
@@ -263,7 +274,8 @@ public class ProBApiService {
    */
   private void expandLibraryAndRestartSynthesis(final StartSynthesisCommand startSynthesisCommand) {
     startSynthesisCommand.setLibraryExpansion(currentLibraryExpansionProperty.get());
-    if (synthesisSucceededProperty.not().get() && startSynthesisCommand.expandLibrary()) {
+    final boolean libraryExpanded = startSynthesisCommand.expandLibrary();
+    if (synthesisSucceededProperty.not().get() && libraryExpanded) {
       logger.info("Expand library to level " + startSynthesisCommand.getLibraryExpansion());
       final StateSpace stateSpace = idleStateSpaceQueue.poll();
       if (stateSpace == null) {
@@ -274,6 +286,10 @@ public class ProBApiService {
       synthesisTasksMap.put(synthesisTask, stateSpace);
       threadPoolExecutor.execute(synthesisTask);
       currentLibraryExpansionProperty.set(startSynthesisCommand.getLibraryExpansion());
+      return;
+    }
+    if (!libraryExpanded) {
+      synthesisRunningProperty.set(false);
     }
   }
 
@@ -348,12 +364,8 @@ public class ProBApiService {
     Platform.runLater(() -> {
       basicNode.isExpandedProperty().set(true);
       if (basicNode instanceof StateNode) {
-        final StateNode stateNode = (StateNode) basicNode;
-        stateNode.validateState();
-        stateNode.stateFromModelCheckingProperty().set(true);
-        return;
+        ((StateNode) basicNode).stateFromModelCheckingProperty().set(true);
       }
-      ((TransitionNode) basicNode).validateTransition();
     });
   }
 
@@ -459,14 +471,9 @@ public class ProBApiService {
    * Cancel all {@link #synthesisTasksMap running tasks}.
    */
   private void cancelRunningTasks() {
-    synchronized (synthesisTasksMap) {
-      synthesisTasksMap.forEach((key, value) ->
-          DaemonThread.getDaemonThread(() -> {
-            synchronized (key) {
-              key.cancel(true);
-            }
-          }).start());
-    }
+    synthesisTasksMap.entrySet().iterator().forEachRemaining(entry ->
+        DaemonThread.getDaemonThread(() ->
+            entry.getKey().cancel(true)).start());
     suspendedStateSpacesMap.clear();
     synthesisRunningProperty.set(false);
   }

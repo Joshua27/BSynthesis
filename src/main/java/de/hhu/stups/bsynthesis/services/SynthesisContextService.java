@@ -168,6 +168,10 @@ public class SynthesisContextService {
     return solverBackendProperty;
   }
 
+  public SolverBackend getSolverBackend() {
+    return solverBackendProperty.get();
+  }
+
   public BooleanProperty synthesisSucceededProperty() {
     return synthesisSucceededProperty;
   }

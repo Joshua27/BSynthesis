@@ -31,6 +31,7 @@ public class UiService {
   private final EventSource<ApplicationEvent> applicationEventStream;
   private final EventSource<UiZoom> zoomEventStream;
   // TODO: maybe merge some event sources
+  private final EventSource<ValidationPaneEvent> validationPaneEventSource;
   private final EventSource<BasicNode> showNodeEventSource;
   private final EventSource<BasicNode> removeNodeEventSource;
   private final EventSource<BasicNode> userValidationEventSource;
@@ -63,6 +64,7 @@ public class UiService {
     this.visualizeBehavior = visualizeBehavior;
 
     currentVarStatesMapProperty = new SimpleMapProperty<>(FXCollections.observableHashMap());
+    validationPaneEventSource = new EventSource<>();
     applicationEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
     showNodeEventSource = new EventSource<>();
@@ -195,6 +197,10 @@ public class UiService {
 
   public EventSource<BasicNode> showNodeEventSource() {
     return showNodeEventSource;
+  }
+
+  public EventSource<ValidationPaneEvent> validationPaneEventSource() {
+    return validationPaneEventSource;
   }
 
   public EventSource<BasicNode> userValidationEventSource() {
