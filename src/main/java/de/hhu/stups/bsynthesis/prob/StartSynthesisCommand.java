@@ -36,23 +36,28 @@ public class StartSynthesisCommand extends AbstractCommand {
   private static final String PROLOG_COMMAND_NAME = "start_synthesis_from_ui";
   private static final String DISTINGUISHING_EXAMPLE = "Distinguishing";
   private static final String MODIFIED_MACHINE = "NewMachine";
+  private static final String PROLOG_COMMAND_NAME2 = "start_synthesis_single_operation_from_ui";
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String currentOperation;
   private final SynthesisType synthesisType;
   private final Set<InputOutputExample> positiveExamples;
-  private final Set<InputOutputExample> negativeExamples;
-  private final BLibrary selectedLibraryComponents;
   private final BooleanProperty synthesisSucceededProperty =
       new SimpleBooleanProperty(false);
   private final StringProperty modifiedMachineCodeProperty =
       new SimpleStringProperty();
+  private final ObjectProperty<CompoundPrologTerm> synthesizedOperationProperty =
+      new SimpleObjectProperty<>();
   private final StringProperty behaviorSatisfiedProperty =
       new SimpleStringProperty();
   private final ObjectProperty<DistinguishingExample> distinguishingExampleProperty =
       new SimpleObjectProperty<>();
+  private final Set<InputOutputExample> negativeExamples;
+  private final BLibrary selectedLibraryComponents;
   private final SolverBackend solverBackend;
   private final Set<String> currentVarNames;
+  private final Set<CompoundPrologTerm> synthesizedOperations;
+  private final boolean isImplicitIf;
 
   /**
    * Start the synthesis workflow by calling the prolog backend.
@@ -60,6 +65,7 @@ public class StartSynthesisCommand extends AbstractCommand {
   public StartSynthesisCommand(final BLibrary selectedLibraryComponents,
                                final String currentOperation,
                                final Set<String> currentVarNames,
+                               final Set<CompoundPrologTerm> synthesizedOperations,
                                final SynthesisType synthesisType,
                                final Map<String, List<BasicNode>> examples,
                                final SolverBackend solverBackend) {
@@ -70,6 +76,8 @@ public class StartSynthesisCommand extends AbstractCommand {
     this.selectedLibraryComponents = selectedLibraryComponents;
     this.solverBackend = solverBackend;
     this.currentVarNames = currentVarNames;
+    this.synthesizedOperations = synthesizedOperations;
+    isImplicitIf = selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit();
   }
 
   /**
@@ -83,11 +91,20 @@ public class StartSynthesisCommand extends AbstractCommand {
     selectedLibraryComponents = new BLibrary(startSynthesisCommand.getSelectedLibraryComponents());
     solverBackend = startSynthesisCommand.getSolverBackend();
     currentVarNames = startSynthesisCommand.getCurrentVarNames();
+    synthesizedOperations = new HashSet<>();
+    isImplicitIf = selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit();
   }
 
   @Override
   public void writeCommand(final IPrologTermOutput pto) {
-    pto.openTerm(PROLOG_COMMAND_NAME);
+    if (selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit()
+        && synthesisType.isAction()) {
+      pto.openTerm(PROLOG_COMMAND_NAME2).openList();
+      synthesizedOperations.forEach(pto::printTerm);
+      pto.closeList();
+    } else {
+      pto.openTerm(PROLOG_COMMAND_NAME);
+    }
     selectedLibraryComponents.printToPrologTerm(pto);
     pto.printAtom(selectedLibraryComponents.doNotUseConstantsProperty().get()
         ? "yes" : "no")
@@ -109,13 +126,11 @@ public class StartSynthesisCommand extends AbstractCommand {
       pto.openList();
       currentVarNames.forEach(pto::printAtom);
       pto.closeList();
-    } else if (selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit()) {
-      // implicit if-statements as described in the thesis
-      pto.printAtom("implicit");
-    } else {
+    } else if (!selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit()) {
       // do not consider if-statements
       pto.openList().closeList();
     }
+    // do not print anything for implicit if
   }
 
   @Override
@@ -139,6 +154,13 @@ public class StartSynthesisCommand extends AbstractCommand {
         break;
       default:
         // synthesis succeeded and the machine code has been adapted respectively
+        if (selectedLibraryComponents.considerIfStatementsProperty().get().isImplicit()) {
+          synthesisSucceededProperty.set(true);
+          modifiedMachineCodeProperty.set("none");
+          synthesizedOperationProperty.set(
+              BindingGenerator.getCompoundTerm(bindings.get(MODIFIED_MACHINE), 2));
+          break;
+        }
         modifiedMachineCodeProperty.set(newMachineCode);
         synthesisSucceededProperty.set(true);
         break;
@@ -203,6 +225,10 @@ public class StartSynthesisCommand extends AbstractCommand {
     return modifiedMachineCodeProperty;
   }
 
+  ObjectProperty<CompoundPrologTerm> synthesizedOperationProperty() {
+    return synthesizedOperationProperty;
+  }
+
   public StringProperty behaviorSatisfiedProperty() {
     return behaviorSatisfiedProperty;
   }
@@ -233,5 +259,9 @@ public class StartSynthesisCommand extends AbstractCommand {
 
   private Set<String> getCurrentVarNames() {
     return currentVarNames;
+  }
+
+  public boolean isImplicitIf() {
+    return isImplicitIf;
   }
 }
