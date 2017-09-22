@@ -1,5 +1,6 @@
 package de.hhu.stups.bsynthesis.ui.controller;
 
+import de.hhu.stups.bsynthesis.prob.GetMachineOperationNamesCommand;
 import de.hhu.stups.bsynthesis.services.ModelCheckingService;
 import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
@@ -11,6 +12,7 @@ import de.hhu.stups.bsynthesis.ui.components.ModelCheckingProgressIndicator;
 import de.hhu.stups.bsynthesis.ui.components.ModelCheckingResult;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisInfoBox;
 import de.hhu.stups.bsynthesis.ui.components.SynthesisProgressIndicator;
+import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -32,8 +34,9 @@ import javax.inject.Singleton;
 
 /**
  * A {@link ScrollPane} wrapping two {@link Group}. A {@link #contentGroup} displaying the
- * non-scalable content like {@link #synthesisInfoBox} or {@link #modelCheckingIndicator}.
- * The {@link #zoomGroup} displays the scalable {@link ValidationPane}.
+ * non-scalable content like {@link #synthesisInfoBox}, {@link #modelCheckingIndicator} or
+ * {@link #synthesisProgressIndicator}. The {@link #zoomGroup} displays the scalable
+ * {@link ValidationPane}.
  */
 @Singleton
 public class SynthesisView extends ScrollPane implements Initializable {
@@ -87,8 +90,8 @@ public class SynthesisView extends ScrollPane implements Initializable {
     contentAnchorPane.getChildren().remove(modelCheckingIndicator);
     contentAnchorPane.getChildren().remove(synthesisProgressIndicator);
     synthesisInfoBox.setTranslateZ(1);
-    updateInfoBoxPosition();
 
+    EasyBind.subscribe(synthesisInfoBox.visibleProperty(), visible -> updateInfoBoxPosition());
     EasyBind.subscribe(hvalueProperty(), number -> {
       updateInfoBoxPosition();
       updateProgressIndicatorPosition(modelCheckingIndicator);
@@ -192,9 +195,24 @@ public class SynthesisView extends ScrollPane implements Initializable {
       return;
     }
     synthesisContextService.setSynthesisType(SynthesisType.ACTION);
-    // TODO: set a unique name for this new operation
-    synthesisContextService.currentOperationProperty().set("repair_deadlock");
+    synthesisContextService.currentOperationProperty().set(getUniqueDeadlockOpName(0));
     validationPane.initializeDeadlockResolveFromTrace();
+  }
+
+  /**
+   * Get a unique operation name for resolving a deadlock state, like "repair_deadlock0".
+   */
+  private String getUniqueDeadlockOpName(final int deadlockOpCount) {
+    final String operationName = "repair_deadlock";
+    final StateSpace stateSpace = synthesisContextService.getStateSpace();
+    final GetMachineOperationNamesCommand getMachineOperationNamesCommand =
+        new GetMachineOperationNamesCommand();
+    stateSpace.execute(getMachineOperationNamesCommand);
+    if (getMachineOperationNamesCommand.getMachineOperationNames().contains(operationName)) {
+      return getUniqueDeadlockOpName(deadlockOpCount + 1);
+    }
+    return operationName;
+
   }
 
   private void initializeScaleEvents() {
