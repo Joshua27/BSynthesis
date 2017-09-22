@@ -43,10 +43,9 @@ public class ModelCheckingService implements IModelCheckListener {
   private final IntegerProperty processedNodesProperty;
   private final IntegerProperty totalNodesProperty;
   private final BooleanProperty indicatorPresentProperty;
-  private BooleanProperty invariantViolationInitialState;
   private final ObjectProperty<Trace> errorTraceProperty;
-
   private final ObjectProperty<DeadlockRepair> deadlockRepairProperty;
+  private BooleanProperty invariantViolationInitialState;
   private ModelChecker checker;
   private IModelCheckJob currentJob;
 
@@ -69,7 +68,7 @@ public class ModelCheckingService implements IModelCheckListener {
     invariantViolationInitialState = new SimpleBooleanProperty(false);
 
     EasyBind.subscribe(runningProperty, aBoolean -> {
-      if (!aBoolean) {
+      if (!aBoolean && resultProperty.isNull().get()) {
         stopModelChecking();
       }
     });
