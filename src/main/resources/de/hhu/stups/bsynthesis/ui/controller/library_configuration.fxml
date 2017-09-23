@@ -14,11 +14,14 @@
 <fx:root type="GridPane" xmlns:fx="http://javafx.com/fxml" styleClass="windowPadding" vgap="5.0">
     <HBox spacing="10.0" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2">
         <CheckBox fx:id="cbDefaultConfiguration" text="Use default configuration" selected="true"/>
-        <CheckBox fx:id="cbConsiderExplicitIf" text="Consider Explicit If-statements"/>
-        <CheckBox fx:id="cbConsiderImplicitIf" text="Consider Implicit If-statements"/>
+        <CheckBox fx:id="cbConsiderExplicitIf" text="Consider explicit if-statements"/>
+        <CheckBox fx:id="cbConsiderImplicitIf" text="Consider implicit if-statements"/>
         <CheckBox fx:id="cbNoConstants" text="Do not use constants"/>
     </HBox>
-    <TreeTableView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="1"
+    <HBox spacing="10.0" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">
+        <CheckBox fx:id="cbSingleThread" text="Do not parallelize synthesis"/>
+    </HBox>
+    <TreeTableView fx:id="treeViewLibrary" GridPane.columnIndex="0" GridPane.rowIndex="2"
                    showRoot="false">
         <columns>
             <TreeTableColumn fx:id="treeLibraryTableColumnName" text="Component Name"
@@ -36,7 +39,7 @@
             </children>
         </TreeItem>
     </TreeTableView>
-    <TreeTableView fx:id="treeViewSelectedLibrary" GridPane.columnIndex="1" GridPane.rowIndex="1"
+    <TreeTableView fx:id="treeViewSelectedLibrary" GridPane.columnIndex="1" GridPane.rowIndex="2"
                    showRoot="false">
         <columns>
             <TreeTableColumn fx:id="treeSelectedLibraryTableColumnName" text="Component Name"
@@ -55,7 +58,7 @@
             </children>
         </TreeItem>
     </TreeTableView>
-    <HBox alignment="TOP_RIGHT" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="2"
+    <HBox alignment="TOP_RIGHT" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="3"
           GridPane.columnSpan="2">
         <Button fx:id="btIncreaseSelectedComponentAmount"
                 onAction="#increaseSelectedComponentAmount">
@@ -80,8 +83,9 @@
         <ColumnConstraints percentWidth="50.0"/>
     </columnConstraints>
     <rowConstraints>
-        <RowConstraints percentHeight="10.0"/>
-        <RowConstraints percentHeight="80.0"/>
+        <RowConstraints percentHeight="2.5"/>
+        <RowConstraints percentHeight="2.5"/>
+        <RowConstraints percentHeight="85.0"/>
         <RowConstraints percentHeight="10.0"/>
     </rowConstraints>
 </fx:root>

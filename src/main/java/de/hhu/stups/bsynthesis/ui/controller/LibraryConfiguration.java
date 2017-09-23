@@ -118,6 +118,9 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   private CheckBox cbNoConstants;
   @FXML
   @SuppressWarnings("unused")
+  private CheckBox cbSingleThread;
+  @FXML
+  @SuppressWarnings("unused")
   private Button btIncreaseSelectedComponentAmount;
   @FXML
   @SuppressWarnings("unused")
@@ -170,6 +173,8 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         .bind(selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());
     cbDefaultConfiguration.selectedProperty().bindBidirectional(
         selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());
+    synthesisContextService.useSingleThreadProperty().bindBidirectional(
+        cbSingleThread.selectedProperty());
     synthesisContextService.selectedLibraryComponentsProperty()
         .bind(selectedLibraryComponentsProperty);
     synthesisContextService.useDefaultLibraryProperty()
@@ -339,6 +344,7 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         synthesisContextService.synthesisSuspendedProperty());
     cbConsiderImplicitIf.disableProperty().bind(
         synthesisContextService.synthesisSuspendedProperty());
+    cbSingleThread.disableProperty().bind(cbDefaultConfiguration.selectedProperty().not());
   }
 
   /**
