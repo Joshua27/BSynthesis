@@ -1,7 +1,19 @@
+
 MACHINE euclidean
-VARIABLES x, y
-INVARIANT x : NATURAL & y : NATURAL
-INITIALISATION x := 132 || y := 14
+ABSTRACT_VARIABLES
+  x,
+  y
+/* PROMOTED OPERATIONS
+  empty */
+INVARIANT
+    x : NATURAL
+  & y : NATURAL
+INITIALISATION
+    BEGIN
+         x := 132
+      ||
+         y := 14
+    END
 OPERATIONS
-  empty = BEGIN skip END
+  empty = skip
 END
