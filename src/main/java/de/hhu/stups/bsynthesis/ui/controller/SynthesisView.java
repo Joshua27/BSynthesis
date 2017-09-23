@@ -42,7 +42,7 @@ import javax.inject.Singleton;
 public class SynthesisView extends ScrollPane implements Initializable {
 
   private static final double MAX_ZOOM_IN = 1.0;
-  private static final double MAX_ZOOM_OUT = 0.3;
+  private static final double MAX_ZOOM_OUT = 0.5;
 
   private final SimpleDoubleProperty scaleFactorProperty;
   private final SynthesisContextService synthesisContextService;

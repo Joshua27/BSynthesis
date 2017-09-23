@@ -20,6 +20,8 @@ import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.services.UiZoom;
 import de.hhu.stups.bsynthesis.services.UncoveredError;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
+import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.hhu.stups.bsynthesis.services.VisualizationType;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
@@ -285,8 +287,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     openSynthesisTab();
     uiService.resetCurrentVarBindings();
     synthesisContextService.reset();
-    synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
     synthesisContextService.modifyInvariantsProperty().set(true);
+    uiService.validationPaneEventSource().push(
+        new ValidationPaneEvent(ValidationPaneEventType.CLEAR));
     Platform.runLater(() -> synthesisContextService.setSynthesisType(SynthesisType.INVARIANT));
     uiService.visualizeBehaviorEventSource().push(new MachineVisualization());
   }
