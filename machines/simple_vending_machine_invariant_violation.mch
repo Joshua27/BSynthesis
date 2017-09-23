@@ -4,9 +4,10 @@ ABSTRACT_VARIABLES
   coins,
   soda
 /* PROMOTED OPERATIONS
-  three_for_two,
   insert_coin,
-  get_soda */
+  insert_soda,
+  get_soda,
+  three_for_two */
 INVARIANT
     coins : NATURAL
   & soda : NATURAL
@@ -18,25 +19,29 @@ INITIALISATION
     END
 OPERATIONS
   insert_coin = 
-    PRE coins < 10 THEN
-         coins := 1 + coins
+    PRE 
+        coins < 10
+    THEN
+      coins := 1 + coins
     END;
-
+  
   insert_soda = 
-    PRE soda < 15 THEN
-         soda := soda + 1
+    PRE 
+        soda < 15
+    THEN
+      soda := soda + 1
     END;
-
+  
   get_soda = 
     PRE 
-        coins >= 0 
+        coins >= 0
       & soda > 0
     THEN
          coins := -1 + coins
       ||
          soda := soda + -1
     END;
-
+  
   three_for_two = 
     PRE 
         coins > 1
