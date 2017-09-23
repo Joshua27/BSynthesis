@@ -12,6 +12,8 @@ import de.hhu.stups.bsynthesis.ui.Loader;
 
 import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Alert;
@@ -68,6 +70,7 @@ public final class CodeView extends VBox {
   private final SynthesisContextService synthesisContextService;
   private final ProBApiService proBApiService;
   private final UiService uiService;
+  private final BooleanProperty userEvaluatedSolutionProperty;
 
   private final VirtualizedScrollPane scrollPaneCodeArea;
   private final CodeArea codeArea;
@@ -105,6 +108,10 @@ public final class CodeView extends VBox {
     scrollPaneCodeArea = new VirtualizedScrollPane<>(codeArea);
     codeAreaSynthesized = new CodeArea();
     scrollPaneCodeAreaSynthesized = new VirtualizedScrollPane<>(codeAreaSynthesized);
+    userEvaluatedSolutionProperty = new SimpleBooleanProperty();
+
+    synthesisContextService.userEvaluatedSolutionProperty()
+        .bindBidirectional(userEvaluatedSolutionProperty);
 
     Loader.loadFxml(loader, this, "code_view.fxml");
   }
@@ -214,7 +221,7 @@ public final class CodeView extends VBox {
    * Show the modified machine code containing the synthesized changes.
    */
   private void showModifiedMachineCode(final String newValue) {
-    if (newValue == null) {
+    if (newValue == null || userEvaluatedSolutionProperty.get()) {
       return;
     }
     validateSolutionBox.setVisible(true);
@@ -234,6 +241,7 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void applySolution() {
+    userEvaluatedSolutionProperty.set(true);
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     codeArea.clear();
     Platform.runLater(() -> {
@@ -241,6 +249,7 @@ public final class CodeView extends VBox {
       saveMachineCode();
     });
     synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
+    synthesisContextService.synthesisSucceededProperty().set(false);
     proBApiService.reset();
     validateSolutionBox.setVisible(false);
   }
@@ -252,7 +261,9 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void discardSolution() {
+    userEvaluatedSolutionProperty.set(true);
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
+    synthesisContextService.synthesisSucceededProperty().set(false);
     proBApiService.reset();
     validateSolutionBox.setVisible(false);
   }

@@ -48,7 +48,9 @@ public class SynthesisContextService {
   private final BooleanProperty synthesisSuspendedProperty;
   private final BooleanProperty useDefaultLibraryProperty;
   private final BooleanProperty modifyInvariantsProperty;
-  private StringProperty behaviorSatisfiedProperty;
+  private final StringProperty behaviorSatisfiedProperty;
+  private final BooleanProperty userEvaluatedSolution;
+  private final BooleanProperty useSingleThreadProperty;
 
   /**
    * Initialize all properties and set the injected factories.
@@ -71,6 +73,8 @@ public class SynthesisContextService {
     solverBackendProperty = new SimpleObjectProperty<>(SolverBackend.PROB);
     specificationTypeProperty = new SimpleObjectProperty<>(SpecificationType.CLASSICAL_B);
     modifyInvariantsProperty = new SimpleBooleanProperty(false);
+    userEvaluatedSolution = new SimpleBooleanProperty();
+    useSingleThreadProperty = new SimpleBooleanProperty(false);
 
     contextEventStream = new EventSource<>();
 
@@ -180,6 +184,10 @@ public class SynthesisContextService {
     return synthesisRunningProperty;
   }
 
+  public BooleanProperty userEvaluatedSolutionProperty() {
+    return userEvaluatedSolution;
+  }
+
   public BooleanProperty synthesisSuspendedProperty() {
     return synthesisSuspendedProperty;
   }
@@ -221,5 +229,9 @@ public class SynthesisContextService {
 
   public StringProperty behaviorSatisfiedProperty() {
     return behaviorSatisfiedProperty;
+  }
+
+  public BooleanProperty useSingleThreadProperty() {
+    return useSingleThreadProperty;
   }
 }

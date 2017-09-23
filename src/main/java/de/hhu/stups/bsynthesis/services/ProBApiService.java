@@ -74,12 +74,14 @@ public class ProBApiService {
   private final BooleanProperty synthesisSucceededProperty;
   private final BooleanProperty synthesisRunningProperty;
   private final BooleanProperty synthesisSuspendedProperty;
+  private final BooleanProperty userEvaluatedSolutionProperty;
   private final StringProperty modifiedMachineCodeProperty;
   private final StringProperty behaviorSatisfiedProperty;
   private final Api proBApi;
   private final UiService uiService;
   private final Queue<StateSpace> idleStateSpaceQueue;
   private final IntegerProperty currentLibraryExpansionProperty;
+  private final BooleanProperty useSingleThreadProperty;
 
   /**
    * Initialize properties and the injected {@link Api}.
@@ -102,6 +104,8 @@ public class ProBApiService {
     currentLibraryExpansionProperty = new SimpleIntegerProperty();
     suspendedStateSpacesMap = new SimpleMapProperty<>(FXCollections.observableHashMap());
     synthesisSuspendedProperty = new SimpleBooleanProperty();
+    userEvaluatedSolutionProperty = new SimpleBooleanProperty();
+    useSingleThreadProperty = new SimpleBooleanProperty();
   }
 
   /**
@@ -202,7 +206,8 @@ public class ProBApiService {
     // the user selected the library components, and thus, we just start one instance using
     // this configuration
     if (!startSynthesisCommand.isDefaultLibraryConfiguration()
-        || startSynthesisCommand.isImplicitIf()) {
+        || startSynthesisCommand.isImplicitIf()
+        || useSingleThreadProperty.get()) {
       startSynthesisSingleInstance(startSynthesisCommand);
       return;
     }
@@ -400,7 +405,8 @@ public class ProBApiService {
         // the task itself fails due to raising an exception
         startSynthesisCommand.synthesisSucceededProperty().addListener(
             (observable, oldValue, newValue) -> {
-              if (newValue && synthesisSucceededProperty.not().get()) {
+              if (newValue && synthesisSucceededProperty.not().get()
+                  && userEvaluatedSolutionProperty.not().get()) {
                 synthesisSucceededProperty.set(true);
                 synthesisRunningProperty.set(false);
                 synthesisTasksMap.remove(this);
@@ -514,5 +520,13 @@ public class ProBApiService {
 
   BooleanProperty synthesisSuspendedProperty() {
     return synthesisSuspendedProperty;
+  }
+
+  BooleanProperty userEvaluatedSolutionProperty() {
+    return userEvaluatedSolutionProperty;
+  }
+
+  BooleanProperty useSingleThreadProperty() {
+    return useSingleThreadProperty;
   }
 }

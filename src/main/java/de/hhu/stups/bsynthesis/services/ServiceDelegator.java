@@ -40,6 +40,10 @@ public class ServiceDelegator {
         .bindBidirectional(proBApiService.modifiedMachineCodeProperty());
     synthesisContextService.behaviorSatisfiedProperty()
         .bindBidirectional(proBApiService.behaviorSatisfiedProperty());
+    synthesisContextService.userEvaluatedSolutionProperty()
+        .bindBidirectional(proBApiService.userEvaluatedSolutionProperty());
+    synthesisContextService.useSingleThreadProperty()
+        .bindBidirectional(proBApiService.useSingleThreadProperty());
     synthesisContextService.contextEventStream().subscribe(contextEvent -> {
       if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
         modelCheckingService.reset();

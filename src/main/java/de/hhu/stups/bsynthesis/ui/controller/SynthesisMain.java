@@ -66,7 +66,8 @@ public class SynthesisMain extends VBox implements Initializable {
     final UiService uiService = serviceDelegator.uiService();
     uiService.applicationEventStream().subscribe(this::selectTab);
     EasyBind.subscribe(synthesisContextService.modifiedMachineCodeProperty(), machineCode -> {
-      if (machineCode != null && !"none".equals(machineCode)) {
+      if (machineCode != null && !"none".equals(machineCode)
+          && synthesisContextService.userEvaluatedSolutionProperty().not().get()) {
         serviceDelegator.uiService().applicationEventStream().push(
             new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
       }
@@ -81,9 +82,11 @@ public class SynthesisMain extends VBox implements Initializable {
   private void initializeTabs() {
     tabPane.getTabs().remove(libraryConfigurationTab);
     libraryConfigurationTab.disableProperty()
-        .bind(synthesisContextService.synthesisSucceededProperty());
+        .bind(synthesisContextService.synthesisSucceededProperty()
+            .and(synthesisContextService.userEvaluatedSolutionProperty().not()));
     libraryConfigurationTab.setOnClosed(event -> tabPane.getSelectionModel().selectFirst());
-    synthesisTab.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
+    synthesisTab.disableProperty().bind(synthesisContextService.synthesisSucceededProperty()
+        .and(synthesisContextService.userEvaluatedSolutionProperty().not()));
   }
 
   private void selectTab(final ApplicationEvent applicationEvent) {

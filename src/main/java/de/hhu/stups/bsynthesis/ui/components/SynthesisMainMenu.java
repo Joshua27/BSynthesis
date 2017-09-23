@@ -447,6 +447,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
           new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.LIBRARY_CONFIGURATION));
       return;
     }
+    synthesisContextService.userEvaluatedSolutionProperty().set(false);
     openSynthesisTab();
     final List<BasicNode> invalidNodes = validationPane.getInvalidNodes();
     addPredecessorNodesIfGuard(invalidNodes);
