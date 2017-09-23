@@ -135,4 +135,4 @@ ProB.log.*log
 *.log
 *.*~
 config/
-.prob
+*.prob
