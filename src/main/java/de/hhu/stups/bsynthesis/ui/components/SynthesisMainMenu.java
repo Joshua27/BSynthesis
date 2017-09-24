@@ -42,6 +42,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ObservableSet;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -489,14 +490,26 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
 
   /**
    * Add the predecessor states of the negative states to the negative examples when strengthening a
-   * guard. We wan't to block the state leading to the violating state and thus need the
+   * guard. We want to block the state leading to the violating state and thus need the
    * predecessor.
    */
   private void addPredecessorNodesIfGuard(final List<BasicNode> invalidNodes) {
     if (SynthesisType.GUARD.equals(synthesisContextService.synthesisTypeProperty().get())) {
       final List<StateNode> predecessorNodes = new ArrayList<>();
-      invalidNodes.forEach(basicNode -> ((StateNode) basicNode).predecessorProperty().get()
-          .forEach(stateNode -> predecessorNodes.add((StateNode) stateNode)));
+      invalidNodes.forEach(basicNode -> {
+        final StateNode stateNode = ((StateNode) basicNode);
+        final ObservableSet<BasicNode> existingPredecessorNodes =
+            stateNode.predecessorProperty().get();
+        if (existingPredecessorNodes.isEmpty()) {
+          final StateNode predecessorNode = stateNode.getPredecessorFromTrace();
+          if (predecessorNode != null) {
+            predecessorNodes.add(predecessorNode);
+          }
+        } else {
+          existingPredecessorNodes.forEach(stateNode1 ->
+              predecessorNodes.add((StateNode) stateNode1));
+        }
+      });
       invalidNodes.addAll(predecessorNodes);
     }
   }
