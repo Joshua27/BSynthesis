@@ -301,7 +301,8 @@ public class ProBApiService {
                                            final StateSpace stateSpace,
                                            final DistinguishingExample distinguishingExample) {
     addStateSpaceToQueue(stateSpace);
-    if (synthesisSucceededProperty.get() || stateSpace == null) {
+    if (synthesisSucceededProperty.get() || stateSpace == null
+        || userEvaluatedSolutionProperty.get()) {
       return;
     }
     synthesisRunningProperty().set(false);
@@ -408,6 +409,7 @@ public class ProBApiService {
               if (newValue && synthesisSucceededProperty.not().get()
                   && userEvaluatedSolutionProperty.not().get()) {
                 synthesisSucceededProperty.set(true);
+                suspendedStateSpacesMap.clear();
                 synthesisRunningProperty.set(false);
                 synthesisTasksMap.remove(this);
                 cancelRunningTasks();
