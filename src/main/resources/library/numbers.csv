@@ -1,0 +1,19 @@
+Natural Numbers,integer_set_natural,NATURAL
+Non-Zero Natural Numbers,integer_set_natural1,NATURAL1
+Implementable Natural Numbers,implementable_natural,NAT
+Implementable Non-Zero Natural Numbers,implementable_natural1,NAT1
+Set of Integers,integer_set,INTEGER
+Integers (MININT..MAXINT),integer_set_min_max,INT
+Minimum,min,min(m)
+Maximum,max,max(m)
+Addition,add,m+n
+Subtraction,minus,m-n
+Multiplication,multiplication,m*n
+Division,div,m/n
+Modulo,modulo,n mod n
+Greater,greater,m>n
+Less,less,m<n
+Greater Equal,greater_equal,m>=n
+Less Equal,less_equal,m<=n
+Interval,interval,m .. n
+Power Of,power_of,m**n

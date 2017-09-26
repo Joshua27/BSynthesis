@@ -1,0 +1,17 @@
+Element of,member,E:S
+Not Element of,not_member,E/:S
+Union,union,S\/T
+Intersection,intersection,S/\T
+Difference,set_subtraction,S-T
+Cartesian,cartesian_product,S*T
+Cardinality,card,card(S)
+Subset Of,subset,S<:T
+Not Subset Of,not_subset,S/<:T
+Strict Subset Of,subset_strict,S<<:T
+Not Strict Subset Of,not_subset_strict,S/<<:T
+Powerset,pow_subset,POW(S)
+Powerset1,pow_subset1,POW1(S)
+Finite Subset,fin_subset,FIN(S)
+Finite Subset1,fin_subset1,FIN1(S)
+Generalized Union,general_union,union(S)
+Generalized Intersection,general_intersection,inter(S)

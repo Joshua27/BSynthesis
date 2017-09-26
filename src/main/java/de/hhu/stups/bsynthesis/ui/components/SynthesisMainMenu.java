@@ -27,6 +27,7 @@ import de.hhu.stups.bsynthesis.ui.ContextEvent;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
+import de.hhu.stups.bsynthesis.ui.components.library.ConsiderIfType;
 import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
@@ -450,6 +451,10 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
       uiService.applicationEventStream().push(
           new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.LIBRARY_CONFIGURATION));
       return;
+    }
+    if (!synthesisContextService.getSynthesisType().isAction()) {
+      synthesisContextService.getSelectedLibraryComponents()
+          .considerIfStatementsProperty().set(ConsiderIfType.NONE);
     }
     synthesisContextService.userEvaluatedSolutionProperty().set(false);
     openSynthesisTab();

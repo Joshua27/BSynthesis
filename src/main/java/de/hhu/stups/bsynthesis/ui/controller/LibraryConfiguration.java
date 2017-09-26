@@ -148,26 +148,6 @@ public class LibraryConfiguration extends GridPane implements Initializable {
   @Override
   public void initialize(final URL location, final ResourceBundle resources) {
     staticBLibrary.initializeLibrary();
-    EasyBind.subscribe(cbConsiderExplicitIf.selectedProperty(), explicitIf -> {
-      if (explicitIf) {
-        cbConsiderImplicitIf.setSelected(false);
-        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
-            .set(ConsiderIfType.EXPLICIT);
-      } else {
-        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
-            .set(ConsiderIfType.NONE);
-      }
-    });
-    EasyBind.subscribe(cbConsiderImplicitIf.selectedProperty(), implicitIf -> {
-      if (implicitIf) {
-        cbConsiderExplicitIf.setSelected(false);
-        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
-            .set(ConsiderIfType.IMPLICIT);
-      } else {
-        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
-            .set(ConsiderIfType.NONE);
-      }
-    });
 
     synthesisContextService.useDefaultLibraryProperty()
         .bind(selectedLibraryComponentsProperty.get().useDefaultLibraryProperty());
@@ -340,6 +320,37 @@ public class LibraryConfiguration extends GridPane implements Initializable {
    * Disable the check boxes determining the type of if-statements if synthesis has been suspended.
    */
   private void initializeCheckBoxes() {
+    EasyBind.subscribe(cbConsiderExplicitIf.selectedProperty(), explicitIf -> {
+      if (explicitIf) {
+        cbConsiderImplicitIf.setSelected(false);
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.EXPLICIT);
+      } else {
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.NONE);
+      }
+    });
+    EasyBind.subscribe(cbConsiderImplicitIf.selectedProperty(), implicitIf -> {
+      if (implicitIf) {
+        cbConsiderExplicitIf.setSelected(false);
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.IMPLICIT);
+      } else {
+        selectedLibraryComponentsProperty.get().considerIfStatementsProperty()
+            .set(ConsiderIfType.NONE);
+      }
+    });
+    EasyBind.subscribe(selectedLibraryComponentsProperty.get().considerIfStatementsProperty(), considerIfType -> {
+      if (considerIfType.isImplicit()) {
+        cbConsiderImplicitIf.setSelected(true);
+      } else if (considerIfType.isImplicit()) {
+        cbConsiderExplicitIf.setSelected(true);
+      } else {
+        cbConsiderExplicitIf.setSelected(false);
+        cbConsiderImplicitIf.setSelected(false);
+      }
+    });
+
     cbConsiderExplicitIf.disableProperty().bind(
         synthesisContextService.synthesisSuspendedProperty());
     cbConsiderImplicitIf.disableProperty().bind(
