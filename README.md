@@ -33,6 +33,8 @@ All this is done using constant user feedback, yielding an interactive assistant
 
 From the root folder: `gradle run`
 
+Or download the latest release.
+
 # References
 
 The synthesis technique in use is based on the one by Jha et.al. introduced in ["Oracle-guided component-based program synthesis"](https://people.eecs.berkeley.edu/~sseshia/pubdir/icse10-TR.pdf), Proceedings ICSE, 2010.
