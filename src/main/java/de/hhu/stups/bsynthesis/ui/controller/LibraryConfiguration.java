@@ -340,16 +340,17 @@ public class LibraryConfiguration extends GridPane implements Initializable {
             .set(ConsiderIfType.NONE);
       }
     });
-    EasyBind.subscribe(selectedLibraryComponentsProperty.get().considerIfStatementsProperty(), considerIfType -> {
-      if (considerIfType.isImplicit()) {
-        cbConsiderImplicitIf.setSelected(true);
-      } else if (considerIfType.isImplicit()) {
-        cbConsiderExplicitIf.setSelected(true);
-      } else {
-        cbConsiderExplicitIf.setSelected(false);
-        cbConsiderImplicitIf.setSelected(false);
-      }
-    });
+    EasyBind.subscribe(selectedLibraryComponentsProperty.get().considerIfStatementsProperty(),
+        considerIfType -> {
+          if (considerIfType.isImplicit()) {
+            cbConsiderImplicitIf.setSelected(true);
+          } else if (considerIfType.isImplicit()) {
+            cbConsiderExplicitIf.setSelected(true);
+          } else {
+            cbConsiderExplicitIf.setSelected(false);
+            cbConsiderImplicitIf.setSelected(false);
+          }
+        });
 
     cbConsiderExplicitIf.disableProperty().bind(
         synthesisContextService.synthesisSuspendedProperty());
