@@ -116,7 +116,7 @@ public class BLibrary {
                                    final SetProperty<LibraryComponent> setProperty,
                                    final LibraryComponentType componentType) {
     try (final BufferedReader bufferedReader = new BufferedReader(
-        new InputStreamReader(getClass().getResourceAsStream(filePath)))) {
+        new InputStreamReader(getClass().getResourceAsStream(filePath), "UTF-8"))) {
       bufferedReader.lines().forEach(line -> {
         final String[] splitLine = line.split(",");
         setProperty.add(new LibraryComponent(splitLine[0], splitLine[1], splitLine[2], 0,
