@@ -14,11 +14,10 @@ import javafx.collections.ObservableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStreamReader;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * A class representing a B/Event-B library configuration used for the synthesis tool. Using {@link
@@ -90,15 +89,21 @@ public class BLibrary {
    * tool.
    */
   public void initializeLibrary() {
-    readLibraryFromFile("/library/predicates.csv", predicatesProperty,
+    readLibraryFromFile("/library/predicates.csv",
+        predicatesProperty,
         LibraryComponentType.PREDICATES);
-    readLibraryFromFile("/library/relations.csv", relationsProperty,
+    readLibraryFromFile("/library/relations.csv",
+        relationsProperty,
         LibraryComponentType.RELATIONS);
-    readLibraryFromFile("/library/sequences.csv", sequencesProperty,
+    readLibraryFromFile("/library/sequences.csv",
+        sequencesProperty,
         LibraryComponentType.SEQUENCES);
-    readLibraryFromFile("/library/numbers.csv", numbersProperty, LibraryComponentType.NUMBERS);
-    readLibraryFromFile("/library/sets.csv", setsProperty, LibraryComponentType.SETS);
-    readLibraryFromFile("/library/substitutions.csv", substitutionsProperty,
+    readLibraryFromFile("/library/numbers.csv",
+        numbersProperty, LibraryComponentType.NUMBERS);
+    readLibraryFromFile("/library/sets.csv",
+        setsProperty, LibraryComponentType.SETS);
+    readLibraryFromFile("/library/substitutions.csv",
+        substitutionsProperty,
         LibraryComponentType.SUBSTITUTIONS);
   }
 
@@ -110,9 +115,9 @@ public class BLibrary {
   private void readLibraryFromFile(final String filePath,
                                    final SetProperty<LibraryComponent> setProperty,
                                    final LibraryComponentType componentType) {
-    try (final Stream<String> stream = Files.lines(
-        Paths.get(getClass().getResource(filePath).getFile()))) {
-      stream.forEach(line -> {
+    try (final BufferedReader bufferedReader = new BufferedReader(
+        new InputStreamReader(getClass().getResourceAsStream(filePath)))) {
+      bufferedReader.lines().forEach(line -> {
         final String[] splitLine = line.split(",");
         setProperty.add(new LibraryComponent(splitLine[0], splitLine[1], splitLine[2], 0,
             componentType));

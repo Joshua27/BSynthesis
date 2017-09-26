@@ -1,7 +1,0 @@
-Conjunction,conjunct,P & Q
-Disjunction,disjunct,P or Q
-Implication,implication,P => Q
-Equivalence,equivalence,P <=> Q
-Negation,negation,not P
-Equality,equal,E = F
-Inequality,not_equal,E /= F

@@ -1,8 +1,0 @@
-Domain,domain,dom(r)
-Range,range,ran(r)
-Domain Restriction,domain_restriction,S<|r
-Domain Subtraction,domain_subtraction,S<<|r
-Range Restriction,range_restriction,r|>S
-Range Subtraction,range_subtraction,r|>>S
-Reflexive and Transitive Closure,reflexive_closure,closure(r)
-Transitive Closure,closure,closure1(r)
