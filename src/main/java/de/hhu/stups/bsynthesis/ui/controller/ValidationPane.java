@@ -625,6 +625,7 @@ public class ValidationPane extends Pane implements Initializable {
         .filter(basicNode -> !transitionNode.equals(basicNode)
             && transitionNode.getInputState().getId()
             .equals(((TransitionNode) basicNode).getInputState().getId())
+            && ((TransitionNode) basicNode).getOutputState() != null
             && transitionNode.getOutputState().getId()
             .equals(((TransitionNode) basicNode).getOutputState().getId()))
         .findFirst();
