@@ -19,7 +19,7 @@ In general, finding the appropriate set of changes is non-trivial.
 Relating to the formal specification language B it is conventional to think in terms of states describing explicit values of the machine variables at a time.
 These states can straightforwardly be used for synthesis.
 
-Hence, we propose partially automating the development process of formal models using software synthesis:
+Hence, we propose partially automating the development process of formal models using synthesis:
 Guided by examples of positive and negative behavior we strengthen preconditions or relax invariants appropriately.
 Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
 All this is done using constant user feedback, yielding an interactive assistant.
