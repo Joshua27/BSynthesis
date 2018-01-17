@@ -56,8 +56,8 @@ Furthermore, we provide as many examples as necessary to find a unique solution 
 We used a maximum timeout of 10 minutes while _ indicates that this timeout has been reached without finding a solution.
 
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
-|                      | (in seconds)  | (in seconds) | (in seconds)    | (in seconds) |  |
 |----------------------|---------------|---------|-----------------|---------|----------|
+|                      | (in seconds)  | (in seconds) | (in seconds)    | (in seconds) |  |
 | 1                    | 0.013         | 0.5     | 0.673           | 0.5     | 2        |
 | 2                    | 0.381         | 0.5     | 4.920           | 5       | 4        |
 | 3                    | 0.661         | 0.5     | 12.06           | 10      | 10       |
