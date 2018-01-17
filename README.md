@@ -31,11 +31,9 @@ All this is done using constant user feedback, yielding an interactive assistant
 
 # Start the Application
 
-Build the application yourself using gradle.
+Build the application yourself by executing `gradle run` from the root folder.
 
-From the root folder: `gradle run`
-
-Or download the latest release.
+Or download the latest release (see the attached "README" file for more information).
 
 # References
 
@@ -49,12 +47,13 @@ All presented times are measured in seconds.
 The benchmarks were run on a system with an Intel Core I7-7700HQ CPU (2.8GHz) and 32GB of RAM.
 We compare the runtime of using the exact library components that are necessary to synthesize a program as well as a default library configuration.
 This default library configuration starts with as few components as possible and successively increases the size of the library if no solution can be found.
-The library expansions stops if a solution has been found or a predefined threshold value has been exceeded.
+The library expansion stops if a solution has been found or a predefined threshold value has been exceeded.
 In this context, we do not parallelize the default library configuration but use a single core only.
 The tool finally parallelizes synthesis for different library configurations in Java.
 Furthermore, we provide as many examples as necessary to find a unique solution without demanding an interaction with the user.
 We used a maximum timeout of 10 minutes.
-Some of the programs are constructed while others refer to real life applications like a scheduler managing the states of several processes.
+There is no standardized set of benchmarks for synthesizing classical B programs.
+To that effect, some of the programs are constructed, while others refer to real life applications like a scheduler managing the states of several processes.
 
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
