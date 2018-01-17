@@ -55,7 +55,6 @@ The tool finally parallelizes synthesis for different library configurations in 
 Furthermore, we provide as many examples as necessary to find a unique solution without demanding an interaction with the user.
 We used a maximum timeout of 10 minutes while _ indicates that this timeout has been reached without finding a solution.
 
-|----------------------|---------------|---------|-----------------|---------|----------|
 | Program              | Exact Library | Timeout | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
 | 1                    | 0.013         | 0.5     | 0.673           | 0.5     | 2        |
@@ -92,7 +91,6 @@ We used a maximum timeout of 10 minutes while _ indicates that this timeout has 
 | 33                   | 2.318         | 1.5     | 11.210          | 1.5     | 9        |
 | 34                   | 2.923         | 2.0     | 13.301          | 5.0     | 11       |
 | 35                   | 3.125         | 1.0     | 8.887           | 1.0     | 10       |
-|----------------------|---------------|---------|-----------------|---------|----------|
 
 
 <div class="custom-class" markdown="1">eval_1 =
