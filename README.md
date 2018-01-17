@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/Joshua27/BSynthesis.svg?branch=master)](https://travis-ci.org/Joshua27/BSynthesis)
 [![Dependency Status](https://www.versioneye.com/user/projects/592ac926a8a056006137f3fb/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/592ac926a8a056006137f3fb)
 [![Sonarqube Quality Gate](https://sonarqube.com/api/badges/gate?key=de.hhu.stups.bsynthesis)](https://sonarqube.com/dashboard?id=de.hhu.stups.bsynthesis)
-/*[![Sonarqube Coverage](https://sonarqube.com/api/badges/measure?key=de.hhu.stups.bsynthesis&metric=coverage)](https://sonarqube.com/component_measures/domain/Coverage?id=de.hhu.stups.bsynthesis)*/
+<!---[![Sonarqube Coverage](https://sonarqube.com/api/badges/measure?key=de.hhu.stups.bsynthesis&metric=coverage)](https://sonarqube.com/component_measures/domain/Coverage?id=de.hhu.stups.bsynthesis)-->
 [![Sonarqube Tech Debt](https://sonarqube.com/api/badges/measure?key=de.hhu.stups.bsynthesis&metric=sqale_debt_ratio)](https://sonarqube.com/component_measures/domain/Maintainability?id=de.hhu.stups.bsynthesis)
 
 # Background
@@ -54,6 +54,7 @@ In this context, we do not parallelize the default library configuration but use
 The tool finally parallelizes synthesis for different library configurations in Java.
 Furthermore, we provide as many examples as necessary to find a unique solution without demanding an interaction with the user.
 We used a maximum timeout of 10 minutes.
+Some of the programs are constructed while others refer to real life applications like a scheduler managing the states of several processes.
 
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
