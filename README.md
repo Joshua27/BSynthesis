@@ -53,7 +53,7 @@ The library expansions stops if a solution has been found or a predefined thresh
 In this context, we do not parallelize the default library configuration but use a single core only.
 The tool finally parallelizes synthesis for different library configurations in Java.
 Furthermore, we provide as many examples as necessary to find a unique solution without demanding an interaction with the user.
-We used a maximum timeout of 10 minutes while _ indicates that this timeout has been reached without finding a solution.
+We used a maximum timeout of 10 minutes.
 
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
@@ -64,9 +64,9 @@ We used a maximum timeout of 10 minutes while _ indicates that this timeout has 
 | 4                    | 0.061         | 0.5     | 3.416           | 4       | 4        |
 | 5                    | 2.569         | 2.5     | 18.37           | 4       | 4        |
 | 7                    | 0.830         | 0.5     | 57.26           | 4       | 4        |
-| 8                    | 9.506         | 2.5     | _               | 5       | 5        |
+| 8                    | 9.506         | 2.5     | Timeout         | 5       | 5        |
 | 9                    | 10.670        | 8       | 11.32           | 6       | 6        |
-| 10                   | 463.860       | 240     | _               | 6       | 6        |
+| 10                   | 463.860       | 240     | Timeout         | 6       | 6        |
 | 11                   | 434.210       | 240     | 510.197         | 6       | 6        |
 | 12                   | 0.265         | 0.5     | 46.541          | 4       | 4        |
 | 13                   | 3.706         | 2.5     | 155.18          | 4       | 4        |
@@ -74,12 +74,12 @@ We used a maximum timeout of 10 minutes while _ indicates that this timeout has 
 | 15                   | 2.984         | 2.5     | 39.957          | 5       | 5        |
 | 16                   | 18.913        | 10      | 58.26           | 10      | 10       |
 | 17                   | 0.102         | 0.5     | 30.735          | 5       | 5        |
-| 18                   | 9.131         | 15      | _               | 4       | 4        |
+| 18                   | 9.131         | 15      | Timeout         | 4       | 4        |
 | 19                   | 2.525         | 2.5     | 21.36           | 3       | 3        |
 | 20                   | 0.527         | 0.5     | 31.82           | 3       | 3        |
 | 21                   | 1.912         | 2.5     | 11.02           | 7       | 7        |
 | 22                   | 0.117         | 0.5     | 155.342         | 7       | 7        |
-| 23                   | 5.246         | 2.5     | _               | 7       | 7        |
+| 23                   | 5.246         | 2.5     | Timeout         | 7       | 7        |
 | 24                   | 16.173        | 10      | 97.21           | 8       | 8        |
 | 25                   | 0.317         | 0.5     | 9.823           | 4       | 4        |
 | 26                   | 0.092         | 0.5     | 7.640           | 0.5     | 6        |
