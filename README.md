@@ -93,33 +93,33 @@ We used a maximum timeout of 10 minutes while _ indicates that this timeout has 
 | 35                   | 3.125         | 1.0     | 8.887           | 1.0     | 10       |
 
 
-<div class="custom-class" markdown="1">eval_1 =
+```eval_1 =
   BEGIN
        i_1 := i_1 + 1
     ||
        i_2 := i_2
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_2 =
   PRE i_1 > 0 & i_2 > 0 THEN
        i_1 := i_1 - 1
     ||
        i_2 := i_2 - 1
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_3 =
   PRE i_1 > 1 & i_2 > 2 THEN
        i_1 := i_1 - 2
     ||
        i_2 := i_2 - 3
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_4 =
   BEGIN
        b := b
@@ -128,9 +128,9 @@ eval_4 =
     ||
        i := i * 4
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_5 =
   BEGIN
        s_1 := s_1 \/ s_2
@@ -141,9 +141,9 @@ eval_5 =
     ||
        i_2 := i_1 * i_2
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_6 =
   BEGIN
        s_1 := s_1 \/ (s_2 /\ s_3)
@@ -152,9 +152,9 @@ eval_6 =
     ||
        s_3 := s_2 \/ s_3
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_7 =
   BEGIN
        s_1 := s_1
@@ -167,9 +167,9 @@ eval_7 =
     ||
        i_1 := i_1 * first(seq_1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_8 =
   BEGIN
        s_1 := s_1 - s_2
@@ -184,35 +184,35 @@ eval_8 =
     ||
        seq_2 := seq_2 ^ seq_1
   END
-</div>
+```
 
 
-<div class="custom-class" markdown="1">
+```
 eval_9 =
   BEGIN
        a := IF a > 9 THEN a - -3 ELSE a + -3 END
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_10 =
   BEGIN
        s_1 := IF i_1 < 10 THEN s_1 ELSE s_1 \/ {2} END
     ||
        i_1 := IF i_1 < 10 THEN i_1 ELSE i_1 + 2 END
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_11 =
   BEGIN
        i_1 := IF i_1 > i_2 THEN i_1 - i_2 ELSE i_1 END
     ||
        i_2 := IF i_1 > i_2 THEN i_2 ELSE i_2 - i_1 END
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_12 =
   BEGIN
        s_1 := union(s_4) \/ (s_1 \/ s_2)
@@ -223,9 +223,9 @@ eval_12 =
     ||
        b_1 := bool(s_2 <: union(s_4))
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_13 =
   BEGIN
        s_1 := s_1 \/ {"test"}
@@ -236,9 +236,9 @@ eval_13 =
     ||
        i_1 := i_1 / (i_2 + 1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_14 =
   PRE
       card(s_2) > 0
@@ -251,9 +251,9 @@ eval_14 =
     ||
        i_1 := i_1 / (i_2 + 1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_15 =
   BEGIN
        s_1 := s_1 \/ s_2
@@ -262,9 +262,9 @@ eval_15 =
     ||
        i_1 := i_1 * max(s_1 \/ s_2)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_16 =
   PRE
       card(s_1) > 3 or i_1 > 4
@@ -275,9 +275,9 @@ eval_16 =
     ||
        i_1 := i_1 * max(s_1 \/ s_2)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_17 =
   BEGIN
        i_3 := i_3 ** i_2
@@ -288,9 +288,9 @@ eval_17 =
     ||
        i_4 := i_4 + (i_3 - i_1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_18 =
   BEGIN
        i_3 := i_3 ** i_2
@@ -305,27 +305,27 @@ eval_18 =
     ||
        i_4 := i_4 + (i_3 - i_1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_19 =
   PRE 4 > card(s_1 \/ s_2) THEN
     [...]
-</div>
+```
 
 
-<div class="custom-class" markdown="1">
+```
 eval_20 =
   PRE s_1 = {} or 0 : s_1 THEN
     [...]
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 INVARIANT
     [...] & (s_1 /= {} or {0,1} <<: s_3)    // eval_21
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_22 =
   BEGIN
        s_1 := s_1 \/ {i_1}
@@ -336,9 +336,9 @@ eval_22 =
     ||
        i_1 := i_1
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_23 =
   PRE
       card(s_1) > 0
@@ -349,16 +349,16 @@ eval_23 =
     ||
        i_1 := i_1 + max(s_1)
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_24 =
   PRE (seq_1 = {} => seq_2 \= {}) & i_1 > 0
   [...]
-</div>
+```
 
 
-<div class="custom-class" markdown="1">
+```
 eval_25 =
   BEGIN
        seq_1 := seq_1 <- int_1
@@ -367,68 +367,68 @@ eval_25 =
     ||
        int_1 := int_1
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 INVARIANT
     [...] & (ready /\ waiting) = {}     // eval_26
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 INVARIANT
     [...] & active /\ (ready \/ waiting) = {}   // eval_27
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 INVARIANT
     [...] & card(active) <= 1   // eval_28
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 INVARIANT
     [...] & (active = {}  => ready = {})    // eval_29
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_30 = 
   PRE active /= {} & ready = {} THEN
        waiting := waiting \/ active || active := {}
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_31(p_PID) = 
   PRE p_PID : PID & p_PID : ready & active /= {} THEN
        waiting := waiting \/ active ||
        active := {p_PID} ||
        ready := ready - {p_PID}
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_32(p_PID) = PRE p_PID : PID & p_PID : waiting THEN
         waiting := waiting - { p_PID }
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_33(p_PID) = PRE p_PID : PID & p_PID /: active THEN 
         waiting := waiting \/ {p_PID}
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_34(p_PID) =
   PRE p_PID : PID & p_PID : waiting & active = {} THEN
        waiting := waiting - {p_PID} ||
        active := {p_PID}
   END
-</div>
+```
 
-<div class="custom-class" markdown="1">
+```
 eval_35(p_PID) =   
   PRE p_PID : PID & p_PID : waiting & active /= {} THEN
        waiting := waiting - {p_PID} ||
        ready := ready \/ {p_PID}
   END
-</div>
+```
