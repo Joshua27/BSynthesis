@@ -3,7 +3,6 @@ package de.hhu.stups.bsynthesis.ui.components;
 import com.google.inject.Inject;
 
 import de.hhu.stups.bsynthesis.prob.GetMachineOperationNamesCommand;
-import de.hhu.stups.bsynthesis.prob.SetSolverTimeoutCommand;
 import de.hhu.stups.bsynthesis.prob.StartSynthesisCommand;
 import de.hhu.stups.bsynthesis.prob.SynthesizeImplicitIfStatements;
 import de.hhu.stups.bsynthesis.services.ApplicationEvent;
@@ -32,7 +31,6 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.BasicNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.StateNode;
 import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
-import de.prob.animator.command.GetPreferenceCommand;
 import de.prob.animator.command.SetPreferenceCommand;
 import de.prob.statespace.StateSpace;
 
@@ -85,7 +83,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
 
   @FXML
   @SuppressWarnings("unused")
+  private MenuItem menuItemNew;
+  @FXML
+  @SuppressWarnings("unused")
   private MenuItem menuItemOpen;
+  @FXML
+  @SuppressWarnings("unused")
+  private MenuItem menuItemSave;
   @FXML
   @SuppressWarnings("unused")
   private MenuItem menuItemSaveAs;
@@ -184,6 +188,12 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     EasyBind.subscribe(modelCheckingService.resultProperty(), modelCheckingResult ->
         proBApiService.synchronizeStateSpaces());
 
+    synthesisContextService.contextEventStream().subscribe(contextEvent -> {
+      if (contextEvent != null && contextEvent.equals(ContextEvent.LOAD)) {
+        loadMachine(contextEvent.getFile());
+      }
+    });
+
     synthesisRunningProperty.bind(proBApiService.synthesisRunningProperty());
   }
 
@@ -195,8 +205,10 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
             .otherwise(modelCheckingService.errorTraceProperty().isNotNull()
                 .or(modelCheckingService.resultProperty().isNull())
                 .or(modelCheckingService.invariantViolationInitialState())));
+    menuItemNew.disableProperty().bind(synthesisContextService.synthesisRunningProperty());
     menuItemOpen.disableProperty().bind(synthesisContextService.synthesisSucceededProperty());
     menuItemClear.disableProperty().bind(disableMenu);
+    menuItemSave.disableProperty().bind(disableMenu.or(uiService.codeHasChangedProperty().not()));
     menuItemSaveAs.disableProperty().bind(disableMenu);
     menuItemExpandAll.disableProperty().bind(disableMenu);
     menuItemShrinkAll.disableProperty().bind(disableMenu);
@@ -233,6 +245,14 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     menuItemSetTimeout.disableProperty().bind(disableMenu);
   }
 
+  @FXML
+  @SuppressWarnings("unused")
+  public void newMachine() {
+    synthesisContextService.contextEventStream().push(ContextEvent.NEW);
+    uiService.applicationEventStream().push(
+        new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
+  }
+
   /**
    * Load a machine from a .mch file.
    */
@@ -247,6 +267,10 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     if (file == null) {
       return;
     }
+    loadMachine(file);
+  }
+
+  private void loadMachine(final File file) {
     DaemonThread.getDaemonThread(() -> {
       uiService.resetCurrentVarBindings();
       synthesisContextService.reset();
@@ -370,11 +394,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void setTimeout() {
     final Optional<String> timeoutOptional = getTimeoutFromDialog();
-    timeoutOptional.ifPresent(timeout -> {
-      final SetSolverTimeoutCommand setSolverTimeoutCommand = new SetSolverTimeoutCommand(timeout);
-      synthesisContextService.getStateSpace().execute(setSolverTimeoutCommand);
-      proBApiService.synchronizeStateSpaces();
-    });
+    timeoutOptional.ifPresent(timeout ->
+        synthesisContextService.setSolverTimeOut(Integer.valueOf(timeout)));
   }
 
   /**
@@ -394,8 +415,20 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void saveAs() {
-    openSynthesisTab();
+    if (uiService.codeHasChangedProperty().get()) {
+      modelCheckingService.reset();
+    }
     synthesisContextService.contextEventStream().push(ContextEvent.SAVE_AS);
+  }
+
+  /**
+   * Save the machine.
+   */
+  @FXML
+  @SuppressWarnings("unused")
+  public void save() {
+    modelCheckingService.reset();
+    synthesisContextService.contextEventStream().push(ContextEvent.SAVE);
   }
 
   /**
@@ -574,7 +607,7 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
    */
   private Optional<String> getOperationNameFromDialog() {
     final TextInputDialog textInputDialog =
-        getTextInputDialog("New Operation", "Set a name for the new operation:");
+        getTextInputDialog("New Operation", "Set a name for the new operation:", "");
     textInputDialog.getEditor().clear();
     final Optional<String> operationNameOptional = textInputDialog.showAndWait();
     if (operationNameOptional.isPresent() && !isValidOperationName(operationNameOptional.get())) {
@@ -588,7 +621,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
    */
   private Optional<String> getTimeoutFromDialog() {
     final TextInputDialog textInputDialog =
-        getTextInputDialog("Set new timeout", "Solver timeout in milliseconds:");
+        getTextInputDialog("Set new timeout", "Solver timeout in milliseconds:",
+            synthesisContextService.getSolverTimeOut().toString());
     final Optional<String> timeoutOptional = textInputDialog.showAndWait();
     if (timeoutOptional.isPresent() && (!NumberUtils.isNumber(timeoutOptional.get())
         || Double.valueOf(timeoutOptional.get()).intValue() <= 0)) {
@@ -598,15 +632,13 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   }
 
   private TextInputDialog getTextInputDialog(final String title,
-                                             final String contentText) {
+                                             final String contentText,
+                                             final String currentValue) {
     final TextInputDialog textInputDialog = new TextInputDialog();
     textInputDialog.setTitle(title);
     textInputDialog.setHeaderText(null);
     textInputDialog.setContentText(contentText);
-    // display the current timeout value as the prompt text
-    final GetPreferenceCommand getPreferenceCommand = new GetPreferenceCommand("TIME_OUT");
-    synthesisContextService.getStateSpace().execute(getPreferenceCommand);
-    textInputDialog.getEditor().setText(getPreferenceCommand.getValue());
+    textInputDialog.getEditor().setText(currentValue);
     return textInputDialog;
   }
 

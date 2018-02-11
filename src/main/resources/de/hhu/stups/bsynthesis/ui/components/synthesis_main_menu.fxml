@@ -9,8 +9,10 @@
 
 <fx:root type="MenuBar" useSystemMenuBar="true" xmlns:fx="http://javafx.com/fxml">
     <Menu text="Machine">
+        <MenuItem fx:id="menuItemNew" text="New..." accelerator="Shortcut+N" onAction="#newMachine"/>
         <MenuItem fx:id="menuItemOpen" text="Open..." accelerator="Shortcut+O" onAction="#loadMachine"/>
-        <MenuItem fx:id="menuItemSaveAs" text="Save as..." accelerator="Shortcut+S" onAction="#saveAs"/>
+        <MenuItem fx:id="menuItemSave" text="Save" accelerator="Shortcut+S" onAction="#save"/>
+        <MenuItem fx:id="menuItemSaveAs" text="Save as..." accelerator="Shortcut+Alt+S" onAction="#saveAs"/>
         <MenuItem text="Close" onAction="#close"/>
     </Menu>
     <Menu text="Verify">

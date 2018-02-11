@@ -14,11 +14,14 @@ import de.prob.statespace.StateSpace;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -76,6 +79,7 @@ public final class CodeView extends VBox {
   private final CodeArea codeArea;
   private final VirtualizedScrollPane scrollPaneCodeAreaSynthesized;
   private final CodeArea codeAreaSynthesized;
+  private final StringProperty machineNameProperty;
 
   @FXML
   @SuppressWarnings("unused")
@@ -109,6 +113,7 @@ public final class CodeView extends VBox {
     codeAreaSynthesized = new CodeArea();
     scrollPaneCodeAreaSynthesized = new VirtualizedScrollPane<>(codeAreaSynthesized);
     userEvaluatedSolutionProperty = new SimpleBooleanProperty();
+    machineNameProperty = new SimpleStringProperty("");
 
     synthesisContextService.userEvaluatedSolutionProperty()
         .bindBidirectional(userEvaluatedSolutionProperty);
@@ -126,6 +131,16 @@ public final class CodeView extends VBox {
 
     initializeCodeArea(codeArea);
     initializeCodeArea(codeAreaSynthesized);
+    codeAreaSynthesized.setEditable(false);
+
+    codeArea.setOnKeyPressed(event -> {
+      if (!event.getCode().equals(KeyCode.CONTROL) && !event.getCode().equals(KeyCode.UP)
+          && !event.getCode().equals(KeyCode.LEFT) && !event.getCode().equals(KeyCode.RIGHT)
+          && !event.getCode().equals(KeyCode.DOWN) && !event.getCode().equals(KeyCode.S)
+          && !event.getCode().equals(KeyCode.ALT)) {
+        uiService.codeHasChangedProperty().set(true);
+      }
+    });
 
     EasyBind.subscribe(synthesisContextService.stateSpaceProperty(),
         stateSpace -> Platform.runLater(this::loadMachineCode));
@@ -136,6 +151,12 @@ public final class CodeView extends VBox {
         return;
       }
       DaemonThread.getDaemonThread(() -> showModifiedMachineCode(newValue)).start();
+    });
+
+    EasyBind.subscribe(machineNameProperty, s -> {
+      if (!s.isEmpty()) {
+        codeArea.setEditable(true);
+      }
     });
 
     EasyBind.subscribe(synthesisContextService.behaviorSatisfiedProperty(), operationName -> {
@@ -165,7 +186,7 @@ public final class CodeView extends VBox {
   }
 
   private void initializeCodeArea(final CodeArea codeArea) {
-    codeArea.setEditable(false);
+    codeArea.setEditable(true);
     codeArea.setParagraphGraphicFactory(LineNumberFactory.get(codeArea));
     codeArea.richChanges()
         .filter(ch -> !ch.getInserted().equals(ch.getRemoved()))
@@ -187,9 +208,31 @@ public final class CodeView extends VBox {
       case SAVE_AS:
         saveMachineCodeAs();
         break;
+      case NEW:
+        newMachine();
+        break;
       default:
         break;
     }
+  }
+
+  private void newMachine() {
+    final FileChooser fileChooser = new FileChooser();
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch"));
+    final File file = fileChooser.showSaveDialog(this.getScene().getWindow());
+    if (file == null) {
+      return;
+    }
+    final String fileName = file.getName().replace(".mch", "");
+    codeArea.clear();
+    fileChooser.setInitialFileName(fileName);
+    machineNameProperty.set(fileName);
+    setNewMachineCode(fileName);
+    saveMachineCode(file.getPath());
+    final ContextEvent contextEvent = ContextEvent.LOAD;
+    contextEvent.setFile(file);
+    synthesisContextService.contextEventStream().push(contextEvent);
   }
 
   private StyleSpans<Collection<String>> computeHighlighting(final String text) {
@@ -225,6 +268,7 @@ public final class CodeView extends VBox {
       return;
     }
     validateSolutionBox.setVisible(true);
+    codeArea.setEditable(false);
     if (!newValue.isEmpty()) {
       executorService.execute(() -> Platform.runLater(() -> {
         splitPaneCodeAreas.getItems().add(1, scrollPaneCodeAreaSynthesized);
@@ -241,6 +285,7 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void applySolution() {
+    codeArea.setEditable(true);
     userEvaluatedSolutionProperty.set(true);
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     codeArea.clear();
@@ -261,6 +306,7 @@ public final class CodeView extends VBox {
   @FXML
   @SuppressWarnings("unused")
   public void discardSolution() {
+    codeArea.setEditable(true);
     userEvaluatedSolutionProperty.set(true);
     splitPaneCodeAreas.getItems().remove(scrollPaneCodeAreaSynthesized);
     synthesisContextService.synthesisSucceededProperty().set(false);
@@ -275,34 +321,42 @@ public final class CodeView extends VBox {
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     final File modelFile = stateSpace.getModel().getModelFile();
     final String destination = modelFile.getPath();
+    saveMachineCode(destination);
+    // reload machine
+    proBApiService.loadMachine(modelFile);
+  }
+
+  private void saveMachineCode(final String destination) {
     try (final Writer fileWriterStream =
              new OutputStreamWriter(new FileOutputStream(destination), StandardCharsets.UTF_8)) {
       fileWriterStream.write(codeArea.getText());
     } catch (final IOException ioException) {
       logger.error("IOException when saving the machine to " + destination, ioException);
     }
-    // reload machine
-    proBApiService.loadMachine(modelFile);
+    uiService.codeHasChangedProperty().set(false);
   }
 
-  @edu.umd.cs.findbugs.annotations.SuppressWarnings(
-      value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "There is no NP")
   private void saveMachineCodeAs() {
-    final Path source = synthesisContextService.getStateSpace().getModel().getModelFile().toPath();
+    final Path source = synthesisContextService.getStateSpace() != null
+        ? synthesisContextService.getStateSpace().getModel().getModelFile().toPath()
+        : Paths.get("");
     final FileChooser fileChooser = new FileChooser();
     fileChooser.getExtensionFilters().add(
         new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch"));
-    fileChooser.setInitialFileName(source.getFileName().toString());
     final File file = fileChooser.showSaveDialog(this.getScene().getWindow());
+    final String fileName = source.getFileName().toString();
+    fileChooser.setInitialFileName(fileName);
+    machineNameProperty.set(fileName);
     if (file != null) {
       final Path destination = file.toPath();
       try {
         Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
       } catch (final IOException exception) {
-        logger.error("Error saving machine " + source.getFileName() + " to "
+        logger.error("Error saving machine " + fileName + " to "
             + destination.toString(), exception);
       }
     }
+    uiService.codeHasChangedProperty().set(false);
   }
 
   private void loadMachineCode() {
@@ -317,6 +371,28 @@ public final class CodeView extends VBox {
       stream.forEach(line -> Platform.runLater(() -> codeArea.appendText(line + "\n")));
     } catch (final IOException exception) {
       logger.error("Error loading machine code", exception);
+    }
+    uiService.codeHasChangedProperty().set(false);
+  }
+
+  /**
+   * Set the default new machine.
+   */
+  private void setNewMachineCode(final String machineName) {
+    if (!machineName.isEmpty()) {
+      codeArea.appendText("MACHINE " + machineName + "\n"
+          + "SETS\n"
+          + " ID={aa,bb}\n"
+          + "CONSTANTS iv\n"
+          + "PROPERTIES\n"
+          + " iv:ID\n"
+          + "VARIABLES xx\n"
+          + "INVARIANT\n"
+          + " xx:ID\n"
+          + "INITIALISATION xx:=iv\n"
+          + "OPERATIONS\n"
+          + "  Set(yy) = PRE yy:ID THEN xx:= yy END\n"
+          + "END\n");
     }
   }
 }
