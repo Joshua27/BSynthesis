@@ -139,7 +139,10 @@ public class LibraryConfiguration extends GridPane implements Initializable {
                               final SynthesisContextService synthesisContextService) {
     this.synthesisContextService = synthesisContextService;
     staticBLibrary = new BLibrary();
-    selectedLibraryComponentsProperty = new SimpleObjectProperty<>(new BLibrary());
+    staticBLibrary.solverTimeOutProperty().bind(synthesisContextService.solverTimeOutProperty());
+    final BLibrary bLibrary = new BLibrary();
+    bLibrary.solverTimeOutProperty().bind(synthesisContextService.solverTimeOutProperty());
+    selectedLibraryComponentsProperty = new SimpleObjectProperty<>(bLibrary);
     disableComponentsButtonsProperty = new SimpleBooleanProperty(true);
 
     Loader.loadFxml(loader, this, "library_configuration.fxml");

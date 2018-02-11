@@ -13,9 +13,11 @@ import de.prob.statespace.StateSpace;
 
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SetProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleSetProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -31,6 +33,8 @@ import org.reactfx.EventSource;
  */
 @Singleton
 public class SynthesisContextService {
+
+  private static final int defaultTimeOut = 2500;
 
   private final EventSource<ContextEvent> contextEventStream;
   private final SetProperty<String> machineVarNamesProperty;
@@ -48,6 +52,7 @@ public class SynthesisContextService {
   private final BooleanProperty synthesisSuspendedProperty;
   private final BooleanProperty useDefaultLibraryProperty;
   private final BooleanProperty modifyInvariantsProperty;
+  private final IntegerProperty solverTimeOutProperty;
   private final StringProperty behaviorSatisfiedProperty;
   private final BooleanProperty userEvaluatedSolution;
   private final BooleanProperty useSingleThreadProperty;
@@ -69,6 +74,7 @@ public class SynthesisContextService {
     synthesisSuspendedProperty = new SimpleBooleanProperty(false);
     synthesisRunningProperty = new SimpleBooleanProperty(false);
     modifiedMachineCodeProperty = new SimpleStringProperty();
+    solverTimeOutProperty = new SimpleIntegerProperty(defaultTimeOut);
     behaviorSatisfiedProperty = new SimpleStringProperty();
     solverBackendProperty = new SimpleObjectProperty<>(SolverBackend.PROB);
     specificationTypeProperty = new SimpleObjectProperty<>(SpecificationType.CLASSICAL_B);
@@ -146,6 +152,13 @@ public class SynthesisContextService {
 
   public BooleanProperty useDefaultLibraryProperty() {
     return useDefaultLibraryProperty;
+  }
+
+  public IntegerProperty solverTimeOutProperty() {
+    return solverTimeOutProperty;
+  }
+  public void setSolverTimeOut(final Integer timeout) {
+    solverTimeOutProperty.set(timeout);
   }
 
   public AnimationSelector getAnimationSelector() {
@@ -233,5 +246,9 @@ public class SynthesisContextService {
 
   public BooleanProperty useSingleThreadProperty() {
     return useSingleThreadProperty;
+  }
+
+  public Integer getSolverTimeOut() {
+    return solverTimeOutProperty.get();
   }
 }

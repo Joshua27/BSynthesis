@@ -89,6 +89,8 @@ public class StartSynthesisCommand extends AbstractCommand {
     positiveExamples = new HashSet<>(startSynthesisCommand.getPositiveExamples());
     negativeExamples = new HashSet<>(startSynthesisCommand.getNegativeExamples());
     selectedLibraryComponents = new BLibrary(startSynthesisCommand.getSelectedLibraryComponents());
+    selectedLibraryComponents.solverTimeOutProperty()
+        .bind(startSynthesisCommand.getSelectedLibraryComponents().solverTimeOutProperty());
     solverBackend = startSynthesisCommand.getSolverBackend();
     currentVarNames = startSynthesisCommand.getCurrentVarNames();
     synthesizedOperations = new HashSet<>();
@@ -105,6 +107,7 @@ public class StartSynthesisCommand extends AbstractCommand {
     } else {
       pto.openTerm(PROLOG_COMMAND_NAME);
     }
+    pto.printNumber(selectedLibraryComponents.getSolverTimeOut());
     selectedLibraryComponents.printToPrologTerm(pto);
     pto.printAtom(selectedLibraryComponents.doNotUseConstantsProperty().get()
         ? "yes" : "no")

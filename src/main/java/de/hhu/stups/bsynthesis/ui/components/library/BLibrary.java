@@ -50,6 +50,7 @@ public class BLibrary {
   private final BooleanProperty useDefaultLibraryProperty;
   private final BooleanProperty doNotUseConstantsProperty;
   private final IntegerProperty defaultLibraryExpansionProperty;
+  private final IntegerProperty solverTimeOutProperty;
 
   /**
    * Initialize library settings properties.
@@ -58,6 +59,7 @@ public class BLibrary {
     considerIfStatementsProperty = new SimpleObjectProperty<>(ConsiderIfType.NONE);
     useDefaultLibraryProperty = new SimpleBooleanProperty(true);
     defaultLibraryExpansionProperty = new SimpleIntegerProperty(1);
+    solverTimeOutProperty = new SimpleIntegerProperty();
     doNotUseConstantsProperty = new SimpleBooleanProperty(false);
   }
 
@@ -65,6 +67,7 @@ public class BLibrary {
    * Deep copy of a given {@link BLibrary}.
    */
   public BLibrary(final BLibrary library) {
+    solverTimeOutProperty = new SimpleIntegerProperty();
     predicatesProperty.addAll(library.getPredicates());
     setsProperty.addAll(library.getSets());
     numbersProperty.addAll(library.getNumbers());
@@ -273,6 +276,10 @@ public class BLibrary {
     return defaultLibraryExpansionProperty;
   }
 
+  public IntegerProperty solverTimeOutProperty() {
+    return solverTimeOutProperty;
+  }
+
   public SetProperty<LibraryComponent> predicatesProperty() {
     return predicatesProperty;
   }
@@ -327,5 +334,9 @@ public class BLibrary {
 
   public void setLibraryExpansion(final int libraryExpansion) {
     defaultLibraryExpansionProperty().set(libraryExpansion);
+  }
+
+  public Integer getSolverTimeOut() {
+    return solverTimeOutProperty.get();
   }
 }
