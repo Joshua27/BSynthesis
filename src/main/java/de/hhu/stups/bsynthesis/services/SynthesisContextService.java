@@ -158,9 +158,6 @@ public class SynthesisContextService {
   public IntegerProperty solverTimeOutProperty() {
     return solverTimeOutProperty;
   }
-  public void setSolverTimeOut(final Integer timeout) {
-    solverTimeOutProperty.set(timeout);
-  }
 
   public AnimationSelector getAnimationSelector() {
     return animationSelectorProperty.get();
@@ -251,5 +248,9 @@ public class SynthesisContextService {
 
   public Integer getSolverTimeOut() {
     return solverTimeOutProperty.get();
+  }
+
+  public void setSolverTimeOut(final Integer timeout) {
+    solverTimeOutProperty.set(timeout);
   }
 }

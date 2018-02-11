@@ -247,6 +247,9 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     menuItemSetTimeout.disableProperty().bind(disableMenu);
   }
 
+  /**
+   * Create a new default machine.
+   */
   @FXML
   @SuppressWarnings("unused")
   public void newMachine() {
