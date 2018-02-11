@@ -38,6 +38,7 @@ public class UiService {
   private final StateNodeFactory stateNodeFactory;
   private final TransitionNodeFactory transitionNodeFactory;
 
+  private final BooleanProperty codeHasChangedProperty;
   private final BooleanProperty zoomInEnabledProperty;
   private final BooleanProperty zoomOutEnabledProperty;
   private final MapProperty<String, BooleanProperty> currentVarStatesMapProperty;
@@ -61,6 +62,7 @@ public class UiService {
     validationPaneEventSource = new EventSource<>();
     applicationEventStream = new EventSource<>();
     zoomEventStream = new EventSource<>();
+    codeHasChangedProperty = new SimpleBooleanProperty(false);
     zoomInEnabledProperty = new SimpleBooleanProperty();
     zoomOutEnabledProperty = new SimpleBooleanProperty();
     addNodeConnectionEventSource = new EventSource<>();
@@ -125,6 +127,10 @@ public class UiService {
     if (!optionalConsideredVar.isPresent()) {
       ignoreVarProperty.set(false);
     }
+  }
+
+  public BooleanProperty codeHasChangedProperty() {
+    return codeHasChangedProperty;
   }
 
   public BooleanProperty zoomInEnabledProperty() {
