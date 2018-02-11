@@ -8,6 +8,7 @@ import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import de.hhu.stups.bsynthesis.ui.ContextEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 
 import de.prob.statespace.StateSpace;
@@ -201,7 +202,7 @@ public final class CodeView extends VBox {
   }
 
   private void handleContextEvent(final ContextEvent contextEvent) {
-    switch (contextEvent) {
+    switch (contextEvent.getContextEventType()) {
       case SAVE:
         saveMachineCode();
         break;
@@ -230,8 +231,7 @@ public final class CodeView extends VBox {
     machineNameProperty.set(fileName);
     setNewMachineCode(fileName);
     saveMachineCode(file.getPath());
-    final ContextEvent contextEvent = ContextEvent.LOAD;
-    contextEvent.setFile(file);
+    final ContextEvent contextEvent = new ContextEvent(ContextEventType.LOAD, file);
     synthesisContextService.contextEventStream().push(contextEvent);
   }
 
@@ -293,7 +293,8 @@ public final class CodeView extends VBox {
       codeArea.appendText(codeAreaSynthesized.getText());
       saveMachineCode();
     });
-    synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
+    synthesisContextService.contextEventStream()
+        .push(new ContextEvent(ContextEventType.RESET_CONTEXT, null));
     synthesisContextService.synthesisSucceededProperty().set(false);
     proBApiService.reset();
     validateSolutionBox.setVisible(false);
@@ -340,6 +341,9 @@ public final class CodeView extends VBox {
     final Path source = synthesisContextService.getStateSpace() != null
         ? synthesisContextService.getStateSpace().getModel().getModelFile().toPath()
         : Paths.get("");
+    if (source == null) {
+      return;
+    }
     final FileChooser fileChooser = new FileChooser();
     fileChooser.getExtensionFilters().add(
         new FileChooser.ExtensionFilter("Machine (*.mch)", "*.mch"));

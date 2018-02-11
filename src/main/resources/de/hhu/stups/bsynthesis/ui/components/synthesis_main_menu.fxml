@@ -22,7 +22,7 @@
                   onAction="#stopModelChecking"/>
         <MenuItem fx:id="menuItemNodesFromTrace" text="Show Nodes from Trace"
                   onAction="#showNodesFromTrace"/>
-        <CheckMenuItem fx:id="checkMenuItemIgnoreChecker" text="Ignore Model Checker"/>
+        <CheckMenuItem fx:id="checkMenuItemIgnoreChecker" text="Delay Model Checking"/>
         <MenuItem fx:id="menuItemVerifyAllNodes" text="Verify all nodes"
                   onAction="#verifyAllNodes"/>
     </Menu>

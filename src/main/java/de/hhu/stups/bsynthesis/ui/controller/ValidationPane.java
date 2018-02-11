@@ -11,7 +11,7 @@ import de.hhu.stups.bsynthesis.services.ServiceDelegator;
 import de.hhu.stups.bsynthesis.services.SynthesisContextService;
 import de.hhu.stups.bsynthesis.services.UiService;
 import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
-import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import de.hhu.stups.bsynthesis.ui.ContextEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.NodesFromTracePositionGenerator;
@@ -120,7 +120,7 @@ public class ValidationPane extends Pane implements Initializable {
     });
 
     synthesisContextService.contextEventStream().subscribe(contextEvent -> {
-      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+      if (ContextEventType.RESET_CONTEXT.equals(contextEvent.getContextEventType())) {
         getNodes().clear();
       }
     });
@@ -510,7 +510,7 @@ public class ValidationPane extends Pane implements Initializable {
       // state node
       executorService.execute(new Task<Boolean>() {
         @Override
-        protected Boolean call() throws Exception {
+        protected Boolean call() {
           final StateNode stateNode = (StateNode) node;
           if (stateNode.isTentative()) {
             stateNode.validateState();
@@ -530,7 +530,7 @@ public class ValidationPane extends Pane implements Initializable {
     // transition node
     executorService.execute((new Task<Boolean>() {
       @Override
-      protected Boolean call() throws Exception {
+      protected Boolean call() {
         final TransitionNode transitionNode = (TransitionNode) node;
         transitionNode.validateTransition();
         Platform.runLater(() -> {

@@ -23,6 +23,7 @@ import de.hhu.stups.bsynthesis.services.ValidationPaneEvent;
 import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.hhu.stups.bsynthesis.services.VisualizationType;
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import de.hhu.stups.bsynthesis.ui.ContextEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
@@ -189,7 +190,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
         proBApiService.synchronizeStateSpaces());
 
     synthesisContextService.contextEventStream().subscribe(contextEvent -> {
-      if (contextEvent != null && contextEvent.equals(ContextEvent.LOAD)) {
+      if (contextEvent != null
+          && contextEvent.getContextEventType().equals(ContextEventType.LOAD)) {
         loadMachine(contextEvent.getFile());
       }
     });
@@ -248,7 +250,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @FXML
   @SuppressWarnings("unused")
   public void newMachine() {
-    synthesisContextService.contextEventStream().push(ContextEvent.NEW);
+    synthesisContextService.contextEventStream()
+        .push(new ContextEvent(ContextEventType.NEW, null));
     uiService.applicationEventStream().push(
         new ApplicationEvent(ApplicationEventType.OPEN_TAB, ControllerTab.CODEVIEW));
   }
@@ -278,7 +281,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
       final SpecificationType specificationType = proBApiService.loadMachine(file);
       if (specificationType != null) {
         synthesisContextService.setSpecificationType(specificationType);
-        synthesisContextService.contextEventStream().push(ContextEvent.RESET_CONTEXT);
+        synthesisContextService.contextEventStream()
+            .push(new ContextEvent(ContextEventType.RESET_CONTEXT, null));
       }
     }).start();
   }
@@ -418,7 +422,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
     if (uiService.codeHasChangedProperty().get()) {
       modelCheckingService.reset();
     }
-    synthesisContextService.contextEventStream().push(ContextEvent.SAVE_AS);
+    synthesisContextService.contextEventStream()
+        .push(new ContextEvent(ContextEventType.SAVE_AS, null));
   }
 
   /**
@@ -428,7 +433,8 @@ public class SynthesisMainMenu extends MenuBar implements Initializable {
   @SuppressWarnings("unused")
   public void save() {
     modelCheckingService.reset();
-    synthesisContextService.contextEventStream().push(ContextEvent.SAVE);
+    synthesisContextService.contextEventStream()
+        .push(new ContextEvent(ContextEventType.SAVE, null));
   }
 
   /**

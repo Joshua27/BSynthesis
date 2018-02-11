@@ -1,6 +1,7 @@
 package de.hhu.stups.bsynthesis.services;
 
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import de.hhu.stups.bsynthesis.ui.ContextEventType;
 import org.fxmisc.easybind.EasyBind;
 
 import javax.inject.Inject;
@@ -45,7 +46,7 @@ public class ServiceDelegator {
     synthesisContextService.useSingleThreadProperty()
         .bindBidirectional(proBApiService.useSingleThreadProperty());
     synthesisContextService.contextEventStream().subscribe(contextEvent -> {
-      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+      if (ContextEventType.RESET_CONTEXT.equals(contextEvent.getContextEventType())) {
         modelCheckingService.reset();
       }
     });

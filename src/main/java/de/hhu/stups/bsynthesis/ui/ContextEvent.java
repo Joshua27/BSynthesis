@@ -2,15 +2,22 @@ package de.hhu.stups.bsynthesis.ui;
 
 import java.io.File;
 
-public enum ContextEvent {
-  SAVE, SAVE_AS, NEW , LOAD , SYNTHESIS_SUCCEEDED, RESET_CONTEXT;
-  private File file;
+public class ContextEvent {
+
+  private final ContextEventType contextEventType;
+  private final File file;
+
+  public ContextEvent(final ContextEventType contextEventType,
+                      final File file) {
+    this.contextEventType = contextEventType;
+    this.file = file;
+  }
+
+  public ContextEventType getContextEventType() {
+    return contextEventType;
+  }
 
   public File getFile() {
     return file;
-  }
-
-  public void setFile(final File file) {
-    this.file = file;
   }
 }

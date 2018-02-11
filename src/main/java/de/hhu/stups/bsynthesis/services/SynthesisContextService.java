@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import de.hhu.stups.bsynthesis.ui.ContextEvent;
+import de.hhu.stups.bsynthesis.ui.ContextEventType;
 import de.hhu.stups.bsynthesis.ui.SynthesisType;
 import de.hhu.stups.bsynthesis.ui.components.library.BLibrary;
 import de.prob.model.representation.AbstractElement;
@@ -96,7 +97,7 @@ public class SynthesisContextService {
       setMachineVarNames(variableNames);
     });
     contextEventStream.subscribe(contextEvent -> {
-      if (ContextEvent.RESET_CONTEXT.equals(contextEvent)) {
+      if (ContextEventType.RESET_CONTEXT.equals(contextEvent.getContextEventType())) {
         reset();
       }
     });
