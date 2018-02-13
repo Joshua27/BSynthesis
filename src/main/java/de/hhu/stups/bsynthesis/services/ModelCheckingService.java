@@ -37,15 +37,16 @@ import org.reactfx.EventSource;
 public class ModelCheckingService implements IModelCheckListener {
 
   private final BooleanProperty runningProperty;
-  private final ObjectProperty<ModelCheckingResult> resultProperty;
-  private final EventSource<StateSpace> stateSpaceEventStream;
-  private final ObjectProperty<StateSpaceStats> stateSpaceStatsProperty;
+  private final BooleanProperty indicatorPresentProperty;
+  private final BooleanProperty invariantViolationInitialState;
   private final IntegerProperty processedNodesProperty;
   private final IntegerProperty totalNodesProperty;
-  private final BooleanProperty indicatorPresentProperty;
+  private final ObjectProperty<ModelCheckingResult> resultProperty;
+  private final ObjectProperty<StateSpaceStats> stateSpaceStatsProperty;
   private final ObjectProperty<Trace> errorTraceProperty;
   private final ObjectProperty<DeadlockRepair> deadlockRepairProperty;
-  private BooleanProperty invariantViolationInitialState;
+  private final EventSource<StateSpace> stateSpaceEventStream;
+
   private ModelChecker checker;
   private IModelCheckJob currentJob;
 
