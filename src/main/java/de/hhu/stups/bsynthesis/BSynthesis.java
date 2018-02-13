@@ -25,7 +25,7 @@ public class BSynthesis extends Application {
   }
 
   @Override
-  public void start(final Stage stage) throws Exception {
+  public void start(final Stage stage) {
     System.setProperty("logback.configurationFile", "config/logging.xml");
 
     injector = Guice.createInjector(new BSynthesisModule());
@@ -53,6 +53,7 @@ public class BSynthesis extends Application {
     uiService.applicationEventStream().push(
         new ApplicationEvent(ApplicationEventType.CLOSE_APP));
     Platform.exit();
+    // TODO: fix this, the model checker seems to be not closed properly
     System.exit(0);
   }
 }
