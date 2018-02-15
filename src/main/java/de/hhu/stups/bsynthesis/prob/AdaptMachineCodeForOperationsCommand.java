@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class AdaptMachineCodeForOperationsCommand extends AbstractCommand {
 
-  private static final String PROLOG_COMMAND_NAME = "adapt_machine_code_for_operations";
+  private static final String PROLOG_COMMAND_NAME = "adapt_machine_code_for_operations_";
   private static final String MACHINE_CODE = "NewMachineCode";
 
   private final Set<CompoundPrologTerm> operations;

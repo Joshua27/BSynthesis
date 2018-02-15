@@ -33,10 +33,10 @@ import java.util.stream.Collectors;
 
 public class StartSynthesisCommand extends AbstractCommand {
 
-  private static final String PROLOG_COMMAND_NAME = "start_synthesis_from_ui";
+  private static final String PROLOG_COMMAND_NAME = "start_synthesis_from_ui_";
   private static final String DISTINGUISHING_EXAMPLE = "Distinguishing";
   private static final String MODIFIED_MACHINE = "NewMachine";
-  private static final String PROLOG_COMMAND_NAME2 = "start_synthesis_single_operation_from_ui";
+  private static final String PROLOG_COMMAND_NAME2 = "start_synthesis_single_operation_from_ui_";
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String currentOperation;

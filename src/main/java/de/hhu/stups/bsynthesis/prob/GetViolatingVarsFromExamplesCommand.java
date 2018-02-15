@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
 
 public class GetViolatingVarsFromExamplesCommand extends AbstractCommand {
 
-  private static final String PROLOG_COMMAND_NAME = "get_invariant_violating_vars_from_examples";
+  private static final String PROLOG_COMMAND_NAME = "get_invariant_violating_vars_from_examples_";
   private static final String VIOLATING_VAR_NAMES = "ViolatingVarNames";
 
   private final Set<InputOutputExample> validExamples;

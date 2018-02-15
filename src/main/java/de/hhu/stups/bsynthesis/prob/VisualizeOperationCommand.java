@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class VisualizeOperationCommand extends AbstractCommand {
 
   private static final String PROLOG_COMMAND_NAME =
-      "get_valid_and_invalid_equality_predicates_for_operation";
+      "get_valid_and_invalid_equality_predicates_for_operation_";
   private static final String VALID_TRANSITIONS_EQS = "ValidPrettyEqualityTuples";
   private static final String INVALID_STATES_EQS = "InvalidPrettyEqualities";
   private static final String IGNORED_IDS = "IgnoredIDs";

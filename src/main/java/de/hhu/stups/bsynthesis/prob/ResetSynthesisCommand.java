@@ -10,7 +10,7 @@ import de.prob.prolog.term.PrologTerm;
  */
 public class ResetSynthesisCommand extends AbstractCommand {
 
-  private static final String PROLOG_COMMAND_NAME = "reset_synthesis_context";
+  private static final String PROLOG_COMMAND_NAME = "reset_synthesis_context_";
 
   public ResetSynthesisCommand() {
     //

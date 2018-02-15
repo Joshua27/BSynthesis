@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class VisualizeInvariantsCommand extends AbstractCommand {
 
   private static final String PROLOG_COMMAND_NAME =
-      "get_valid_and_invalid_equality_predicates_for_invariants";
+      "get_valid_and_invalid_equality_predicates_for_invariants_";
   private static final String VALID_STATES_EQS = "ValidPrettyEqualities";
   private static final String INVALID_STATES_EQS = "InvalidPrettyEqualities";
 
