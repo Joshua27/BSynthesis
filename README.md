@@ -24,10 +24,10 @@ Guided by examples of positive and negative behavior we strengthen preconditions
 Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
 All this is done using constant user feedback, yielding an interactive assistant.
 
-# Requirements
+# Minimum Requirements
 
-- Java 8 Oracle JDK
-- Gradle 3.2.1 (or newer)
+- JDK 8
+- Gradle 3.2.1
 
 # Start the Application
 
