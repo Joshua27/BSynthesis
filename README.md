@@ -58,15 +58,15 @@ To that effect, some of the programs are constructed, while others refer to real
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
 |                      | (in seconds)  | (in seconds) | (in seconds)    | (in seconds) |  |
-| 1                    | 0.013         | 0.5     | 0.673           | 0.5     | 2        |
-| 2                    | 0.381         | 0.5     | 4.920           | 5       | 4        |
-| 3                    | 0.661         | 0.5     | 12.06           | 10      | 10       |
-| 4                    | 0.061         | 0.5     | 3.416           | 4       | 4        |
-| 5                    | 2.569         | 2.5     | 18.37           | 4       | 4        |
-| 7                    | 0.830         | 0.5     | 57.26           | 4       | 4        |
-| 8                    | 9.506         | 2.5     | Timeout         | max       | 5        |
-| 9                    | 10.670        | 8       | 11.32           | 6       | 6        |
-| 10                   | 463.860       | 240     | Timeout         | max       | 6        |
+| 1                    | 2.569         | 2.5     | 18.37           | 4       | 4        |
+| 2                    | 0.830         | 0.5     | 57.26           | 4       | 4        |
+| 3                    | 9.506         | 2.5     | Timeout         | max       | 5        |
+| 4                    | 10.670        | 8       | 11.32           | 6       | 6        |
+| 5                   | 463.860       | 240     | Timeout         | max       | 6        |
+| 6                    | 0.013         | 0.5     | 0.673           | 0.5     | 2        |
+| 7                    | 0.381         | 0.5     | 4.920           | 5       | 4        |
+| 8                    | 0.661         | 0.5     | 12.06           | 10      | 10       |
+| 9                    | 0.061         | 0.5     | 3.416           | 4       | 4        |
 | 11                   | 434.210       | 240     | 510.197         | 6       | 6        |
 | 12                   | 0.265         | 0.5     | 46.541          | 4       | 4        |
 | 13                   | 3.706         | 2.5     | 155.18          | 4       | 4        |
@@ -97,44 +97,6 @@ To that effect, some of the programs are constructed, while others refer to real
 ```
 eval_1 =
   BEGIN
-       i_1 := i_1 + 1
-    ||
-       i_2 := i_2
-  END
-```
-
-```
-eval_2 =
-  PRE i_1 > 0 & i_2 > 0 THEN
-       i_1 := i_1 - 1
-    ||
-       i_2 := i_2 - 1
-  END
-```
-
-```
-eval_3 =
-  PRE i_1 > 1 & i_2 > 2 THEN
-       i_1 := i_1 - 2
-    ||
-       i_2 := i_2 - 3
-  END
-```
-
-```
-eval_4 =
-  BEGIN
-       b := b
-    ||
-       s := s \/ {2}
-    ||
-       i := i * 4
-  END
-```
-
-```
-eval_5 =
-  BEGIN
        s_1 := s_1 \/ s_2
     ||
        s_2 := s_1 - s_2
@@ -146,7 +108,7 @@ eval_5 =
 ```
 
 ```
-eval_6 =
+eval_2 =
   BEGIN
        s_1 := s_1 \/ (s_2 /\ s_3)
     ||
@@ -157,7 +119,7 @@ eval_6 =
 ```
 
 ```
-eval_7 =
+eval_3 =
   BEGIN
        s_1 := s_1
     ||
@@ -172,7 +134,7 @@ eval_7 =
 ```
 
 ```
-eval_8 =
+eval_4 =
   BEGIN
        s_1 := s_1 - s_2
     ||
@@ -190,18 +152,56 @@ eval_8 =
 
 
 ```
-eval_9 =
+eval_5 =
   BEGIN
        a := IF a > 9 THEN a - -3 ELSE a + -3 END
   END
 ```
 
 ```
-eval_10 =
+eval_6 =
   BEGIN
        s_1 := IF i_1 < 10 THEN s_1 ELSE s_1 \/ {2} END
     ||
        i_1 := IF i_1 < 10 THEN i_1 ELSE i_1 + 2 END
+  END
+```
+
+```
+eval_6 =
+  BEGIN
+       i_1 := i_1 + 1
+    ||
+       i_2 := i_2
+  END
+```
+
+```
+eval_7 =
+  PRE i_1 > 0 & i_2 > 0 THEN
+       i_1 := i_1 - 1
+    ||
+       i_2 := i_2 - 1
+  END
+```
+
+```
+eval_8 =
+  PRE i_1 > 1 & i_2 > 2 THEN
+       i_1 := i_1 - 2
+    ||
+       i_2 := i_2 - 3
+  END
+```
+
+```
+eval_9 =
+  BEGIN
+       b := b
+    ||
+       s := s \/ {2}
+    ||
+       i := i * 4
   END
 ```
 
