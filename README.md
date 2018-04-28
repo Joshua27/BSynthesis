@@ -150,14 +150,6 @@ eval_4 =
   END
 ```
 
-
-```
-eval_5 =
-  BEGIN
-       a := IF a > 9 THEN a - -3 ELSE a + -3 END
-  END
-```
-
 ```
 eval_6 =
   BEGIN
