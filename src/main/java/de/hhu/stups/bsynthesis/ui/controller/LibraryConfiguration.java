@@ -347,8 +347,6 @@ public class LibraryConfiguration extends GridPane implements Initializable {
         considerIfType -> {
           if (considerIfType.isImplicit()) {
             cbConsiderImplicitIf.setSelected(true);
-          } else if (considerIfType.isImplicit()) {
-            cbConsiderExplicitIf.setSelected(true);
           } else {
             cbConsiderExplicitIf.setSelected(false);
             cbConsiderImplicitIf.setSelected(false);
