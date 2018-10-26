@@ -7,21 +7,20 @@
 
 # Background
 
-For safety or business critical systems a software bug can lead to extensive safety, security or financial problems.
-To overcome these issues, one can use a rigorous, formal development method.
-In particular, one might use a model driven approach, centering around thorough specification of the software to be developed.
-This involves describing the system at various refinement levels and specifying system properties, for instance, in the form of invariants or preconditions for operations.
-However, writing a formal model is a complicated and time-consuming task.
-Usually, one successively refines a model with the help of provers or model checkers.
-In case an error is found or if a proof fails, the model has to be adapted.
-In general, finding the appropriate set of changes is non-trivial.
-Relating to the formal specification language B it is conventional to think in terms of states describing explicit values of the machine variables at a time.
-These states can straightforwardly be used for synthesis.
+Writing a formal model is a complicated and time-consuming
+task. Usually, one successively refines a model with the help of proof,
+animation and model checking. In case an error such as an invariant
+violation is found, the model has to be adapted. However, finding the
+appropriate set of changes is often non-trivial.
+We propose to partially automate the process by combining synthesis
+with explicit model checking and implement it in the context of the
+B method:
+Guided by examples of positive and negative behavior, we
+strengthen preconditions of operations or relax invariants of the model
+appropriately. Moreover, by collecting initial examples from the user, we
+synthesize new operations from scratch or adapt existing ones. All this is
+done using user feedback, yielding an interactive assistant.
 
-Hence, we propose partially automating the development process of formal models using synthesis:
-Guided by examples of positive and negative behavior we strengthen preconditions or relax invariants appropriately.
-Moreover, by collecting initial examples from the user we generate operations from scratch or adapt existing ones.
-All this is done using constant user feedback, yielding an interactive assistant.
 
 # Minimum Requirements
 
@@ -53,6 +52,9 @@ Furthermore, we provide as many examples as necessary to find a unique solution 
 We used a maximum timeout of 10 minutes.
 There is no standardized set of benchmarks for synthesizing classical B programs.
 To that effect, some of the programs are constructed, while others refer to real life applications like a scheduler managing the states of several processes.
+
+Because we do not use a custom domain-specific language, but the full B language, the current tool may not perform well on larger models, especially when using the default library configuration.
+
 
 | Program              | Exact Library | Timeout      | Default Library | Timeout | Examples |
 |----------------------|---------------|---------|-----------------|---------|----------|
