@@ -13,6 +13,7 @@ import de.hhu.stups.bsynthesis.services.ValidationPaneEventType;
 import de.hhu.stups.bsynthesis.ui.Loader;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
+import de.prob.animator.domainobjects.FormulaExpand;
 import de.prob.animator.domainobjects.IEvalElement;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
@@ -239,7 +240,7 @@ public class StateNode extends BasicNode implements Initializable {
         tableViewStateMapProperty.put(machineVarName, "");
         tableViewState.getItems().add(new StateTableCell(
             machineVarName, getState() != null && getState().isInitialised()
-            ? getState().eval(machineVarName).toString() : "",
+            ? getState().eval(machineVarName, FormulaExpand.EXPAND).toString() : "",
             uiService.currentVarStatesMapProperty().get(machineVarName)));
       });
     }
@@ -455,6 +456,6 @@ public class StateNode extends BasicNode implements Initializable {
       }
     });
     final String predicate = Joiner.on(" & ").join(predicateStringSet);
-    return new ClassicalB(predicate);
+    return new ClassicalB(predicate, FormulaExpand.EXPAND);
   }
 }

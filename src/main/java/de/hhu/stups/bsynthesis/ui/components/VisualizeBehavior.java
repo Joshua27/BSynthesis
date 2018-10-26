@@ -16,6 +16,7 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
+import de.prob.animator.domainobjects.FormulaExpand;
 import de.prob.statespace.State;
 import de.prob.statespace.StateSpace;
 import javafx.beans.property.ListProperty;
@@ -121,7 +122,8 @@ public class VisualizeBehavior {
   private State getStateForEqualityPred(final String stateEquality) {
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     final FindStateCommand findStateCommand =
-        new FindStateCommand(stateSpace, new ClassicalB(stateEquality), false);
+        new FindStateCommand(stateSpace, new ClassicalB(stateEquality, FormulaExpand.EXPAND),
+            false);
     stateSpace.execute(findStateCommand);
     return stateSpace.getState(findStateCommand.getStateId());
   }
@@ -189,11 +191,13 @@ public class VisualizeBehavior {
       final TransitionNodeFactory transitionNodeFactory) {
     final StateSpace stateSpace = synthesisContextService.getStateSpace();
     final FindStateCommand findInputStateCommand =
-        new FindStateCommand(stateSpace, new ClassicalB(varValueTuple.getVar()), false);
+        new FindStateCommand(stateSpace, new ClassicalB(varValueTuple.getVar(),
+            FormulaExpand.EXPAND), false);
     stateSpace.execute(findInputStateCommand);
     final State inputState = stateSpace.getState(findInputStateCommand.getStateId());
     final FindStateCommand findOutputStateCommand =
-        new FindStateCommand(stateSpace, new ClassicalB(varValueTuple.getValue()), false);
+        new FindStateCommand(stateSpace, new ClassicalB(varValueTuple.getValue(),
+            FormulaExpand.EXPAND), false);
     stateSpace.execute(findOutputStateCommand);
     final int offsetX = 50 + (validCol != 0 ? 25 : 0);
     final int offsetY = 50 + (validRow != 0 ? 25 : 0);

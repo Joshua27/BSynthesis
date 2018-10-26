@@ -14,6 +14,7 @@ import de.hhu.stups.bsynthesis.ui.components.nodes.TransitionNode;
 import de.hhu.stups.bsynthesis.ui.controller.ValidationPane;
 import de.prob.animator.command.FindStateCommand;
 import de.prob.animator.domainobjects.ClassicalB;
+import de.prob.animator.domainobjects.FormulaExpand;
 import de.prob.exception.ProBError;
 import de.prob.scripting.Api;
 import de.prob.scripting.ModelTranslationError;
@@ -307,7 +308,8 @@ public class ProBApiService {
     }
     synthesisRunningProperty().set(false);
     final FindStateCommand inputStateCommand = new FindStateCommand(
-        stateSpace, new ClassicalB(distinguishingExample.getInputStateEquality()), false);
+        stateSpace, new ClassicalB(distinguishingExample.getInputStateEquality(),
+        FormulaExpand.EXPAND), false);
     stateSpace.execute(inputStateCommand);
     final State inputState = stateSpace.getState(inputStateCommand.getStateId());
     if (handleDistinguishingTransition(synthesisType, stateSpace, inputState,
@@ -343,7 +345,8 @@ public class ProBApiService {
         new Point2D(ValidationPane.WIDTH / 2, ValidationPane.HEIGHT / 2);
     if (!distExample.getOutputTuples().isEmpty()) {
       final FindStateCommand outputStateCommand = new FindStateCommand(
-          stateSpace, new ClassicalB(distExample.getOutputStateEquality()), false);
+          stateSpace, new ClassicalB(distExample.getOutputStateEquality(), FormulaExpand.EXPAND),
+          false);
       stateSpace.execute(outputStateCommand);
       final State outputState = stateSpace.getState(outputStateCommand.getStateId());
       final TransitionNode transitionNode = uiService.getTransitionNodeFactory()
@@ -384,7 +387,7 @@ public class ProBApiService {
                                       final StartSynthesisCommand startSynthesisCommand) {
     final Task<Void> synthesisTask = new Task<Void>() {
       @Override
-      protected Void call() throws Exception {
+      protected Void call() {
         if (synthesisSucceededProperty.get()) {
           return null;
         }
