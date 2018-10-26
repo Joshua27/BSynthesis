@@ -121,20 +121,21 @@ public class ModelCheckingProgressIndicator extends GridPane implements Initiali
   private void handleUncoveredError(final ModelCheckingResult modelCheckingResult) {
     final String affectedOperation =
         modelCheckingResult.getTrace().getCurrentTransition().getName();
+    final String initMachineString = "$initialise_machine";
     if (modelCheckingResult.getUncoveredError().isInvariantViolation()
-        && !"$initialise_machine".equals(affectedOperation)) {
+        && !initMachineString.equals(affectedOperation)) {
       synthesisContextService.setCurrentOperation(affectedOperation);
       statusTextProperty.set("Invariant violation found.");
       return;
     }
     if (modelCheckingResult.getUncoveredError().isInvariantViolation()
-        && "$initialise_machine".equals(affectedOperation)) {
+        && initMachineString.equals(affectedOperation)) {
       statusTextProperty.set("Invariant violation in initial state.\n"
           + "This needs to be resolved manually.");
       modelCheckingService.invariantViolationInitialState().set(true);
       return;
     }
-    if ("$initialise_machine".equals(affectedOperation)) {
+    if (initMachineString.equals(affectedOperation)) {
       // deadlock in initialization state: the only thing we can do is to synthesize a new operation
       statusTextProperty.set("Deadlock found in initialization state.");
       modelCheckingService.deadlockRepairProperty().set(DeadlockRepair.RESOLVE_DEADLOCK);
